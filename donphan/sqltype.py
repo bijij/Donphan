@@ -63,6 +63,14 @@ class SQLType:
         return cls(str, 'MONEY')
 
     @classmethod
+    def CharacterVarying(cls, n: int = 2000):
+        return cls(str, f'CHARACTER VARYING({n})')
+
+    @classmethod
+    def Character(cls):
+        return cls(str, 'CHARACTER')
+
+    @classmethod
     @default_for(str)
     def Text(cls):
         return cls(str, 'TEXT')
@@ -85,6 +93,10 @@ class SQLType:
     @default_for(dict)
     def JSONB(cls):
         return cls(dict, 'JSONB')
+
+    # Aliases
+    Char = Character
+    VarChar = CharacterVarying
 
     @classmethod
     def from_python_type(cls, python_type: type):
