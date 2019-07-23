@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import asyncpg
 
@@ -179,6 +179,21 @@ class Table(metaclass=_TableMeta):
 
         return (" ".join(builder), verified.values())
 
+    @classmethod
+    def _query_fetch_where(cls, query, order_by, limit) -> str:
+        """Generates the SELECT FROM stub"""
+
+        builder = [f'SELECT * FROM {cls._name} WHERE']
+        builder.append(query)
+
+        if order_by is not None:
+            builder.append(f'ORDER BY {order_by}')
+
+        if limit is not None:
+            builder.append(f'LIMIT {limit}')
+
+        return " ".join(builder)
+
     # endregion
 
     @classmethod
@@ -221,6 +236,20 @@ class Table(metaclass=_TableMeta):
             return await connection.prepare(query)
 
     @classmethod
+    async def fetch(cls, connection: asyncpg.Connection = None, order_by: str = None, limit: int = None, **kwargs) -> List[asyncpg.Record]:
+        """Fetches a list of records from the database.
+
+        Args:
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+            order_by (str, optional): Sets the `ORDER BY` constraint.
+            limit (int, optional): Sets the maximum number of records to fetch.
+        """
+        query, values = cls._query_fetch(order_by, limit, **kwargs)
+        async with MaybeAcquire(connection) as connection:
+            return await connection.fetch(query, *values)
+
+    @classmethod
     async def fetchall(cls, connection: asyncpg.Connection = None, order_by: str = None, limit: int = None) -> List[asyncpg.Record]:
         """Fetches a list of all records from the database.
 
@@ -233,6 +262,49 @@ class Table(metaclass=_TableMeta):
         query, values = cls._query_fetch(order_by, limit)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetch(query, *values)
+
+    @classmethod
+    async def fetch_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, order_by: str = None, limit: int = None) -> List[asyncpg.Record]:
+        """Fetches a list of records from the database.
+
+        Args:
+            where (str): An SQL Query to pass
+            values (tuple, optional): A tuple containing accomanying values.
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+            order_by (str, optional): Sets the `ORDER BY` constraint.
+            limit (int, optional): Sets the maximum number of records to fetch.
+        """
+        query = cls._query_fetch_where(where, order_by, limit)
+        async with MaybeAcquire(connection) as connection:
+            return await connection.fetch(query, *values)
+
+    @classmethod
+    async def fetchrow(cls, connection: asyncpg.Connection = None, **kwargs) -> asyncpg.Record:
+        """Fetches a record from the database.
+
+        Args:
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+        """
+
+        query, values = cls._query_fetch(None, None, **kwargs)
+        async with MaybeAcquire(connection) as connection:
+            return await connection.fetchrow(query, *values)
+
+    @classmethod
+    async def fetchrow_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None) -> List[asyncpg.Record]:
+        """Fetches a record from the database.
+
+        Args:
+            where (str): An SQL Query to pass
+            values (tuple, optional): A tuple containing accomanying values.
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+        """
+        query = cls._query_fetch_where(where, None, None)
+        async with MaybeAcquire(connection) as connection:
+            return await connection.fetchrow(query, *values)
 
     @classmethod
     async def insert(cls, connection: asyncpg.Connection = None, returning: Iterable[Column] = None, **kwargs):

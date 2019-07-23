@@ -62,6 +62,12 @@ class Column:
 
         if self.default is not NotImplemented:
             builder.append('DEFAULT')
+            if isinstance(self.default, str) and self.type == SQLType.Text():
+                builder.append(f'\'{self.default}\'')
+            elif isinstance(self.default, bool) and self.type == SQLType.Boolean():
+                builder.append(str(self.default).upper())
+            else:
+                builder.append(f'({self.default})')
 
         if self.references is not None:
             builder.append('REFERENCES')
