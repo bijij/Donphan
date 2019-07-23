@@ -53,6 +53,10 @@ class SQLType:
         return cls(int, 'BIGINT')
 
     @classmethod
+    def Serial(cls):
+        return cls(int, 'SERIAL')
+
+    @classmethod
     @default_for(float)
     def Float(cls):
         return cls(float, 'FLOAT')

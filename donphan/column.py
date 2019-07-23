@@ -48,6 +48,14 @@ class Column:
                 raise AttributeError(
                     f'Column {self} does not match types with referenced column; expected: {self.references.type}, recieved: {self.type}')
 
+        if self.auto_increment:
+            if self.type.python == int:
+                self.type = SQLType.Serial()
+            else:
+                raise TypeError(
+                    f'Column {self} is auto_increment and must have a supporting type; expected: {SQLType.Serial()}, recieved: {self.type}'
+                )
+
     def __repr__(self) -> str:
         return f'<Column "{self}" >'
 
@@ -74,9 +82,6 @@ class Column:
                 builder.append(str(self.default).upper())
             else:
                 builder.append(f'({self.default})')
-
-        if self.auto_increment:
-            builder.append('AUTO INCREMENT')
 
         if self.references is not None:
             builder.append('REFERENCES')
