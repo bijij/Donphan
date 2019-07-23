@@ -60,6 +60,12 @@ class Column:
         if self.is_array:
             builder.append('[]' * self.is_array)
 
+        if not self.nullable:
+            builder.append('NOT NULL')
+
+        if self.unique:
+            builder.append('UNOQUE')
+
         if self.default is not NotImplemented:
             builder.append('DEFAULT')
             if isinstance(self.default, str) and self.type == SQLType.Text():
@@ -68,6 +74,9 @@ class Column:
                 builder.append(str(self.default).upper())
             else:
                 builder.append(f'({self.default})')
+
+        if self.auto_increment:
+            builder.append('AUTO INCREMENT')
 
         if self.references is not None:
             builder.append('REFERENCES')
