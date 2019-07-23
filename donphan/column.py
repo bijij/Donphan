@@ -1,3 +1,4 @@
+from json import dumps
 from typing import Any
 
 from .sqltype import SQLType
@@ -80,6 +81,8 @@ class Column:
                 builder.append(f'\'{self.default}\'')
             elif isinstance(self.default, bool) and self.type == SQLType.Boolean():
                 builder.append(str(self.default).upper())
+            elif isinstance(self.default, dict) and self.type == SQLType.JSONB():
+                builder.append(f'\'{dumps(self.default)}\'::jsonb')
             else:
                 builder.append(f'({self.default})')
 
