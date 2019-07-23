@@ -313,3 +313,17 @@ class Table(metaclass=_TableMeta):
             if returning:
                 return await connection.fetchrow(query, *values)
             await connection.execute(query, *values)
+
+
+async def create_tables(connection: asyncpg.Connection = None, drop_if_exists: bool = False):
+    """Create all defined tables.
+
+    Args:
+        connection (asyncpg.Connection, optional): A database connection to use.
+            If none is supplied a connection will be acquired from the pool.
+        drop_if_exists (bool, optional): Specified wether the table should be
+                first dropped from the database if it already exists.
+    """
+    async with MaybeAcquire(connection=connection) as connection:
+        for table in Table.__subclasses__():
+            await table.create_table(connection=connection, drop_if_exists=drop_if_exists)

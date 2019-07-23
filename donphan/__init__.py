@@ -6,5 +6,5 @@ __version__ = '1.0.0a'
 
 from .connection import create_pool, MaybeAcquire
 from .sqltype import SQLType
-from .table import Table
+from .table import create_tables, Table
 from .column import Column
