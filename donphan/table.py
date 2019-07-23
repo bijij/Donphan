@@ -237,10 +237,6 @@ class Table(metaclass=_TableMeta):
     @classmethod
     async def insert(cls, connection: asyncpg.Connection = None, returning: Iterable[Column] = None, **kwargs):
         query, values = cls._query_insert(returning, **kwargs)
-
-        print(query)
-        print(*values)
-
         async with MaybeAcquire(connection) as connection:
             if returning:
                 return await connection.fetchrow(query, *values)
