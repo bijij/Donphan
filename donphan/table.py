@@ -194,6 +194,35 @@ class Table(metaclass=_TableMeta):
 
         return " ".join(builder)
 
+    @classmethod
+    def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
+        '''Generates the DELETE stub'''
+
+        builder = [f'DELETE FROM {cls._name}']
+
+        # Set the QUERY
+        record_keys = cls._validate_kwargs(primary_keys_only=True, **record)
+
+        builder.append('WHERE')
+        checks = []
+        for i, key in enumerate(record_keys, 1):
+            checks.append(f'{key} = ${i}')
+        builder.append(' AND '.join(checks))
+
+        return (" ".join(builder), record_keys.values())
+
+    @classmethod
+    def _query_delete_where(cls, query) -> str:
+        '''Generates the UPDATE stub'''
+
+        builder = [f'DELETE FROM {cls._name}']
+
+        # Set the QUERY
+        builder.append('WHERE')
+        builder.append(query)
+
+        return " ".join(builder)
+
     # endregion
 
     @classmethod
@@ -312,6 +341,34 @@ class Table(metaclass=_TableMeta):
         async with MaybeAcquire(connection) as connection:
             if returning:
                 return await connection.fetchrow(query, *values)
+            await connection.execute(query, *values)
+
+    @classmethod
+    async def delete_record(cls, record: asyncpg.Record, connection: asyncpg.Connection = None):
+        """Deletes a record in the database.
+
+        Args:
+            record (asyncpg.Record): The database record to delete
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool
+
+        """
+        query, values = cls._query_delete_record(record)
+        async with MaybeAcquire(connection) as connection:
+            await connection.execute(query, *values)
+
+    @classmethod
+    async def delete_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None):
+        """Deletes any record in the database which statisfies the query.
+
+        Args:
+            where (str): An SQL Query to pass
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool
+
+        """
+        query = cls._query_delete_where(where)
+        async with MaybeAcquire(connection) as connection:
             await connection.execute(query, *values)
 
 
