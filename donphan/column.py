@@ -74,7 +74,7 @@ class Column:
             builder.append('NOT NULL')
 
         if self.unique:
-            builder.append('UNOQUE')
+            builder.append('UNIQUE')
 
         if self.default is not NotImplemented:
             builder.append('DEFAULT')
