@@ -322,7 +322,7 @@ class Table(metaclass=_TableMeta):
             return await connection.fetchrow(query, *values)
 
     @classmethod
-    async def fetchrow_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None) -> List[asyncpg.Record]:
+    async def fetchrow_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, order_by: str = None) -> List[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
@@ -330,8 +330,9 @@ class Table(metaclass=_TableMeta):
             values (tuple, optional): A tuple containing accomanying values.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
+            order_by (str, optional): Sets the `ORDER BY` constraint.
         """
-        query = cls._query_fetch_where(where, None, None)
+        query = cls._query_fetch_where(where, order_by, None)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetchrow(query, *values)
 
