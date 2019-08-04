@@ -115,3 +115,6 @@ dmypy.json
 
 # Local testing file
 tests.py
+
+# Local dev env files
+.vscode/

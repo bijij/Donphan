@@ -46,8 +46,9 @@ class Column:
         # Validate column properties
         if self.references:
             if self.type != self.references.type:
-                raise AttributeError(
-                    f'Column {self} does not match types with referenced column; expected: {self.references.type}, recieved: {self.type}')
+                if not self.references.auto_increment or self.type.python != int:
+                    raise AttributeError(
+                        f'Column {self} does not match types with referenced column; expected: {self.references.type}, recieved: {self.type}')
 
         if self.auto_increment:
             if self.type.python == int:
