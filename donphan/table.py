@@ -30,7 +30,7 @@ class _TableMeta(type):
 
             if inspect.ismethod(_type) and _type.__self__ is SQLType:
                 _type = _type()
-            else:
+            elif not isinstance(_type, SQLType):
                 _type = SQLType.from_python_type(_type)
 
             column = dct.get(_name, Column())
@@ -99,9 +99,9 @@ class Table(metaclass=_TableMeta):
     # region SQL Queries
 
     @classmethod
-    def _query_drop_table(cls) -> str:
+    def _query_drop_table(cls, cascade: bool = False) -> str:
         """Generates the DROP TABLE stub."""
-        return f'DROP TABLE IF EXISTS {cls._name}'
+        return f'DROP TABLE IF EXISTS {cls._name}{" CASCADE" if cascade else ""}'
 
     @classmethod
     def _query_create_schema(cls) -> str:
@@ -283,7 +283,7 @@ class Table(metaclass=_TableMeta):
                 If none is supplied a connection will be acquired from the pool.
         """
         async with MaybeAcquire(connection) as connection:
-            await connection.execute(cls._query_drop_table())
+            await connection.execute(cls._query_drop_table(True))
 
     @classmethod
     async def create_table(cls, connection: asyncpg.Connection = None, drop_if_exists: bool = False):
