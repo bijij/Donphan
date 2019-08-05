@@ -54,6 +54,12 @@ class _TableMeta(type):
 
 
 class Table(metaclass=_TableMeta):
+    """A Pythonic representation of a database table.
+    
+    Attributes:
+        _name (str): The tables full name in `schema.table_name` format.
+    
+    """
 
     @classmethod
     def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> Dict[str, Any]:
@@ -229,9 +235,9 @@ class Table(metaclass=_TableMeta):
     async def drop_table(cls, connection: asyncpg.Connection = None):
         """Drops this table from the database.
 
-            Args:
-                connection (asyncpg.Connection, optional): A database connection to use.
-                    If none is supplied a connection will be acquired from the pool.
+        Args:
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
         """
         async with MaybeAcquire(connection) as connection:
             await connection.execute(cls._query_drop_table())
@@ -254,12 +260,15 @@ class Table(metaclass=_TableMeta):
 
     @classmethod
     async def prepare(cls, query: str, connection: asyncpg.Connection = None) -> asyncpg.prepared_stmt.PreparedStatement:
-        """Creates a `class`:asyncpg.prepared_stmt.PreparedStatement: based on the given query.
+        """Creates a :class:`asyncpg.prepared_stmt.PreparedStatement` based on the given query.
 
         Args:
             query (str): The SQL query to prepare.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
+
+        Returns:
+            asyncpg.prepared_stmt.PreparedStatement: The prepared statement object.
         """
         async with MaybeAcquire(connection) as connection:
             return await connection.prepare(query)
@@ -273,6 +282,10 @@ class Table(metaclass=_TableMeta):
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
             limit (int, optional): Sets the maximum number of records to fetch.
+            **kwargs (any): Database :class:`Column` values to search for
+
+        Returns:
+            list(asyncpg.Record): A list of database records.
         """
         query, values = cls._query_fetch(order_by, limit, **kwargs)
         async with MaybeAcquire(connection) as connection:
@@ -287,6 +300,9 @@ class Table(metaclass=_TableMeta):
                 If none is supplied a connection will be acquired from the pool
             order_by (str, optional): Sets the `ORDER BY` constraint
             limit (int, optional): Sets the maximum number of records to fetch
+
+        Returns:
+            list(asyncpg.Record): A list of database records.
         """
         query, values = cls._query_fetch(order_by, limit)
         async with MaybeAcquire(connection) as connection:
@@ -303,6 +319,9 @@ class Table(metaclass=_TableMeta):
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
             limit (int, optional): Sets the maximum number of records to fetch.
+
+        Returns:
+            list(asyncpg.Record): A list of database records.
         """
         query = cls._query_fetch_where(where, order_by, limit)
         async with MaybeAcquire(connection) as connection:
@@ -315,6 +334,10 @@ class Table(metaclass=_TableMeta):
         Args:
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
+            **kwargs (any): Database :class:`Column` values to search for
+
+        Returns:
+            asyncpg.Record: A record from the database.
         """
 
         query, values = cls._query_fetch(None, None, **kwargs)
@@ -331,13 +354,27 @@ class Table(metaclass=_TableMeta):
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
+
+        Returns:
+            asyncpg.Record: A record from the database.
         """
         query = cls._query_fetch_where(where, order_by, None)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetchrow(query, *values)
 
     @classmethod
-    async def insert(cls, connection: asyncpg.Connection = None, returning: Iterable[Column] = None, **kwargs):
+    async def insert(cls, connection: asyncpg.Connection = None, returning: Iterable[Column] = None, **kwargs) -> Optional[asyncpg.Record]:
+        """Inserts a new record into the database.
+
+        Args:
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+            returning (list(Column), optional): A list of columns from this record to return
+            **kwargs (any): The records column values.
+
+        Returns:
+            (asyncpy.Record, optional): The record inserted into the database
+        """
         query, values = cls._query_insert(returning, **kwargs)
         async with MaybeAcquire(connection) as connection:
             if returning:
@@ -364,6 +401,7 @@ class Table(metaclass=_TableMeta):
 
         Args:
             where (str): An SQL Query to pass
+            values (tuple, optional): A tuple containing accomanying values.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
 
@@ -379,7 +417,7 @@ async def create_tables(connection: asyncpg.Connection = None, drop_if_exists: b
     Args:
         connection (asyncpg.Connection, optional): A database connection to use.
             If none is supplied a connection will be acquired from the pool.
-        drop_if_exists (bool, optional): Specified wether the table should be
+        drop_if_exists (bool, optional): Specifies wether the table should be
                 first dropped from the database if it already exists.
     """
     async with MaybeAcquire(connection=connection) as connection:

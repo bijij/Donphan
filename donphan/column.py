@@ -5,7 +5,14 @@ from .sqltype import SQLType
 
 
 class Column:
-    """SQL Table Column"""
+    """SQL Table Column
+    
+    Attributes:
+        name (str): The column's name.
+        type (SQLType): The column's typing.
+        table (Table): The table which the column is a part of.
+    
+    """
     name = None
     type = None
     table = None
@@ -17,7 +24,7 @@ class Column:
                  references: "Column" = None):
         """Sets Database Table Column Properties.
 
-        Kwargs:
+        Args:
             index (bool, optional): Create an index for this column
             primary_key (bool, optional): Sets this column to be a primary key
             unique (bool, optional): Sets the `UNIQUE` constraint
@@ -25,8 +32,7 @@ class Column:
             nullable (bool, optional): Sets the `NOT NULL` constraint
             default (Any, optional): Sets the `DEFAULT` value of a column.
                 Value can be either a pythonic value or a SQL QUERY
-            references (Column, optional): Sets the `FOREIGN KEY` constraint
-
+            references (Column, optional): Sets the `FOREIGN KEY` constraint.
         """
         self.index = index
         self.primary_key = primary_key

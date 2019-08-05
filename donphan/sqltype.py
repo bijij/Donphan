@@ -42,38 +42,46 @@ class SQLType:
     @classmethod
     @default_for(int)
     def Integer(cls):
+        """Postgres Integer Type"""
         return cls(int, 'INTEGER')
 
     @classmethod
     def SmallInt(cls):
+        """Postgres SmallInt Type"""
         return cls(int, 'SMALLINT')
 
     @classmethod
     def BigInt(cls):
+        """Postgres BigInt Type"""
         return cls(int, 'BIGINT')
 
     @classmethod
     def Serial(cls):
+        """Postgres Serial Type"""
         return cls(int, 'SERIAL')
 
     @classmethod
     @default_for(float)
     def Float(cls):
+        """Postgres Float Type"""
         return cls(float, 'FLOAT')
 
     @classmethod
     def DoublePercision(cls):
+        """Postgres DoublePercision Type"""
         return cls(float, 'DOUBLE PERCISION')
 
     @classmethod
     @default_for(decimal.Decimal)
     def Numeric(cls):
+        """Postgres Numeric Type"""
         return cls(decimal.Decimal, 'NUMERIC')
 
     # 8.2 Monetary
 
     @classmethod
     def Money(cls):
+        """Postgres Money Type"""
         return cls(str, 'MONEY')
 
     # 8.3 Character
@@ -84,11 +92,13 @@ class SQLType:
 
     @classmethod
     def Character(cls):
+        """Postgres Character Type"""
         return cls(str, 'CHARACTER')
 
     @classmethod
     @default_for(str)
     def Text(cls):
+        """Postgres Text Type"""
         return cls(str, 'TEXT')
 
     # 8.4 Binary
@@ -96,6 +106,7 @@ class SQLType:
     @classmethod
     @default_for(bytes)
     def Bytea(cls):
+        """Postgres Bytea Type"""
         return cls(bytes, 'BYTEA')
 
     # 8.5 Date/Time
@@ -103,16 +114,19 @@ class SQLType:
     @classmethod
     @default_for(datetime.datetime)
     def Timestamp(cls):
+        """Postgres Timestamp Type"""
         return cls(datetime.datetime, 'TIMESTAMP')
 
     @classmethod
     @default_for(datetime.date)
     def Date(cls):
+        """Postgres Date Type"""
         return cls(datetime.date, 'DATE')
 
     @classmethod
     @default_for(datetime.timedelta)
     def Interval(cls):
+        """Postgres Interval Type"""
         return cls(datetime.datetime, 'INTERVAL')
 
     # 8.6 Boolean
@@ -120,6 +134,7 @@ class SQLType:
     @classmethod
     @default_for(bool)
     def Boolean(cls):
+        """Postgres Boolean Type"""
         return cls(bool, 'BOOLEAN')
 
     # 8.9 Network Adress
@@ -128,16 +143,19 @@ class SQLType:
     @default_for(ipaddress.IPv4Network)
     @default_for(ipaddress.IPv6Network)
     def CIDR(cls):
+        """Postgres CIDR Type"""
         return cls(ipaddress._BaseNetwork, 'CIDR')
 
     @classmethod
     @default_for(ipaddress.IPv4Address)
     @default_for(ipaddress.IPv6Address)
     def Inet(cls):
+        """Postgres Inet Type"""
         return cls(ipaddress._BaseNetwork, 'INET')
 
     @classmethod
     def MACAddr(cls):
+        """Postgres MACAddr Type"""
         return cls(str, 'MACADDR')
 
     # 8.12 UUID
@@ -145,17 +163,20 @@ class SQLType:
     @classmethod
     @default_for(uuid.UUID)
     def UUID(cls):
+        """Postgres UUID Type"""
         return cls(uuid.UUID, 'UUID')
 
     # 8.14 JSON
 
     @classmethod
     def JSON(cls):
+        """Postgres JSON Type"""
         return cls(dict, 'JSON')
 
     @classmethod
     @default_for(dict)
     def JSONB(cls):
+        """Postgres JSONB Type"""
         return cls(dict, 'JSONB')
 
     # Aliases
