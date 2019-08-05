@@ -1,4 +1,5 @@
 import inspect
+from collections.abc import Iterable
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import asyncpg
@@ -82,13 +83,22 @@ class Table(metaclass=_TableMeta):
                 raise TypeError(
                     f'Cannot pass None into non-nullable column {column.name}')
 
+            def check_type(element):
+                return isinstance(element, (column.type.python, type(None)))
+
             # If column is an array
             if column.is_array:
-                raise NotImplementedError(
-                    'Inserting into columns with arrays is currently not supported')
+                if not isinstance(value, Iterable):
+                    raise TypeError(
+                        f'An iterable must be passed for column {column.name}')
+
+                for element in value:
+                    if not check_type(element):
+                        raise TypeError(
+                            f'Column {column.name}; expected {column.type.__name__}, recieved {type(element).__name__}')
 
             # Validate the type being passed in is correct
-            elif not isinstance(value, (column.type.python, type(None))):
+            elif not check_type(value):
                 raise TypeError(
                     f'Column {column.name}; expected {column.type.__name__}, recieved {type(value).__name__}')
 
