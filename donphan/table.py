@@ -55,10 +55,10 @@ class _TableMeta(type):
 
 class Table(metaclass=_TableMeta):
     """A Pythonic representation of a database table.
-    
+
     Attributes:
         _name (str): The tables full name in `schema.table_name` format.
-    
+
     """
 
     @classmethod
@@ -199,6 +199,49 @@ class Table(metaclass=_TableMeta):
             builder.append(f'LIMIT {limit}')
 
         return " ".join(builder)
+
+    @classmethod
+    def _query_update_record(cls, record, **kwargs) -> Tuple[str, List[Any]]:
+        '''Generates the UPDATE stub'''
+        verified = cls._validate_kwargs(**kwargs)
+
+        builder = [f'UPDATE {cls._name} SET']
+
+        # Set the values
+        sets = []
+        for i, key in enumerate(verified, 1):
+            sets.append(f'{key} = ${i}')
+        builder.append(', '.join(sets))
+
+        # Set the QUERY
+        record_keys = cls._validate_kwargs(primary_keys_only=True, **record)
+
+        builder.append('WHERE')
+        checks = []
+        for i, key in enumerate(record_keys, i+1):
+            checks.append(f'{key} = ${i}')
+        builder.append(' AND '.join(checks))
+
+        return (" ".join(builder), list(verified.values()) + list(record_keys.values()))
+
+    @classmethod
+    def _query_update_where(cls, query, values, **kwargs) -> Tuple[str, List[Any]]:
+        '''Generates the UPDATE stub'''
+        verified = cls._validate_kwargs(**kwargs)
+
+        builder = [f'UPDATE {cls._name} SET']
+
+        # Set the values
+        sets = []
+        for i, key in enumerate(verified, len(values) + 1):
+            sets.append(f'{key} = ${i}')
+        builder.append(', '.join(sets))
+
+        # Set the QUERY
+        builder.append('WHERE')
+        builder.append(query)
+
+        return (" ".join(builder), values + tuple(verified.values()))
 
     @classmethod
     def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
@@ -379,6 +422,36 @@ class Table(metaclass=_TableMeta):
         async with MaybeAcquire(connection) as connection:
             if returning:
                 return await connection.fetchrow(query, *values)
+            await connection.execute(query, *values)
+
+    @classmethod
+    async def update_record(cls, record: asyncpg.Record, connection: asyncpg.Connection = None, **kwargs):
+        """Updates a record in the database.
+
+        Args:	
+            record (asyncpg.Record): The database record to update
+            connection (asyncpg.Connection, optional): A database connection to use.	
+                If none is supplied a connection will be acquired from the pool	
+            **kwargs: Values to update	
+        """
+        query, values = cls._query_update_record(record, **kwargs)
+        async with MaybeAcquire(connection) as connection:
+            await connection.execute(query, *values)
+
+    @classmethod
+    async def update_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, **kwargs):
+        """Updates any record in the database which satisfies the query.
+
+        Args:	
+            where (str): An SQL Query to pass
+            values (tuple, optional): A tuple containing accomanying values.
+            connection (asyncpg.Connection, optional): A database connection to use.	
+                If none is supplied a connection will be acquired from the pool	
+            **kwargs: Values to update	
+        """
+
+        query, values = cls._query_update_where(where, values, **kwargs)
+        async with MaybeAcquire(connection) as connection:
             await connection.execute(query, *values)
 
     @classmethod
