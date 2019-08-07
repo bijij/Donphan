@@ -24,9 +24,9 @@ class _TableMeta(type):
         for _name, _type in dct.get('__annotations__', {}).items():
 
             # If the input type is an array
-            is_array = 0
+            is_array = False
             while isinstance(_type, list):
-                is_array += 1
+                is_array = True
                 _type = _type[0]
 
             if inspect.ismethod(_type) and _type.__self__ is SQLType:
@@ -88,16 +88,24 @@ class Table(metaclass=_TableMeta):
 
             # If column is an array
             if column.is_array:
-                if not isinstance(value, Iterable):
-                    raise TypeError(
-                        f'An iterable must be passed for column {column.name}')
 
-                for element in value:
-                    if not check_type(element):
-                        raise TypeError(
-                            f'Column {column.name}; expected {column.type.__name__}, recieved {type(element).__name__}')
+                def check_array(element):
 
-            # Validate the type being passed in is correct
+                    # If not at the deepest level check elements in array
+                    if isinstance(element, (List, Tuple)):
+                        for item in element:
+                            check_array(item)
+
+                    # Otherwise check the type of the element
+                    else:
+                        if not check_type(element):
+                            raise TypeError(
+                                f'Column {column.name}; expected {column.type.__name__ }[], recieved {type(element).__name__}[]')
+
+                # Check array depth is expected.
+                check_array(value)
+
+            # Otherwise check type of element
             elif not check_type(value):
                 raise TypeError(
                     f'Column {column.name}; expected {column.type.__name__}, recieved {type(value).__name__}')
@@ -159,16 +167,18 @@ class Table(metaclass=_TableMeta):
             else:
 
                 # Convert to tuple if object is not iter
-                try:
-                    iter(returning)
-                except TypeError:
+                if not isinstance(returning, Iterable):
                     returning = (returning,)
+
+                returning_builder = []
 
                 for value in returning:
                     if not isinstance(value, Column):
                         raise TypeError(
                             f'Expected a volume for the returning value recieved {type(value).__name__}')
-                    builder.append(value.name)
+                    returning_builder.append(value.name)
+
+                builder.append(', '.join(returning_builder))
 
         return (" ".join(builder), verified.values())
 
