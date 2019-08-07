@@ -381,12 +381,13 @@ class Table(metaclass=_TableMeta):
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchrow(cls, connection: asyncpg.Connection = None, **kwargs) -> asyncpg.Record:
+    async def fetchrow(cls, connection: asyncpg.Connection = None, order_by: str = None, **kwargs) -> asyncpg.Record:
         """Fetches a record from the database.
 
         Args:
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
+            order_by (str, optional): Sets the `ORDER BY` constraint.
             **kwargs (any): Database :class:`Column` values to search for
 
         Returns:
