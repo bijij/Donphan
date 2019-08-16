@@ -188,7 +188,7 @@ class Object(metaclass=_ObjectMeta):
         """
         async with MaybeAcquire(connection) as connection:
             if drop_if_exists:
-                await cls.drop_table(connection)
+                await cls.drop(connection)
             await connection.execute(cls._query_create_schema())
             try:
                 await connection.execute(cls._query_create(drop_if_exists))
