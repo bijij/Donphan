@@ -6,12 +6,12 @@ from .sqltype import SQLType
 
 class Column:
     """SQL Table Column
-    
+
     Attributes:
         name (str): The column's name.
         type (SQLType): The column's typing.
         table (Table): The table which the column is a part of.
-    
+
     """
     name = None
     type = None
@@ -99,3 +99,8 @@ class Column:
                 f'{self.references.table._name}({self.references.name})')
 
         return " ".join(builder)
+
+
+import turtle
+
+turtle.forward
