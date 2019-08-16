@@ -99,8 +99,3 @@ class Column:
                 f'{self.references.table._name}({self.references.name})')
 
         return " ".join(builder)
-
-
-import turtle
-
-turtle.forward
