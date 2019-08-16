@@ -16,7 +16,7 @@ class View(Object):
 
     @classmethod
     def _query_drop(cls, cascade: bool = False) -> str:
-        return f'DROP TABLE IF EXISTS {cls._name}{" CASCADE" if cascade else ""}'
+        return f'DROP VIEW IF EXISTS {cls._name}{" CASCADE" if cascade else ""}'
 
     @classmethod
     def _query_create(cls, drop_if_exists: bool = False) -> str:
