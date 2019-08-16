@@ -5,6 +5,8 @@ API Reference
 
 .. autofunction:: donphan.create_tables
 
+.. autofunction:: donphan.create_views
+
 .. autoclass:: donphan.MaybeAcquire
     :members:
 
@@ -18,6 +20,10 @@ API Reference
 
     .. automethod:: __init__
 
-
 .. autoclass:: donphan.Table
     :members:
+    :inherited-members:
+
+.. autoclass:: donphan.View
+    :members:
+    :inherited-members:

@@ -5,6 +5,15 @@ from .connection import MaybeAcquire
 
 
 class View(Object):
+    """A Pythonic representation of a database view.
+
+    Attributes:
+        _name (str): The view full name in `schema.view_name` format.
+        _select (str, optional): The `SELECT` query stub to use.
+        _query (str): The `FROM ... WHERE ...` query stub to use.
+
+    """
+
     @classmethod
     def _query_drop(cls, cascade: bool = False) -> str:
         return f'DROP TABLE IF EXISTS {cls._name}{" CASCADE" if cascade else ""}'
