@@ -15,7 +15,7 @@ Tables are simple to define.
 
     class Example_Table(Table):
         id: int = Column(primary_key=True, auto_increment=True)     # example auto increment primary key
-        created_at: SQLType.Timestamp() = Column(default="NOW()")   # example column with a default value
+        created_at: SQLType.Timestamp() = Column(default='NOW()')   # example column with a default value
         some_text: str                                              # example simple text column                
         some_other_thing: int = Column(references=Other_Table.id)   # example coulmn with a foreign key
 
@@ -39,4 +39,61 @@ can be set by assigning a value to the class attribute.
 Interacting with a Table
 ------------------------
 
+Once a table has been defined and created it can be interacted with using asynchronous
+classmethods, A list of applicable methods can be found here: :class:`donphan.Table`
+
+The following shows an inserting a record into a predefined table
+
 .. code-block:: python3
+
+    await Example_Table.insert(
+        some_text = 'This is some text',
+        some_other_thing = 2
+    )
+
+Records can be fetched from the table in a similar way
+
+.. code-block:: python3
+
+    records = await Example_Table.fetch(
+        some_other_thing = 2
+    )
+
+In this example the variable `records` will hold a list of all records in the table where
+the value of the column `some_other_thing` is equal to `2`.
+
+Records returned are instances of :class:`asyncpg.Record`.
+    
+For more advanced queries, a pure SQL where clause may be used.
+
+.. code-block:: python3
+
+    record = await Example_Table.fetchrow_where(
+        'created_at < NOW() - INTERVAL \'30 days\''
+    )
+
+In this instance the varaible `record` will hold the first result of the query or :class:`None`.
+
+Using a :class:`asyncpg.Record` instance we can simply delete a record in a table.
+
+.. code-block:: python3
+
+    await Example_Table.delete_record(record)
+
+
+Views
+-----
+
+Views are virtual tables which display the result of a SQL Query. In some instances using a view can help
+improve database recall performance especially on complicated queries which may be executed often over a long
+period of time.
+
+Views can be defined as such:
+
+.. code-block:: python3
+
+    class Example_View(View):
+        _select = '*'
+        _query = f'FROM {Example_Table._name} WHERE some_text LIKE \'%abc%\''
+
+Views share some functionality with Tables, allowing for fetch methods to be called on them in a similar fashion.
