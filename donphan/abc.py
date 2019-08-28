@@ -94,7 +94,7 @@ class Object(metaclass=_ObjectMeta):
                     f'Cannot pass None into non-nullable column {column.name}')
 
             def check_type(element):
-                return isinstance(element, (column.type.python, type(None), str))
+                return isinstance(element, (column.type.python, type(None)))
 
             # If column is an array
             if column.is_array:
