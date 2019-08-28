@@ -1,8 +1,6 @@
 Quick Start Guide
 =================
 
-
-
 Creating a Table
 ----------------
 
@@ -63,13 +61,28 @@ In this example the variable `records` will hold a list of all records in the ta
 the value of the column `some_other_thing` is equal to `2`.
 
 Records returned are instances of :class:`asyncpg.Record`.
-    
-For more advanced queries, a pure SQL where clause may be used.
+
+One can check if a value does not equal, is less or greater than and their or equal counterparts by appending `__ne`, `__lt`, `__gt`, `__le`, and `__ge`
+to the end of the keyword argument for each respective column.
+
+.. code-block:: python3
+
+    records = await Example_Table.fetch(
+        created_at__lt = 'NOW() - INTERVAL \'30 days\'
+
+By default all keword arguments applied are assumed to be an SQL `AND` statement. However it is possible
+to use an `OR` statement by appending `or_` to the beginning of a keyword argument for a respective column.
+
+    records = await Example_Table.fetch(
+        created_at__lt = 'NOW() - INTERVAL \'30 days\'
+        or_some_other_thing = 2
+
+If desired a pure SQL where clause may be used.
 
 .. code-block:: python3
 
     record = await Example_Table.fetchrow_where(
-        'created_at < NOW() - INTERVAL \'30 days\''
+        'created_at < NOW() - INTERVAL \'30 days\' OR some_other_thing = 2'
     )
 
 In this instance the varaible `record` will hold the first result of the query or :class:`None`.

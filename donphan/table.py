@@ -47,7 +47,7 @@ class Table(Object):
         verified = cls._validate_kwargs(**kwargs)
 
         builder = [f'INSERT INTO {cls._name}']
-        builder.append(f'({", ".join(verified)})')
+        builder.append(f'({", ".join(key for (key, _) in verified)})')
         builder.append('VALUES')
 
         values = []
@@ -77,7 +77,7 @@ class Table(Object):
 
                 builder.append(', '.join(returning_builder))
 
-        return (" ".join(builder), verified.values())
+        return (" ".join(builder), (value for (_, value) in verified))
 
     @classmethod
     def _query_insert_many(cls, columns) -> str:
@@ -99,7 +99,7 @@ class Table(Object):
 
         # Set the values
         sets = []
-        for i, key in enumerate(verified, 1):
+        for i, (key, _) in enumerate(verified, 1):
             sets.append(f'{key} = ${i}')
         builder.append(', '.join(sets))
 
@@ -108,11 +108,11 @@ class Table(Object):
 
         builder.append('WHERE')
         checks = []
-        for i, key in enumerate(record_keys, i+1):
+        for i, (key, _) in enumerate(record_keys, i+1):
             checks.append(f'{key} = ${i}')
         builder.append(' AND '.join(checks))
 
-        return (" ".join(builder), list(verified.values()) + list(record_keys.values()))
+        return (" ".join(builder), list((value for (_, value) in verified)) + list((value for (_, value) in record_keys)))
 
     @classmethod
     def _query_update_where(cls, query, values, **kwargs) -> Tuple[str, List[Any]]:
@@ -123,7 +123,7 @@ class Table(Object):
 
         # Set the values
         sets = []
-        for i, key in enumerate(verified, len(values) + 1):
+        for i, (key, _) in enumerate(verified, len(values) + 1):
             sets.append(f'{key} = ${i}')
         builder.append(', '.join(sets))
 
@@ -131,7 +131,7 @@ class Table(Object):
         builder.append('WHERE')
         builder.append(query)
 
-        return (" ".join(builder), values + tuple(verified.values()))
+        return (" ".join(builder), values + tuple(value for (_, value) in verified))
 
     @classmethod
     def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
@@ -144,11 +144,11 @@ class Table(Object):
 
         builder.append('WHERE')
         checks = []
-        for i, key in enumerate(record_keys, 1):
+        for i, (key, _) in enumerate(record_keys, 1):
             checks.append(f'{key} = ${i}')
         builder.append(' AND '.join(checks))
 
-        return (" ".join(builder), record_keys.values())
+        return (" ".join(builder), list(value for (_, value) in record_keys))
 
     @classmethod
     def _query_delete_where(cls, query) -> str:

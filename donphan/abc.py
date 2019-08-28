@@ -54,18 +54,34 @@ class _ObjectMeta(type):
         raise AttributeError(f'\'{cls.__name__}\' has no attribute \'{key}\'')
 
 
+_default_operators = {
+    'eq': '=',
+    'ne': '!=',
+    'lt': '<',
+    'gt': '>',
+    'le': '<=',
+    'ge': '>='
+}
+
+
 class Object(metaclass=_ObjectMeta):
 
     @classmethod
-    def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> Dict[str, Any]:
+    def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> List[Tuple[str, Any]]:
         """Validates passed kwargs against table"""
-        verified = {}
+        verified = list()
         for kwarg, value in kwargs.items():
 
+            # Strip Extra operators
+            if kwarg.startswith('or_'):
+                kwarg = kwarg[3:]
+            if kwarg[-4:-2] == '__':
+                kwarg = kwarg[:-4]
+
+            # Check column is in Object
             if kwarg not in cls._columns:
                 raise AttributeError(
                     f'Could not find column with name {kwarg} in table {cls._name}')
-
             column = cls._columns[kwarg]
 
             # Skip non primary when relevant
@@ -78,7 +94,7 @@ class Object(metaclass=_ObjectMeta):
                     f'Cannot pass None into non-nullable column {column.name}')
 
             def check_type(element):
-                return isinstance(element, (column.type.python, type(None)))
+                return isinstance(element, (column.type.python, type(None), str))
 
             # If column is an array
             if column.is_array:
@@ -104,7 +120,7 @@ class Object(metaclass=_ObjectMeta):
                 raise TypeError(
                     f'Column {column.name}; expected {column.type.__name__}, recieved {type(value).__name__}')
 
-            verified[column.name] = value
+            verified.append((column.name, value))
 
         return verified
 
@@ -128,7 +144,28 @@ class Object(metaclass=_ObjectMeta):
     @classmethod
     def _query_fetch(cls, order_by, limit, **kwargs) -> Tuple[str, Iterable]:
         """Generates the SELECT FROM stub"""
+
         verified = cls._validate_kwargs(**kwargs)
+
+        # AND / OR statement check
+        statements = ['AND ' for _ in verified]
+        # =, <, >, != check
+        operators = ['=' for _ in verified]
+
+        # Determine operators
+        for i, (_key, (key, _)) in enumerate(zip(kwargs, verified)):
+
+            # First statement has no boolean operator
+            if i == 0:
+                statements[i] = ''
+            elif _key[:3] == 'or_':
+                statements[i] = 'OR '
+
+            if _key[-4:-2] == '__':
+                try:
+                    operators[i] = _default_operators[_key[-2:]]
+                except KeyError:
+                    raise AttributeError('Unknown operator type {_key[-2:]}')
 
         builder = [f'SELECT * FROM {cls._name}']
 
@@ -136,9 +173,9 @@ class Object(metaclass=_ObjectMeta):
         if verified:
             builder.append('WHERE')
             checks = []
-            for i, key in enumerate(verified, 1):
-                checks.append(f'{key} = ${i}')
-            builder.append(' AND '.join(checks))
+            for i, (key, _) in enumerate(verified):
+                checks.append(f'{statements[i]}{key} {operators[i]} ${i+1}')
+            builder.append(' '.join(checks))
 
         if order_by is not None:
             builder.append(f'ORDER BY {order_by}')
@@ -146,7 +183,7 @@ class Object(metaclass=_ObjectMeta):
         if limit is not None:
             builder.append(f'LIMIT {limit}')
 
-        return (" ".join(builder), verified.values())
+        return (" ".join(builder), (value for (_, value) in verified))
 
     @classmethod
     def _query_fetch_where(cls, query, order_by, limit) -> str:
@@ -225,6 +262,7 @@ class Object(metaclass=_ObjectMeta):
             list(asyncpg.Record): A list of database records.
         """
         query, values = cls._query_fetch(order_by, limit, **kwargs)
+        # print(query)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetch(query, *values)
 
