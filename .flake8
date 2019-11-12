@@ -1,7 +1,7 @@
 [flake8]
 show-source=true
 ignore = F403
-exclude = .git,__pycache__,.github
-max-line-length = 120
+exclude = .git,__pycache__,.github,docs
+max-line-length = 160
 per-file-ignores =
   donphan/__init__.py:F401
