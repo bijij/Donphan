@@ -1,13 +1,11 @@
-import inspect
 from collections.abc import Iterable
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import asyncpg
 
 from .abc import Object
 from .connection import MaybeAcquire
 from .column import Column
-from .sqltype import SQLType
 
 
 class Table(Object):
@@ -72,7 +70,7 @@ class Table(Object):
                 for value in returning:
                     if not isinstance(value, Column):
                         raise TypeError(
-                            f'Expected a volume for the returning value recieved {type(value).__name__}')
+                            f'Expected a volume for the returning value received {type(value).__name__}')
                     returning_builder.append(value.name)
 
                 builder.append(', '.join(returning_builder))
@@ -108,7 +106,7 @@ class Table(Object):
 
         builder.append('WHERE')
         checks = []
-        for i, (key, _) in enumerate(record_keys, i+1):
+        for i, (key, _) in enumerate(record_keys, i + 1):
             checks.append(f'{key} = ${i}')
         builder.append(' AND '.join(checks))
 
@@ -175,7 +173,7 @@ class Table(Object):
             **kwargs (any): The records column values.
 
         Returns:
-            (asyncpy.Record, optional): The record inserted into the database
+            (asyncpg.Record, optional): The record inserted into the database
         """
         query, values = cls._query_insert(returning, **kwargs)
         async with MaybeAcquire(connection) as connection:
@@ -189,7 +187,7 @@ class Table(Object):
 
         Args:
             columns (list(Column)): The list of columns to insert based on.
-            values (list(list)): The list of values to insert into the database. 
+            values (list(list)): The list of values to insert into the database.
 
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
@@ -203,11 +201,11 @@ class Table(Object):
     async def update_record(cls, record: asyncpg.Record, connection: asyncpg.Connection = None, **kwargs):
         """Updates a record in the database.
 
-        Args:	
+        Args:
             record (asyncpg.Record): The database record to update
-            connection (asyncpg.Connection, optional): A database connection to use.	
-                If none is supplied a connection will be acquired from the pool	
-            **kwargs: Values to update	
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool
+            **kwargs: Values to update
         """
         query, values = cls._query_update_record(record, **kwargs)
         async with MaybeAcquire(connection) as connection:
@@ -217,12 +215,12 @@ class Table(Object):
     async def update_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, **kwargs):
         """Updates any record in the database which satisfies the query.
 
-        Args:	
+        Args:
             where (str): An SQL Query to pass
-            values (tuple, optional): A tuple containing accomanying values.
-            connection (asyncpg.Connection, optional): A database connection to use.	
-                If none is supplied a connection will be acquired from the pool	
-            **kwargs: Values to update	
+            values (tuple, optional): A tuple containing accompanying values.
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool
+            **kwargs: Values to update
         """
 
         query, values = cls._query_update_where(where, values, **kwargs)
@@ -245,11 +243,11 @@ class Table(Object):
 
     @classmethod
     async def delete_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None):
-        """Deletes any record in the database which statisfies the query.
+        """Deletes any record in the database which satisfies the query.
 
         Args:
             where (str): An SQL Query to pass
-            values (tuple, optional): A tuple containing accomanying values.
+            values (tuple, optional): A tuple containing accompanying values.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
 

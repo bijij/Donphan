@@ -67,9 +67,9 @@ class SQLType:
         return cls(float, 'FLOAT')
 
     @classmethod
-    def DoublePercision(cls):
-        """Postgres DoublePercision Type"""
-        return cls(float, 'DOUBLE PERCISION')
+    def DoublePrecision(cls):
+        """Postgres DoublePrecision Type"""
+        return cls(float, 'DOUBLE PRECISION')
 
     @classmethod
     @default_for(decimal.Decimal)
@@ -185,7 +185,7 @@ class SQLType:
 
     @classmethod
     def from_python_type(cls, python_type: type):
-        """Dynamically determines an SQL type given a pyton type.
+        """Dynamically determines an SQL type given a python type.
 
         Args:
             python_type (type): The python type.

@@ -42,7 +42,7 @@ class Column:
         self.default = default
         self.references = references
 
-    def _update(self, table: 'Table', name: str, type: SQLType, is_array: bool):
+    def _update(self, table: 'table.Table', name: str, type: SQLType, is_array: bool):
         """Sets Additional Column Properties known after table creation."""
         self.table = table
         self.name = name

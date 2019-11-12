@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Iterable
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import asyncpg
 
@@ -110,7 +110,7 @@ class Object(metaclass=_ObjectMeta):
                     else:
                         if not check_type(element):
                             raise TypeError(
-                                f'Column {column.name}; expected {column.type.__name__ }[], recieved {type(element).__name__}[]')
+                                f'Column {column.name}; expected {column.type.__name__ }[], received {type(element).__name__}[]')
 
                 # Check array depth is expected.
                 check_array(value)
@@ -118,7 +118,7 @@ class Object(metaclass=_ObjectMeta):
             # Otherwise check type of element
             elif not check_type(value):
                 raise TypeError(
-                    f'Column {column.name}; expected {column.type.__name__}, recieved {type(value).__name__}')
+                    f'Column {column.name}; expected {column.type.__name__}, received {type(value).__name__}')
 
             verified.append((column.name, value))
 
@@ -284,12 +284,13 @@ class Object(metaclass=_ObjectMeta):
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetch_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, order_by: str = None, limit: int = None) -> List[asyncpg.Record]:
+    async def fetch_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None,
+                          order_by: str = None, limit: int = None) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
         Args:
             where (str): An SQL Query to pass
-            values (tuple, optional): A tuple containing accomanying values.
+            values (tuple, optional): A tuple containing accompanying values.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
@@ -316,17 +317,18 @@ class Object(metaclass=_ObjectMeta):
             asyncpg.Record: A record from the database.
         """
 
-        query, values = cls._query_fetch(None, None, **kwargs)
+        query, values = cls._query_fetch(order_by, 1, **kwargs)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetchrow(query, *values)
 
     @classmethod
-    async def fetchrow_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None, order_by: str = None) -> List[asyncpg.Record]:
+    async def fetchrow_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: asyncpg.Connection = None,
+                             order_by: str = None) -> List[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
             where (str): An SQL Query to pass
-            values (tuple, optional): A tuple containing accomanying values.
+            values (tuple, optional): A tuple containing accompanying values.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
@@ -334,6 +336,6 @@ class Object(metaclass=_ObjectMeta):
         Returns:
             asyncpg.Record: A record from the database.
         """
-        query = cls._query_fetch_where(where, order_by, None)
+        query = cls._query_fetch_where(where, order_by, 1)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetchrow(query, *values)
