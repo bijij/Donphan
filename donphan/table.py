@@ -1,5 +1,4 @@
-from collections.abc import Iterable
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Iterable, Optional, Tuple
 
 import asyncpg
 
