@@ -1,5 +1,5 @@
-API Reference
-=============
+Utility Functions
+=================
 
 .. autofunction:: donphan.create_pool
 

@@ -26,18 +26,18 @@ async def create_pool(dsn: str, **kwargs):
 
 
 class MaybeAcquire:
-    """Async helper for acquiring a connection to the database."""
+    """Async helper for acquiring a connection to the database.
+
+    Args:
+        connection (asyncpg.Connection, optional): A database connection to use
+                If none is supplied a connection will be acquired from the pool.
+    Kwargs:
+        pool (asyncpg.pool.Pool, optional): A connection pool to use.
+            If none is supplied the default pool will be used.
+    """
 
     def __init__(self, connection: asyncpg.Connection = None, *, pool=None):
-        """
-        Args:
-            connection (asyncpg.Connection, optional): A database connection to use
-                    If none is supplied a connection will be acquired from the pool.
 
-        Kwargs:
-            pool (asyncpg.pool.Pool, optional): A connection pool to use.
-                If none is supplied the default pool will be used.
-        """
         self.connection = connection
         self.pool = pool or _pool
         self._cleanup = False
