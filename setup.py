@@ -22,7 +22,7 @@ setup(
     author='bijij',
     url='https://github.com/bijij/donphan',
     project_urls={
-        "Documentation": "",
+        "Documentation": "https://donphan.readthedocs.io/",
         "Issue tracker": "https://github.com/bijij/donphan/issues",
     },
     version=version,
@@ -33,5 +33,18 @@ setup(
     long_description_content_type="text/x-rst",
     include_package_data=True,
     install_requires=requirements,
-    python_requires='>=3.6.0',
+    python_requires='>=3.6.2',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Utilities',
+    ]
 )
