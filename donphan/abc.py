@@ -104,7 +104,7 @@ class ObjectMeta(abc.ABCMeta):
                 is_array = True
                 _type = _type[0]
 
-            if inspect.ismethod(_type) and isinstance(_type, SQLType):
+            if inspect.ismethod(_type) and _type.__self__ is SQLType:
                 _type = _type()
             elif not isinstance(_type, SQLType):
                 _type = SQLType._from_python_type(_type)

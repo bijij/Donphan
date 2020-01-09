@@ -37,7 +37,6 @@ class MaybeAcquire:
     """
 
     def __init__(self, connection: asyncpg.Connection = None, *, pool=None):
-
         self.connection = connection
         self.pool = pool or _pool
         self._cleanup = False
