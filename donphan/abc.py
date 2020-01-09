@@ -109,7 +109,7 @@ class ObjectMeta(abc.ABCMeta):
             elif not isinstance(_type, SQLType):
                 _type = SQLType._from_python_type(_type)
 
-            column = attrs.get(_name, Column())._update(_name, _type, is_array)
+            column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
 
             obj._columns[_name] = column
 
