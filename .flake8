@@ -5,3 +5,4 @@ exclude = .git,__pycache__,.github,docs
 max-line-length = 160
 per-file-ignores =
   donphan/__init__.py:F401
+  donphan/column.py:F821

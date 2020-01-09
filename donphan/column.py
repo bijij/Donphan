@@ -28,7 +28,8 @@ class Column:
         self.default = default
         self.references = references
 
-    def _update(self, name: str, sqltype: SQLType, is_array: bool):
+    def _update(self, table: 'Table', name: str, sqltype: SQLType, is_array: bool):
+        self.table = table
         self.name = name
         self.type = sqltype
         self.is_array = is_array
