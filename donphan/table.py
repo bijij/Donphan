@@ -5,7 +5,7 @@ from .connection import Connection, MaybeAcquire
 class Table(Insertable):
 
     @classmethod
-    def _query_create(cls, if_not_exists=True):
+    def _query_create(cls, drop_if_exists=True, if_not_exists=True):
         builder = ['CREATE TABLE']
 
         if if_not_exists:

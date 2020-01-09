@@ -60,7 +60,7 @@ class Creatable(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    async def create(cls, *, connection=None, if_not_exists=True):
+    async def create(cls, *, connection=None, drop_if_exists=True, if_not_exists=True):
         """Creates this object in the database.
 
         Args:
@@ -69,7 +69,7 @@ class Creatable(metaclass=abc.ABCMeta):
             if_not_exists (bool, optional): TODO
         """
         async with MaybeAcquire(connection) as connection:
-            await connection.execute(cls._query_create(if_not_exists))
+            await connection.execute(cls._query_create(drop_if_exists, if_not_exists))
 
     @classmethod
     async def drop(cls, *, connection=None, if_exists: bool = False, cascade: bool = False):
