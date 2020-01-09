@@ -6,9 +6,11 @@ Welcome to Donpahn's documentation!
 
    intro
    quickstart
-   api
-
-
+   core
+   column
+   types
+   table
+   view
 
 Indices and tables
 ==================

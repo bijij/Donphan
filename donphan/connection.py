@@ -2,6 +2,9 @@ import json
 
 import asyncpg
 
+Connection = asyncpg.Connection
+Record = asyncpg.Record
+
 _pool = None
 
 

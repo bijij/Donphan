@@ -1,3 +1,4 @@
+
 import datetime
 import decimal
 import ipaddress
@@ -8,10 +9,8 @@ _defaults = {}
 
 def default_for(python_type):
     """Sets a specified python type's default SQL type.
-
     Args:
         python_type (type): Python type to set the specified sqltype as default for.
-
     """
     def func(sql_type):
         _defaults[python_type] = sql_type
@@ -184,9 +183,8 @@ class SQLType:
     VarChar = CharacterVarying
 
     @classmethod
-    def from_python_type(cls, python_type: type):
+    def _from_python_type(cls, python_type: type):
         """Dynamically determines an SQL type given a python type.
-
         Args:
             python_type (type): The python type.
         """

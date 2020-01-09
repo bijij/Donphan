@@ -39,13 +39,14 @@ extensions = [
     'details',
 ]
 
-autodoc_member_order = 'bysource'
-
-intersphinx_mapping = {
-  'asyncpg': ('https://magicstack.github.io/asyncpg/current/', None),
-  'https://docs.python.org/': None
+autodoc_default_options = {
+    'member-order': 'bysource',
 }
 
+intersphinx_mapping = {
+    'asyncpg': ('https://magicstack.github.io/asyncpg/current/', None),
+    'https://docs.python.org/': None
+}
 
 
 # Add any paths that contain templates here, relative to this directory.

@@ -1,25 +1,11 @@
-import asyncpg
-
-from .abc import Object
-from .connection import MaybeAcquire
+from .abc import Fetchable
+from .connection import Connection, MaybeAcquire
 
 
-class View(Object):
-    """A Pythonic representation of a database view.
-
-    Attributes:
-        _name (str): The view full name in `schema.view_name` format.
-        _select (str, optional): The `SELECT` query stub to use.
-        _query (str): The `FROM ... WHERE ...` query stub to use.
-
-    """
+class View(Fetchable):
 
     @classmethod
-    def _query_drop(cls, cascade: bool = False) -> str:
-        return f'DROP VIEW IF EXISTS {cls._name}{" CASCADE" if cascade else ""}'
-
-    @classmethod
-    def _query_create(cls, drop_if_exists: bool = False) -> str:
+    def _query_create(cls, drop_if_exists=True, if_not_exists=True):
         builder = ['CREATE']
 
         if drop_if_exists:
@@ -40,8 +26,12 @@ class View(Object):
 
         return "\n".join(builder)
 
+    @classmethod
+    def _query_drop(cls, if_exists=True, cascade=False):
+        return cls._base_query_drop('VIEW', if_exists, cascade)
 
-async def create_views(connection: asyncpg.Connection = None, drop_if_exists: bool = False):
+
+async def create_views(connection: Connection = None, drop_if_exists: bool = False):
     """Create all defined views.
 
     Args:
