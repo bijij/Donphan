@@ -373,6 +373,17 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         return (" ".join(builder), (value for (_, value) in verified))
 
     @classmethod
+    def _query_insert_many(cls, columns) -> str:
+        """Generates the INSERT INTO stub."""
+        builder = [f'INSERT INTO {cls._name}']
+        builder.append(f'({", ".join(column.name for column in columns)})')
+        builder.append('VALUES')
+        builder.append(
+            f'({", ".join(f"${n+1}" for n in range(len(columns)))})')
+
+        return " ".join(builder)
+
+    @classmethod
     def _query_update_record(cls, record, **kwargs) -> Tuple[str, List[Any]]:
         '''Generates the UPDATE stub'''
         verified = cls._validate_kwargs(**kwargs)
@@ -461,6 +472,20 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             if returning:
                 return await connection.fetchrow(query, *values)
             await connection.execute(query, *values)
+
+    @classmethod
+    async def insert_many(cls, columns: Iterable[Column], values: Iterable[Iterable[Any]], *, connection: Connection = None):
+        """Inserts multiple records into the database.
+        Args:
+            columns (list(Column)): The list of columns to insert based on.
+            values (list(list)): The list of values to insert into the database.
+            connection (asyncpg.Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+        """
+        query = cls._query_insert_many(columns)
+
+        async with MaybeAcquire(connection) as connection:
+            await connection.executemany(query, values)
 
     @classmethod
     async def update_record(cls, record: Record, connection: Connection = None, **kwargs):
