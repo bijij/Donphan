@@ -69,6 +69,10 @@ class Creatable(metaclass=abc.ABCMeta):
             if_not_exists (bool, optional): TODO
         """
         async with MaybeAcquire(connection) as connection:
+
+            if if_not_exists:
+                await connection.execute(cls._query_create_schema())
+
             await connection.execute(cls._query_create(drop_if_exists, if_not_exists))
 
     @classmethod
