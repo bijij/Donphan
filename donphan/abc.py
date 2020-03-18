@@ -478,7 +478,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             await connection.execute(query, *values)
 
     @classmethod
-    async def insert_many(cls, columns: Iterable[Column], values: Iterable[Iterable[Any]], *, connection: Connection = None):
+    async def insert_many(cls, columns: Iterable[Column], *values: Iterable[Iterable[Any]], connection: Connection = None):
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.
@@ -506,7 +506,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             await connection.execute(query, *values)
 
     @classmethod
-    async def update_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: Connection = None, **kwargs):
+    async def update_where(cls, where: str, *values: Optional[Tuple[Any]], connection: Connection = None, **kwargs):
         """Updates any record in the database which satisfies the query.
 
         Args:
@@ -535,7 +535,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_where(cls, where: str, values: Optional[Tuple[Any]] = tuple(), connection: Connection = None):
+    async def delete_where(cls, where: str, *values: Optional[Tuple[Any]], connection: Connection = None):
         """Deletes any record in the database which satisfies the query.
 
         Args:
