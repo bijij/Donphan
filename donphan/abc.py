@@ -460,7 +460,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         return " ".join(builder)
 
     @classmethod
-    async def insert(cls, connection: Connection = None, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
+    async def insert(cls, *, connection: Connection = None, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
         """Inserts a new record into the database.
 
         Args:
@@ -492,7 +492,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             await connection.executemany(query, values)
 
     @classmethod
-    async def update_record(cls, record: Record, connection: Connection = None, **kwargs):
+    async def update_record(cls, record: Record, *, connection: Connection = None, **kwargs):
         """Updates a record in the database.
 
         Args:
@@ -522,7 +522,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_record(cls, record: Record, connection: Connection = None):
+    async def delete_record(cls, record: Record, *, connection: Connection = None):
         """Deletes a record in the database.
 
         Args:
