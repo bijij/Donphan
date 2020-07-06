@@ -126,7 +126,7 @@ class SQLType:
     @default_for(datetime.timedelta)
     def Interval(cls):
         """Postgres Interval Type"""
-        return cls(datetime.datetime, 'INTERVAL')
+        return cls(datetime.timedelta, 'INTERVAL')
 
     # 8.6 Boolean
 
