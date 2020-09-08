@@ -455,7 +455,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
                 except KeyError:
                     raise AttributeError(f'Unknown operator type {_key[-2:]}')
 
-        builder = [f'DELETE * FROM {cls._name}']
+        builder = [f'DELETE FROM {cls._name}']
 
         # Set the WHERE clause
         if verified:
