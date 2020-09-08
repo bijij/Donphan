@@ -215,7 +215,7 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
                 try:
                     operators[i] = _DEFAULT_OPERATORS[_key[-2:]]
                 except KeyError:
-                    raise AttributeError('Unknown operator type {_key[-2:]}')
+                    raise AttributeError(f'Unknown operator type {_key[-2:]}')
 
         builder = [f'SELECT * FROM {cls._name}']
 
@@ -431,6 +431,43 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         return (" ".join(builder), values + tuple(value for (_, value) in verified))
 
     @classmethod
+    def _query_delete(cls, **kwargs) -> Tuple[str, List[Any]]:
+        '''Generates the DELETE stub'''
+        verified = cls._validate_kwargs(**kwargs)
+
+        # AND / OR statement check
+        statements = ['AND ' for _ in verified]
+        # =, <, >, != check
+        operators = ['=' for _ in verified]
+
+        # Determine operators
+        for i, (_key, (key, _)) in enumerate(zip(kwargs, verified)):
+
+            # First statement has no boolean operator
+            if i == 0:
+                statements[i] = ''
+            elif _key[:3] == 'or_':
+                statements[i] = 'OR '
+
+            if _key[-4:-2] == '__':
+                try:
+                    operators[i] = _DEFAULT_OPERATORS[_key[-2:]]
+                except KeyError:
+                    raise AttributeError(f'Unknown operator type {_key[-2:]}')
+
+        builder = [f'DELETE * FROM {cls._name}']
+
+        # Set the WHERE clause
+        if verified:
+            builder.append('WHERE')
+            checks = []
+            for i, (key, _) in enumerate(verified):
+                checks.append(f'{statements[i]}{key} {operators[i]} ${i+1}')
+            builder.append(' '.join(checks))
+
+        return (" ".join(builder), (value for (_, value) in verified))
+
+    @classmethod
     def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
         '''Generates the DELETE stub'''
 
@@ -520,6 +557,19 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         query, values = cls._query_update_where(where, values, **kwargs)
         async with MaybeAcquire(connection) as connection:
             await connection.execute(query, *values)
+
+    @classmethod
+    async def delete(cls, *, connection: Connection = None, **kwargs):
+        """Deletes any records in the database which satisfy the supplied kwargs.
+
+        Args:
+            connection (Connection, optional): A database connection to use.
+                If none is supplied a connection will be acquired from the pool.
+            **kwargs (any): Database :class:`Column` values to filter by when deleting.
+        """
+        query, values = cls._query_delete(**kwargs)
+        async with MaybeAcquire(connection) as connection:
+            await connection.execute(query, *,values)
 
     @classmethod
     async def delete_record(cls, record: Record, *, connection: Connection = None):
