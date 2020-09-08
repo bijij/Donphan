@@ -569,7 +569,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         """
         query, values = cls._query_delete(**kwargs)
         async with MaybeAcquire(connection) as connection:
-            await connection.execute(query, *,values)
+            await connection.execute(query, *values)
 
     @classmethod
     async def delete_record(cls, record: Record, *, connection: Connection = None):
