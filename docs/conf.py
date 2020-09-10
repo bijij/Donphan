@@ -31,12 +31,11 @@ copyright = '2019, Bijij'
 master_doc = 'index'
 
 extensions = [
-    'builder',
     'sphinx.ext.autodoc',
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
-    'details',
+    'sphinxcontrib_trio'
 ]
 
 autodoc_default_options = {
@@ -44,8 +43,9 @@ autodoc_default_options = {
 }
 
 intersphinx_mapping = {
-    'asyncpg': ('https://magicstack.github.io/asyncpg/current/', None),
-    'https://docs.python.org/': None
+    'py': ('https://docs.python.org/3', None),
+    'aio': ('https://docs.aiohttp.org/en/stable/', None),
+    'asyncpg': ('https://magicstack.github.io/asyncpg/current/', None)
 }
 
 
@@ -56,6 +56,8 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+pygments_style = 'friendly'
 
 
 # -- Options for HTML output -------------------------------------------------

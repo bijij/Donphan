@@ -33,6 +33,13 @@ setup(
     long_description_content_type="text/x-rst",
     include_package_data=True,
     install_requires=requirements,
+    extras_requre={
+        'docs': [
+            'sphinx==3.2.1',
+            'sphinxcontrib_trio==1.1.2',
+            'sphinxcontrib-websupport',
+        ]
+    },
     python_requires='>=3.6.2',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
