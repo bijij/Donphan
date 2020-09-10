@@ -73,6 +73,8 @@ to the end of the keyword argument for each respective column.
 By default all keword arguments applied are assumed to be an SQL `AND` statement. However it is possible
 to use an `OR` statement by appending `or_` to the beginning of a keyword argument for a respective column.
 
+.. code-block:: python3
+
     records = await Example_Table.fetch(
         created_at__lt = 'NOW() - INTERVAL \'30 days\'
         or_some_other_thing = 2
