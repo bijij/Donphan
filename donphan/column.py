@@ -1,7 +1,10 @@
 from .sqltype import SQLType
 
 from json import dumps
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .table import Table
 
 
 class Column:
@@ -77,6 +80,6 @@ class Column:
         if self.references is not None:
             builder.append('REFERENCES')
             builder.append(
-                f'{self.references.table._name}({self.references.name})')
+                f'{self.references.table._name}({self.references.name})')  # type: ignore
 
         return " ".join(builder)
