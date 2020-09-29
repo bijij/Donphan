@@ -342,13 +342,8 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
     @classmethod
     def _query_update_on_conflict(cls, columns: Collection[Column]) -> str:
-        builder = []
-
-        for i, column in enumerate(columns, 1):
-            if not column.primary_key:
-                builder.append(f'{column.name} = EXCLUDED.{column.name}{"," if i == len(columns) else ""}')
-
-        return '\n'.join(builder)
+        column_names = [column.name for column in columns if not column.primary_key]
+        return f'SET ({",".join(column_names)}) = ({",".join("EXCLUDED." + name for name in column_names)})'
 
     @classmethod
     def _query_insert(cls, ignore_on_conflict: bool, update_on_conflict: bool,
@@ -394,10 +389,9 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             builder.append('ON CONFLICT DO NOTHING')
 
         elif update_on_conflict:
-            builder.append('ON CONFLICT DO UPDATE SET (')
+            builder.append('ON CONFLICT DO UPDATE')
             columns = list(column for column in verified.keys() if not column.primary_key)
             builder.append(cls._query_update_on_conflict(columns))
-            builder.append(')')
 
         return (" ".join(builder), verified.values())
 
@@ -417,9 +411,8 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             builder.append('ON CONFLICT DO NOTHING')
 
         elif update_on_conflict:
-            builder.append('ON CONFLICT DO UPDATE SET (')
+            builder.append('ON CONFLICT DO UPDATE')
             builder.append(cls._query_update_on_conflict(columns))
-            builder.append(')')
 
         return " ".join(builder)
 
