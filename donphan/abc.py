@@ -341,13 +341,11 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
 class Insertable(Fetchable, metaclass=ObjectMeta):
 
     @classmethod
-    def _query_update_on_conflict(cls, columns: Collection[Column]) -> str:
-        primary_keys = [column.name for column in columns if column.primary_key]
-        column_names = [column.name for column in columns if not column.primary_key]
-        return f'ON CONFLICT ({",".join(primary_keys)}) DO UPDATE SET ({",".join(column_names)}) = ({",".join("EXCLUDED." + name for name in column_names)})'
+    def _query_update_on_conflict(cls, conflict_keys: Collection[Column], column: Column) -> str:
+        return f'ON CONFLICT ({",".join(col.name for col in conflict_keys)}) DO UPDATE SET {column.name} = EXCLUDED.{column.name}'
 
     @classmethod
-    def _query_insert(cls, ignore_on_conflict: bool, update_on_conflict: bool,
+    def _query_insert(cls, ignore_on_conflict: bool, update_on_conflict: Optional[Column],
                       returning: Optional[Union[str, Iterable[Column]]], **kwargs) -> Tuple[str, Iterable]:
         """Generates the INSERT INTO stub."""
         verified = cls._validate_kwargs(**kwargs)
@@ -383,19 +381,20 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
                 builder.append(', '.join(returning_builder))
 
-        if ignore_on_conflict and update_on_conflict:
+        if ignore_on_conflict and update_on_conflict is not None:
             raise ValueError('Conflicting ON CONFLICT settings.')
 
         elif ignore_on_conflict:
             builder.append('ON CONFLICT DO NOTHING')
 
-        elif update_on_conflict:
-            builder.append(cls._query_update_on_conflict(verified.keys()))
+        elif update_on_conflict is not None:
+            conflict_keys = [column for column in verified.keys() if column.primary_key]
+            builder.append(cls._query_update_on_conflict(conflict_keys, update_on_conflict))
 
         return (" ".join(builder), verified.values())
 
     @classmethod
-    def _query_insert_many(cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: bool) -> str:
+    def _query_insert_many(cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: Optional[Column]) -> str:
         """Generates the INSERT INTO stub."""
         builder = [f'INSERT INTO {cls._name}']
         builder.append(f'({", ".join(column.name for column in columns)})')
@@ -410,7 +409,8 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
             builder.append('ON CONFLICT DO NOTHING')
 
         elif update_on_conflict:
-            builder.append(cls._query_update_on_conflict(columns))
+            conflict_keys = [column for column in columns if column.primary_key]
+            builder.append(cls._query_update_on_conflict(conflict_keys, update_on_conflict))
 
         return " ".join(builder)
 
@@ -525,7 +525,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
     @classmethod
     async def insert(cls, *, connection: Connection = None, ignore_on_conflict: bool = False,
-                     update_on_conflict: bool = False, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
+                     update_on_conflict: Optional[Column] = None, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
         """Inserts a new record into the database.
 
         Args:
@@ -533,8 +533,8 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
                 If none is supplied a connection will be acquired from the pool.
             ignore_on_conflict (bool): Sets whether inserting conflicting values should be ignored.
                 Defaults to False.
-            update_on_conflict (bool): Sets whether values should be updated on conflict.
-                Defaults to False.
+            update_on_conflict (Column, optional): Sets whether a value should be updated on conflict.
+                Defaults to None.
             returning (list(Column), optional): A list of columns from this record to return
             **kwargs (any): The records column values.
         Returns:
@@ -549,19 +549,19 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
     @classmethod
     async def insert_many(cls, columns: Collection[Column], *values: Iterable[Iterable[Any]],
-                          ignore_on_conflict: bool = False, update_on_conflict: bool = False, connection: Connection = None):
+                          ignore_on_conflict: bool = False, update_on_conflict: Optional[Column] = None, connection: Connection = None):
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.
             values (list(list)): The list of values to insert into the database.
             ignore_on_conflict (bool): Sets whether inserting conflicting values should be ignored.
                 Defaults to False.
-            update_on_conflict (bool): Sets whether values should be updated on conflict.
-                Defaults to False.
+            update_on_conflict (Column, optional): Sets whether a value should be updated on conflict.
+                Defaults to None.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
         """
-        query = cls._query_insert_many(columns, update_on_conflict, ignore_on_conflict)
+        query = cls._query_insert_many(columns, ignore_on_conflict, update_on_conflict)
 
         async with MaybeAcquire(connection) as connection:
             await connection.executemany(query, values)
