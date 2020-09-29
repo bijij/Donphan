@@ -344,9 +344,9 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
     def _query_update_on_conflict(cls, columns: Collection[Column]) -> str:
         builder = []
 
-        for column in columns:
+        for i, column in enumerate(columns, 1):
             if not column.primary_key:
-                builder.append(f'{column.name} = EXCLUDED.{column.name}')
+                builder.append(f'{column.name} = EXCLUDED.{column.name}{"," if i == len(columns) else ""}')
 
         return '\n'.join(builder)
 
