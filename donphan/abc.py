@@ -5,7 +5,7 @@ from .sqltype import SQLType
 import abc
 import inspect
 
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple, Union
 
 
 _DEFAULT_SCHEMA = 'public'
@@ -137,9 +137,9 @@ class ObjectMeta(abc.ABCMeta):
 class Fetchable(Creatable, metaclass=ObjectMeta):
 
     @classmethod
-    def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> List[Tuple[str, Any]]:
+    def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> Dict[Column, Any]:
         """Validates passed kwargs against table"""
-        verified = list()
+        verified: Dict[Column, Any] = dict()
         for kwarg, value in kwargs.items():
 
             # Strip Extra operators
@@ -190,7 +190,7 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
                 raise TypeError(
                     f'Column {column.name}; expected {column.type.__name__}, received {type(value).__name__}')
 
-            verified.append((column.name, value))
+            verified[column] = value
 
         return verified
 
@@ -205,19 +205,19 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
         operators = ['=' for _ in verified]
 
         # Determine operators
-        for i, (_key, (key, _)) in enumerate(zip(kwargs, verified)):
+        for i, key in enumerate(kwargs):
 
             # First statement has no boolean operator
             if i == 0:
                 statements[i] = ''
-            elif _key[:3] == 'or_':
+            elif key[:3] == 'or_':
                 statements[i] = 'OR '
 
-            if _key[-4:-2] == '__':
+            if key[-4:-2] == '__':
                 try:
-                    operators[i] = _DEFAULT_OPERATORS[_key[-2:]]
+                    operators[i] = _DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
-                    raise AttributeError(f'Unknown operator type {_key[-2:]}')
+                    raise AttributeError(f'Unknown operator type {key[-2:]}')
 
         builder = [f'SELECT * FROM {cls._name}']
 
@@ -225,8 +225,8 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
         if verified:
             builder.append('WHERE')
             checks = []
-            for i, (key, _) in enumerate(verified):
-                checks.append(f'{statements[i]}{key} {operators[i]} ${i+1}')
+            for i, column in enumerate(verified.keys()):
+                checks.append(f'{statements[i]}{column.name} {operators[i]} ${i+1}')
             builder.append(' '.join(checks))
 
         if order_by is not None:
@@ -235,7 +235,7 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
         if limit is not None:
             builder.append(f'LIMIT {limit}')
 
-        return (" ".join(builder), (value for (_, value) in verified))
+        return (" ".join(builder), verified.values())
 
     @classmethod
     def _query_fetch_where(cls, query: str, order_by: Optional[str], limit: Optional[int]) -> str:
@@ -341,12 +341,23 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
 class Insertable(Fetchable, metaclass=ObjectMeta):
 
     @classmethod
-    def _query_insert(cls, returning: Optional[Union[str, Iterable[Column]]], **kwargs) -> Tuple[str, Iterable]:
+    def _query_update_on_conflict(cls, columns: Collection[Column]) -> str:
+        builder = []
+
+        for column in columns:
+            if not column.primary_key:
+                builder.append(f'{column.name} = EXCLUDED.{column.name}')
+
+        return '\n'.join(builder)
+
+    @classmethod
+    def _query_insert(cls, ignore_on_conflict: bool, update_on_conflict: bool,
+                      returning: Optional[Union[str, Iterable[Column]]], **kwargs) -> Tuple[str, Iterable]:
         """Generates the INSERT INTO stub."""
         verified = cls._validate_kwargs(**kwargs)
 
         builder = [f'INSERT INTO {cls._name}']
-        builder.append(f'({", ".join(key for (key, _) in verified)})')
+        builder.append(f'({", ".join(column.name for column in verified.keys())})')
         builder.append('VALUES')
 
         values = []
@@ -376,16 +387,39 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
                 builder.append(', '.join(returning_builder))
 
-        return (" ".join(builder), (value for (_, value) in verified))
+        if ignore_on_conflict and update_on_conflict:
+            raise ValueError('Conflicting ON CONFLICT settings.')
+
+        elif ignore_on_conflict:
+            builder.append('ON CONFLICT DO NOTHING')
+
+        elif update_on_conflict:
+            builder.append('ON CONFLICT DO UPDATE SET (')
+            columns = list(column for column in verified.keys() if not column.primary_key)
+            builder.append(cls._query_update_on_conflict(columns))
+            builder.append(')')
+
+        return (" ".join(builder), verified.values())
 
     @classmethod
-    def _query_insert_many(cls, columns) -> str:
+    def _query_insert_many(cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: bool) -> str:
         """Generates the INSERT INTO stub."""
         builder = [f'INSERT INTO {cls._name}']
         builder.append(f'({", ".join(column.name for column in columns)})')
         builder.append('VALUES')
         builder.append(
             f'({", ".join(f"${n+1}" for n in range(len(columns)))})')
+
+        if ignore_on_conflict and update_on_conflict:
+            raise ValueError('Conflicting ON CONFLICT settings.')
+
+        elif ignore_on_conflict:
+            builder.append('ON CONFLICT DO NOTHING')
+
+        elif update_on_conflict:
+            builder.append('ON CONFLICT DO UPDATE SET (')
+            builder.append(cls._query_update_on_conflict(columns))
+            builder.append(')')
 
         return " ".join(builder)
 
@@ -398,8 +432,8 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
         # Set the values
         sets = []
-        for i, (key, _) in enumerate(verified, 1):
-            sets.append(f'{key} = ${i}')
+        for i, column in enumerate(verified.keys(), 1):
+            sets.append(f'{column.name} = ${i}')
         builder.append(', '.join(sets))
 
         # Set the QUERY
@@ -407,11 +441,11 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
         builder.append('WHERE')
         checks = []
-        for i, (key, _) in enumerate(record_keys, i + 1):
-            checks.append(f'{key} = ${i}')
+        for i, column in enumerate(record_keys.values(), i + 1):
+            checks.append(f'{column.name} = ${i}')
         builder.append(' AND '.join(checks))
 
-        return (" ".join(builder), list((value for (_, value) in verified)) + list((value for (_, value) in record_keys)))
+        return (" ".join(builder), list(verified.values()) + list(record_keys.values()))
 
     @classmethod
     def _query_update_where(cls, query, values, **kwargs) -> Tuple[str, List[Any]]:
@@ -422,15 +456,15 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
         # Set the values
         sets = []
-        for i, (key, _) in enumerate(verified, len(values) + 1):
-            sets.append(f'{key} = ${i}')
+        for i, column in enumerate(verified.keys(), len(values) + 1):
+            sets.append(f'{column.name} = ${i}')
         builder.append(', '.join(sets))
 
         # Set the QUERY
         builder.append('WHERE')
         builder.append(query)
 
-        return (" ".join(builder), values + tuple(value for (_, value) in verified))
+        return (" ".join(builder), values + tuple(verified.values()))
 
     @classmethod
     def _query_delete(cls, **kwargs) -> Tuple[str, List[Any]]:
@@ -443,19 +477,19 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         operators = ['=' for _ in verified]
 
         # Determine operators
-        for i, (_key, (key, _)) in enumerate(zip(kwargs, verified)):
+        for i, key in enumerate(kwargs):
 
             # First statement has no boolean operator
             if i == 0:
                 statements[i] = ''
-            elif _key[:3] == 'or_':
+            elif key[:3] == 'or_':
                 statements[i] = 'OR '
 
-            if _key[-4:-2] == '__':
+            if key[-4:-2] == '__':
                 try:
-                    operators[i] = _DEFAULT_OPERATORS[_key[-2:]]
+                    operators[i] = _DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
-                    raise AttributeError(f'Unknown operator type {_key[-2:]}')
+                    raise AttributeError(f'Unknown operator type {key[-2:]}')
 
         builder = [f'DELETE FROM {cls._name}']
 
@@ -463,11 +497,11 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         if verified:
             builder.append('WHERE')
             checks = []
-            for i, (key, _) in enumerate(verified):
-                checks.append(f'{statements[i]}{key} {operators[i]} ${i+1}')
+            for i, column in enumerate(verified.keys()):
+                checks.append(f'{statements[i]}{column.name} {operators[i]} ${i+1}')
             builder.append(' '.join(checks))
 
-        return (" ".join(builder), list(value for (_, value) in verified))
+        return (" ".join(builder), list(verified.values()))
 
     @classmethod
     def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
@@ -480,11 +514,11 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
         builder.append('WHERE')
         checks = []
-        for i, (key, _) in enumerate(record_keys, 1):
-            checks.append(f'{key} = ${i}')
+        for i, column in enumerate(record_keys.keys(), 1):
+            checks.append(f'{column.name} = ${i}')
         builder.append(' AND '.join(checks))
 
-        return (" ".join(builder), list(value for (_, value) in record_keys))
+        return (" ".join(builder), list(record_keys.values()))
 
     @classmethod
     def _query_delete_where(cls, query) -> str:
@@ -499,18 +533,23 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         return " ".join(builder)
 
     @classmethod
-    async def insert(cls, *, connection: Connection = None, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
+    async def insert(cls, *, connection: Connection = None, ignore_on_conflict: bool = False,
+                     update_on_conflict: bool = False, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
         """Inserts a new record into the database.
 
         Args:
             connection (Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
+            ignore_on_conflict (bool): Sets whether inserting conflicting values should be ignored.
+                Defaults to False.
+            update_on_conflict (bool): Sets whether values should be updated on conflict.
+                Defaults to False.
             returning (list(Column), optional): A list of columns from this record to return
             **kwargs (any): The records column values.
         Returns:
             (Record, optional): The record inserted into the database
         """
-        query, values = cls._query_insert(returning, **kwargs)
+        query, values = cls._query_insert(ignore_on_conflict, update_on_conflict, returning, **kwargs)
         async with MaybeAcquire(connection) as connection:
             if returning:
                 return await connection.fetchrow(query, *values)
@@ -518,15 +557,20 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
         return None
 
     @classmethod
-    async def insert_many(cls, columns: Iterable[Column], *values: Iterable[Iterable[Any]], connection: Connection = None):
+    async def insert_many(cls, columns: Collection[Column], *values: Iterable[Iterable[Any]],
+                          ignore_on_conflict: bool = False, update_on_conflict: bool = False, connection: Connection = None):
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.
             values (list(list)): The list of values to insert into the database.
+            ignore_on_conflict (bool): Sets whether inserting conflicting values should be ignored.
+                Defaults to False.
+            update_on_conflict (bool): Sets whether values should be updated on conflict.
+                Defaults to False.
             connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
         """
-        query = cls._query_insert_many(columns)
+        query = cls._query_insert_many(columns, update_on_conflict, ignore_on_conflict)
 
         async with MaybeAcquire(connection) as connection:
             await connection.executemany(query, values)
