@@ -432,7 +432,7 @@ class Insertable(Fetchable, metaclass=ObjectMeta):
 
         builder.append('WHERE')
         checks = []
-        for i, column in enumerate(record_keys.values(), i + 1):
+        for i, column in enumerate(record_keys.keys(), i + 1):
             checks.append(f'{column.name} = ${i}')
         builder.append(' AND '.join(checks))
 
