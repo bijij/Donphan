@@ -115,6 +115,7 @@ class Creatable(metaclass=ObjectMeta):
 
 class FetchableMeta(ObjectMeta):
     _columns: List[Column]
+    _columns_dict: Dict[str, Column]
 
     def __new__(cls, name, bases, attrs, **kwargs):
 
@@ -147,8 +148,15 @@ class FetchableMeta(ObjectMeta):
 
             column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
             obj._columns.append(column)
+            obj._columns_dict[_name] = column
 
         return obj
+
+    def __getattr__(cls, key):
+        if key in cls._columns_dict:
+            return cls._columns_dict[key]
+
+        return super().__getattr__(key)
 
 
 class Fetchable(Creatable, metaclass=FetchableMeta):
@@ -166,11 +174,10 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                 kwarg = kwarg[:-4]
 
             # Check column is in Object
-            try:
-                column = next(col for col in cls._columns if col.name == kwarg)
-            except StopIteration:
-                raise AttributeError(
-                    f'Could not find column with name {kwarg} in table {cls._name}')
+            if kwarg not in cls._columns_dict:
+                raise AttributeError(f'Could not find column with name {kwarg} in table {cls._name}')
+
+            column = cls._columns_dict[kwarg]
 
             # Skip non primary when relevant
             if primary_keys_only and not column.primary_key:
