@@ -1,12 +1,7 @@
-from __future__ import annotations
-
 from .sqltype import SQLType
 
 from json import dumps
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .table import Table
+from typing import Any
 
 
 class Column:
@@ -24,7 +19,7 @@ class Column:
     """
 
     def __init__(self, *, index: bool = False, primary_key: bool = False, unique: bool = False, auto_increment: bool = False,
-                 nullable: bool = True, default: Any = NotImplemented, references: Column = None):
+                 nullable: bool = True, default: Any = NotImplemented, references: 'Column' = None):
         self.index = index
         self.primary_key = primary_key
         self.unique = unique
@@ -33,7 +28,7 @@ class Column:
         self.default = default
         self.references = references
 
-    def _update(self, table: Table, name: str, sqltype: SQLType, is_array: bool):
+    def _update(self, table: 'Table', name: str, sqltype: SQLType, is_array: bool):
         self.table = table
         self.name = name
         self.type = sqltype
