@@ -38,6 +38,10 @@ setup(
             'sphinx==3.2.1',
             'sphinxcontrib_trio==1.1.2',
             'sphinxcontrib-websupport',
+        ],
+        'test': [
+            'flake8>=3.8.3',
+            'pytest>=5.4.3',
         ]
     },
     python_requires='>=3.6.2',

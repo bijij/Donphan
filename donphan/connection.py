@@ -1,19 +1,8 @@
 import json
 
 import asyncpg
-from asyncpg import pool as asyncpg_pool
-
-
-class Connection(asyncpg.Connection):
-    ...
-
-
-class Pool(asyncpg_pool.Pool):
-    ...
-
-
-class Record(asyncpg.Record):
-    ...
+from asyncpg import Connection, Record  # noqa: F401
+from asyncpg.pool import Pool
 
 
 _pool: Pool = None  # type: ignore

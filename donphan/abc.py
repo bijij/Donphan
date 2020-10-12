@@ -19,7 +19,29 @@ _DEFAULT_OPERATORS = {
 }
 
 
-class Creatable(metaclass=abc.ABCMeta):
+class ObjectMeta(abc.ABCMeta):
+
+    def __new__(cls, name, bases, attrs, **kwargs):
+
+        attrs.update({
+            '_schema': kwargs.get('schema', _DEFAULT_SCHEMA)
+        })
+
+        return super().__new__(cls, name, bases, attrs)
+
+    def __getattr__(cls, key):
+        if key == '__name__':
+            return f'{cls.__name__.lower()}'
+
+        if key == '_name':
+            return f'{cls._schema}.{cls.__name__.lower()}'
+
+        raise AttributeError(f'\'{cls.__name__}\' has no attribute \'{key}\'')
+
+
+class Creatable(metaclass=ObjectMeta):
+    _name: str
+    _schema: str
 
     @classmethod
     def _query_create_schema(cls, if_not_exists: bool = True) -> str:
@@ -29,7 +51,7 @@ class Creatable(metaclass=abc.ABCMeta):
         if if_not_exists:
             builder.append('IF NOT EXISTS')
 
-        builder.append(cls.schema)  # type: ignore
+        builder.append(cls._schema)  # type: ignore
 
         return ' '.join(builder)
 
@@ -91,18 +113,26 @@ class Creatable(metaclass=abc.ABCMeta):
             await connection.execute(cls._query_drop(if_exists, cascade))
 
 
-class ObjectMeta(abc.ABCMeta):
+class FetchableMeta(ObjectMeta):
+    _columns: Dict[str, Column]
 
     def __new__(cls, name, bases, attrs, **kwargs):
 
         attrs.update({
-            'schema': kwargs.get('schema', _DEFAULT_SCHEMA),
             '_columns': {}
         })
 
-        obj = super().__new__(cls, name, bases, attrs)
+        obj = super().__new__(cls, name, bases, attrs, **kwargs)
 
         for _name, _type in attrs.get('__annotations__', {}).items():
+
+            # Ignore annotations with leading underscore
+            if _name[0] == '_':
+                continue
+
+            # Raise an exception when an invalid column name is set.
+            if _name.startswith('or_') or _name[-4:-2] == '__':
+                raise NameError(f'Column {_name}\'s name is invalid.')
 
             # If the input type is an array
             is_array = False
@@ -122,19 +152,14 @@ class ObjectMeta(abc.ABCMeta):
         return obj
 
     def __getattr__(cls, key):
-        if key == '__name__':
-            return f'{cls.__name__.lower()}'
-
-        if key == '_name':
-            return f'{cls.schema}.{cls.__name__.lower()}'
 
         if key in cls._columns:
             return cls._columns[key]
 
-        raise AttributeError(f'\'{cls.__name__}\' has no attribute \'{key}\'')
+        return super().__getattr__(key)
 
 
-class Fetchable(Creatable, metaclass=ObjectMeta):
+class Fetchable(Creatable, metaclass=FetchableMeta):
 
     @classmethod
     def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> Dict[Column, Any]:
@@ -338,7 +363,7 @@ class Fetchable(Creatable, metaclass=ObjectMeta):
             return await connection.fetchrow(query, *values)
 
 
-class Insertable(Fetchable, metaclass=ObjectMeta):
+class Insertable(Fetchable):
 
     @classmethod
     def _query_update_on_conflict(cls, conflict_keys: Collection[Column], column: Column) -> str:

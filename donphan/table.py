@@ -22,7 +22,7 @@ class Table(Insertable):
 
         builder.append(f'PRIMARY KEY ({", ".join(primary_keys)})')
 
-        builder.append(');')
+        builder.append(')')
 
         return ' '.join(builder)
 
