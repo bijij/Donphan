@@ -120,7 +120,8 @@ class FetchableMeta(ObjectMeta):
     def __new__(cls, name, bases, attrs, **kwargs):
 
         attrs.update({
-            '_columns': list()
+            '_columns': list(),
+            '_columns_dict': dict()
         })
 
         obj = super().__new__(cls, name, bases, attrs, **kwargs)
