@@ -15,7 +15,7 @@ class Table(Insertable):
         builder.append('(')
 
         primary_keys = list()
-        for column in cls._columns.values():
+        for column in cls._columns:
             if column.primary_key:
                 primary_keys.append(column.name)
             builder.append(f'{column},')

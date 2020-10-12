@@ -114,12 +114,12 @@ class Creatable(metaclass=ObjectMeta):
 
 
 class FetchableMeta(ObjectMeta):
-    _columns: Dict[str, Column]
+    _columns: List[Column]
 
     def __new__(cls, name, bases, attrs, **kwargs):
 
         attrs.update({
-            '_columns': {}
+            '_columns': list()
         })
 
         obj = super().__new__(cls, name, bases, attrs, **kwargs)
@@ -146,17 +146,9 @@ class FetchableMeta(ObjectMeta):
                 _type = SQLType._from_python_type(_type)
 
             column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
-
-            obj._columns[_name] = column
+            obj._columns.append(column)
 
         return obj
-
-    def __getattr__(cls, key):
-
-        if key in cls._columns:
-            return cls._columns[key]
-
-        return super().__getattr__(key)
 
 
 class Fetchable(Creatable, metaclass=FetchableMeta):
@@ -174,10 +166,11 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                 kwarg = kwarg[:-4]
 
             # Check column is in Object
-            if kwarg not in cls._columns:
+            try:
+                column = next(col for col in cls._columns if col.name == kwarg)
+            except StopIteration:
                 raise AttributeError(
                     f'Could not find column with name {kwarg} in table {cls._name}')
-            column = cls._columns[kwarg]
 
             # Skip non primary when relevant
             if primary_keys_only and not column.primary_key:
@@ -384,6 +377,19 @@ class Insertable(Fetchable):
             values.append(f'${i}')
         builder.append(f'({", ".join(values)})')
 
+        if ignore_on_conflict and update_on_conflict is not None:
+            raise ValueError('Conflicting ON CONFLICT settings.')
+
+        elif ignore_on_conflict:
+            builder.append('ON CONFLICT DO NOTHING')
+
+        elif update_on_conflict is not None:
+            if update_on_conflict.table != cls:
+                raise ValueError('Supplied column for different table.')
+
+            conflict_keys = [column for column in verified.keys() if column.primary_key]
+            builder.append(cls._query_update_on_conflict(conflict_keys, update_on_conflict))
+
         if returning:
             builder.append('RETURNING')
 
@@ -402,19 +408,12 @@ class Insertable(Fetchable):
                     if not isinstance(value, Column):
                         raise TypeError(
                             f'Expected a volume for the returning value received {type(value).__name__}')
+                    if value.table != cls:
+                        raise ValueError('Supplied column for different table.')
+
                     returning_builder.append(value.name)
 
                 builder.append(', '.join(returning_builder))
-
-        if ignore_on_conflict and update_on_conflict is not None:
-            raise ValueError('Conflicting ON CONFLICT settings.')
-
-        elif ignore_on_conflict:
-            builder.append('ON CONFLICT DO NOTHING')
-
-        elif update_on_conflict is not None:
-            conflict_keys = [column for column in verified.keys() if column.primary_key]
-            builder.append(cls._query_update_on_conflict(conflict_keys, update_on_conflict))
 
         return (" ".join(builder), verified.values())
 
