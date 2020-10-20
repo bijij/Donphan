@@ -37,11 +37,11 @@ class Column:
         # Validate column properties
         if self.references:
             if self.type != self.references.type:
-                if not self.references.auto_increment or self.type.python != int:
+                if not self.references.auto_increment or self.type._python != int:
                     raise AttributeError(f'Column {self} does not match types with referenced column; expected: {self.references.type}, received: {self.type}')
 
         if self.auto_increment:
-            if self.type.python == int:
+            if self.type._python == int:
                 self.type = SQLType.Serial()
             else:
                 raise TypeError(f'Column {self} is auto_increment and must have a supporting type; expected: {SQLType.Serial()}, received: {self.type}')
@@ -52,7 +52,7 @@ class Column:
         builder = []
 
         builder.append(f"{self.name}")
-        builder.append(self.type.sql)
+        builder.append(self.type._sql)
 
         if self.is_array:
             builder.append('[]' * self.is_array)

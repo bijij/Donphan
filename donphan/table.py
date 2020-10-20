@@ -1,5 +1,7 @@
 from .abc import Insertable
-from .connection import Connection, MaybeAcquire
+from .connection import MaybeAcquire
+
+from asyncpg import Connection
 
 
 class Table(Insertable):

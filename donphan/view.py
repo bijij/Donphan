@@ -1,5 +1,7 @@
 from .abc import Fetchable
-from .connection import Connection, MaybeAcquire
+from .connection import MaybeAcquire
+
+from asyncpg import Connection
 
 
 class View(Fetchable):

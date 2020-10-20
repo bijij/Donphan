@@ -3,6 +3,8 @@ Utility Functions
 
 .. autofunction:: donphan.create_pool
 
+.. autofunction:: donphan.create_types
+
 .. autofunction:: donphan.create_tables
 
 .. autofunction:: donphan.create_views

@@ -1,4 +1,3 @@
-
 import datetime
 import decimal
 import ipaddress
@@ -19,22 +18,22 @@ def default_for(python_type):
 
 
 class SQLType:
-    python = NotImplemented
-    sql = NotImplemented
+    _python = NotImplemented
+    _sql = NotImplemented
 
     def __init__(self, python, sql):
-        self.python = python
-        self.sql = sql
+        self._python = python
+        self._sql = sql
 
     def __repr__(self):
-        return f'<SQLType sql=\'{self.sql}\' python=\'{self.__name__}\'>'
+        return f'<SQLType sql=\'{self._sql}\' python=\'{self.__name__}\'>'
 
     def __eq__(self, other) -> bool:
-        return self.sql == other.sql
+        return self._sql == other._sql
 
     @property
     def __name__(self) -> str:
-        return self.python.__name__
+        return self._python.__name__
 
     # 8.1 Numeric
 

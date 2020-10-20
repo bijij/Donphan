@@ -1,4 +1,5 @@
-from .connection import Connection, MaybeAcquire, Record
+from .connection import MaybeAcquire
+from .consts import DEFAULT_SCHEMA
 from .column import Column
 from .sqltype import SQLType
 
@@ -7,9 +8,10 @@ import inspect
 
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple, Union
 
+from asyncpg import Connection, Record
 
-_DEFAULT_SCHEMA = 'public'
-_DEFAULT_OPERATORS = {
+
+DEFAULT_OPERATORS = {
     'eq': '=',
     'ne': '!=',
     'lt': '<',
@@ -24,7 +26,7 @@ class ObjectMeta(abc.ABCMeta):
     def __new__(cls, name, bases, attrs, **kwargs):
 
         attrs.update({
-            '_schema': kwargs.get('schema', _DEFAULT_SCHEMA)
+            '_schema': kwargs.get('schema', DEFAULT_SCHEMA)
         })
 
         return super().__new__(cls, name, bases, attrs)
@@ -145,7 +147,10 @@ class FetchableMeta(ObjectMeta):
             if inspect.ismethod(_type) and _type.__self__ is SQLType:
                 _type = _type()
             elif not isinstance(_type, SQLType):
-                _type = SQLType._from_python_type(_type)
+                if issubclass(_type, SQLType):
+                    pass
+                else:
+                    _type = SQLType._from_python_type(_type)
 
             column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
             obj._columns.append(column)
@@ -190,7 +195,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                     f'Cannot pass None into non-nullable column {column.name}')
 
             def check_type(element):
-                return isinstance(element, (column.type.python, type(None)))
+                return isinstance(element, (column.type._python, type(None)))
 
             # If column is an array
             if column.is_array:
@@ -241,7 +246,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
 
             if key[-4:-2] == '__':
                 try:
-                    operators[i] = _DEFAULT_OPERATORS[key[-2:]]
+                    operators[i] = DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
                     raise AttributeError(f'Unknown operator type {key[-2:]}')
 
@@ -510,7 +515,7 @@ class Insertable(Fetchable):
 
             if key[-4:-2] == '__':
                 try:
-                    operators[i] = _DEFAULT_OPERATORS[key[-2:]]
+                    operators[i] = DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
                     raise AttributeError(f'Unknown operator type {key[-2:]}')
 
