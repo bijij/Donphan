@@ -138,6 +138,9 @@ class FetchableMeta(ObjectMeta):
             if _name.startswith('or_') or _name[-4:-2] == '__':
                 raise NameError(f'Column {_name}\'s name is invalid.')
 
+            if isinstance(_type, str):
+                _type = eval(_type)
+
             # If the input type is an array
             is_array = False
             while isinstance(_type, list):
