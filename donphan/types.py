@@ -1,12 +1,35 @@
+"""
+MIT License
+
+Copyright (c) 2019-present Josh B
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+from typing import List, Type
+
+import asyncpg  # type: ignore
+
 from .abc import Creatable, ObjectMeta
 from .connection import MaybeAcquire
 from .consts import DEFAULT_SCHEMA
 from .sqltype import SQLType
-
-from asyncpg import Connection
-from asyncpg.exceptions import DuplicateObjectError
-
-from typing import List, Type
 
 
 class CustomTypeMeta(ObjectMeta):
@@ -85,7 +108,7 @@ def enum(name: str, values: str, *, schema: str = DEFAULT_SCHEMA) -> Type[Enum]:
     return EnumMeta(name, (Enum,), {}, values=values.split(), schema=schema)  # type: ignore
 
 
-async def create_types(connection: Connection = None, drop_if_exists: bool = False, if_not_exists: bool = True):
+async def create_types(connection: asyncpg.Connection = None, drop_if_exists: bool = False, if_not_exists: bool = True):
     """Create all defined types.
 
     Args:
@@ -101,6 +124,6 @@ async def create_types(connection: Connection = None, drop_if_exists: bool = Fal
 
             try:
                 await _enum.create(connection=connection, if_not_exists=if_not_exists)
-            except DuplicateObjectError:
+            except asyncpg.exceptions.DuplicateObjectError:
                 if not if_not_exists:
                     raise

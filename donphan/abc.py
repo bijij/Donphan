@@ -1,14 +1,38 @@
-from .connection import MaybeAcquire
-from .consts import DEFAULT_SCHEMA
-from .column import Column
-from .sqltype import SQLType
+"""
+MIT License
+
+Copyright (c) 2019-present Josh B
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
 import abc
 import inspect
 
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple, Union
 
-from asyncpg import Connection, Record
+import asyncpg  # type: ignore
+
+from .connection import MaybeAcquire
+from .column import Column
+from .consts import DEFAULT_SCHEMA
+from .sqltype import SQLType
 
 
 DEFAULT_OPERATORS = {
@@ -90,7 +114,7 @@ class Creatable(metaclass=ObjectMeta):
         """Creates this object in the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             if_not_exists (bool, optional): TODO
         """
@@ -106,7 +130,7 @@ class Creatable(metaclass=ObjectMeta):
         """Drops this object from the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             if_exists (bool, optional): TODO
             cascade (bool, optional): TODO
@@ -287,85 +311,85 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         return " ".join(builder)
 
     @classmethod
-    async def fetch(cls, *, connection: Optional[Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None, **kwargs) -> List[Record]:
+    async def fetch(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None, **kwargs) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
             limit (int, optional): Sets the maximum number of records to fetch.
             **kwargs (any): Database :class:`Column` values to search for
         Returns:
-            list(Record): A list of database records.
+            list(asyncpg.Record): A list of database records.
         """
         query, values = cls._query_fetch(order_by, limit, **kwargs)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchall(cls, *, connection: Optional[Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None) -> List[Record]:
+    async def fetchall(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None) -> List[asyncpg.Record]:
         """Fetches a list of all records from the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
             order_by (str, optional): Sets the `ORDER BY` constraint
             limit (int, optional): Sets the maximum number of records to fetch
         Returns:
-            list(Record): A list of database records.
+            list(asyncpg.Record): A list of database records.
         """
         query, values = cls._query_fetch(order_by, limit)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchrow(cls, *, connection: Optional[Connection] = None, order_by: Optional[str] = None, **kwargs) -> Optional[Record]:
+    async def fetchrow(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, **kwargs) -> Optional[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
             **kwargs (any): Database :class:`Column` values to search for
         Returns:
-            Record: A record from the database.
+            asyncpg.Record: A record from the database.
         """
         query, values = cls._query_fetch(order_by, 1, **kwargs)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetchrow(query, *values)
 
     @classmethod
-    async def fetch_where(cls, where: str, *values, connection: Optional[Connection] = None,
-                          order_by: Optional[str] = None, limit: Optional[int] = None) -> List[Record]:
+    async def fetch_where(cls, where: str, *values, connection: Optional[asyncpg.Connection] = None,
+                          order_by: Optional[str] = None, limit: Optional[int] = None) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
         Args:
             where (str): An SQL Query to pass
             values (tuple, optional): A tuple containing accompanying values.
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
             limit (int, optional): Sets the maximum number of records to fetch.
         Returns:
-            list(Record): A list of database records.
+            list(asyncpg.Record): A list of database records.
         """
         query = cls._query_fetch_where(where, order_by, limit)
         async with MaybeAcquire(connection) as connection:
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchrow_where(cls, where: str, *values, connection: Optional[Connection] = None, order_by: Optional[str] = None) -> List[Record]:
+    async def fetchrow_where(cls, where: str, *values, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None) -> List[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
             where (str): An SQL Query to pass
             values (tuple, optional): A tuple containing accompanying values.
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             order_by (str, optional): Sets the `ORDER BY` constraint.
         Returns:
-            Record: A record from the database.
+            asyncpg.Record: A record from the database.
         """
         query = cls._query_fetch_where(where, order_by, 1)
         async with MaybeAcquire(connection) as connection:
@@ -564,12 +588,12 @@ class Insertable(Fetchable):
         return " ".join(builder)
 
     @classmethod
-    async def insert(cls, *, connection: Connection = None, ignore_on_conflict: bool = False,
-                     update_on_conflict: Optional[Column] = None, returning: Iterable[Column] = None, **kwargs) -> Optional[Record]:
+    async def insert(cls, *, connection: asyncpg.Connection = None, ignore_on_conflict: bool = False,
+                     update_on_conflict: Optional[Column] = None, returning: Iterable[Column] = None, **kwargs) -> Optional[asyncpg.Record]:
         """Inserts a new record into the database.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             ignore_on_conflict (bool): Sets whether inserting conflicting values should be ignored.
                 Defaults to False.
@@ -578,7 +602,7 @@ class Insertable(Fetchable):
             returning (list(Column), optional): A list of columns from this record to return
             **kwargs (any): The records column values.
         Returns:
-            (Record, optional): The record inserted into the database
+            (asyncpg.Record, optional): The record inserted into the database
         """
         query, values = cls._query_insert(ignore_on_conflict, update_on_conflict, returning, **kwargs)
         async with MaybeAcquire(connection) as connection:
@@ -589,7 +613,7 @@ class Insertable(Fetchable):
 
     @classmethod
     async def insert_many(cls, columns: Collection[Column], *values: Iterable[Iterable[Any]],
-                          ignore_on_conflict: bool = False, update_on_conflict: Optional[Column] = None, connection: Connection = None):
+                          ignore_on_conflict: bool = False, update_on_conflict: Optional[Column] = None, connection: asyncpg.Connection = None):
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.
@@ -598,7 +622,7 @@ class Insertable(Fetchable):
                 Defaults to False.
             update_on_conflict (Column, optional): Sets whether a value should be updated on conflict.
                 Defaults to None.
-            connection (asyncpg.Connection, optional): A database connection to use.
+            connection (asyncpg.asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
         """
         query = cls._query_insert_many(columns, ignore_on_conflict, update_on_conflict)
@@ -607,12 +631,12 @@ class Insertable(Fetchable):
             await connection.executemany(query, values)
 
     @classmethod
-    async def update_record(cls, record: Record, *, connection: Connection = None, **kwargs):
+    async def update_record(cls, record: asyncpg.Record, *, connection: asyncpg.Connection = None, **kwargs):
         """Updates a record in the database.
 
         Args:
-            record (Record): The database record to update
-            connection (Connection, optional): A database connection to use.
+            record (asyncpg.Record): The database record to update
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
             **kwargs: Values to update
         """
@@ -621,13 +645,13 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def update_where(cls, where: str, *values: Any, connection: Connection = None, **kwargs):
+    async def update_where(cls, where: str, *values: Any, connection: asyncpg.Connection = None, **kwargs):
         """Updates any record in the database which satisfies the query.
 
         Args:
             where (str): An SQL Query to pass
             values (tuple, optional): A tuple containing accompanying values.
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
             **kwargs: Values to update
         """
@@ -637,11 +661,11 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete(cls, *, connection: Connection = None, **kwargs):
+    async def delete(cls, *, connection: asyncpg.Connection = None, **kwargs):
         """Deletes any records in the database which satisfy the supplied kwargs.
 
         Args:
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool.
             **kwargs (any): Database :class:`Column` values to filter by when deleting.
         """
@@ -650,12 +674,12 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_record(cls, record: Record, *, connection: Connection = None):
+    async def delete_record(cls, record: asyncpg.Record, *, connection: asyncpg.Connection = None):
         """Deletes a record in the database.
 
         Args:
-            record (Record): The database record to delete
-            connection (Connection, optional): A database connection to use.
+            record (asyncpg.Record): The database record to delete
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
         """
         query, values = cls._query_delete_record(record)
@@ -663,13 +687,13 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_where(cls, where: str, *values: Optional[Tuple[Any]], connection: Connection = None):
+    async def delete_where(cls, where: str, *values: Optional[Tuple[Any]], connection: asyncpg.Connection = None):
         """Deletes any record in the database which satisfies the query.
 
         Args:
             where (str): An SQL Query to pass
             values (tuple, optional): A tuple containing accompanying values.
-            connection (Connection, optional): A database connection to use.
+            connection (asyncpg.Connection, optional): A database connection to use.
                 If none is supplied a connection will be acquired from the pool
         """
         query = cls._query_delete_where(where)

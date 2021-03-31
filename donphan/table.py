@@ -1,7 +1,31 @@
+"""
+MIT License
+
+Copyright (c) 2019-present Josh B
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+import asyncpg  # type: ignore
+
 from .abc import Insertable
 from .connection import MaybeAcquire
-
-from asyncpg import Connection
 
 
 class Table(Insertable):
@@ -16,7 +40,7 @@ class Table(Insertable):
         builder.append(cls._name)
         builder.append('(')
 
-        primary_keys = list()
+        primary_keys = []
         for column in cls._columns:
             if column.primary_key:
                 primary_keys.append(column.name)
@@ -33,7 +57,7 @@ class Table(Insertable):
         return cls._base_query_drop('TABLE', if_exists, cascade)
 
 
-async def create_tables(connection: Connection = None, drop_if_exists: bool = False, if_not_exists: bool = True):
+async def create_tables(connection: asyncpg.Connection = None, drop_if_exists: bool = False, if_not_exists: bool = True):
     """Create all defined tables.
 
     Args:

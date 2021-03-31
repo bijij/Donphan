@@ -40,8 +40,9 @@ setup(
             'sphinxcontrib-websupport',
         ],
         'test': [
-            'flake8>=3.8.3',
-            'pytest>=5.4.3',
+            'flake8>=3.9.0',
+            'pytest>=6.2.0',
+            'mypy'
         ]
     },
     python_requires='>=3.6.2',

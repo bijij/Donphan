@@ -1,11 +1,9 @@
 import asyncio
+from donphan.utils import decorator
 
-from functools import wraps
 
-
+@decorator
 def async_test(func):
-
-    @wraps(func)
     def wrapper(*args, **kwargs):
         asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
 

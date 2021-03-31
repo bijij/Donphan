@@ -1,9 +1,38 @@
+"""
+MIT License
+
+Copyright (c) 2019-present Josh B
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+from __future__ import annotations
+
 import datetime
 import decimal
 import ipaddress
 import uuid
 
-_defaults = {}
+from typing import Callable, Dict
+
+
+DEFAULT_TYPES: Dict[type, Callable[..., SQLType]] = {}
 
 
 def default_for(python_type):
@@ -12,7 +41,7 @@ def default_for(python_type):
         python_type (type): Python type to set the specified sqltype as default for.
     """
     def func(sql_type):
-        _defaults[python_type] = sql_type
+        DEFAULT_TYPES[python_type] = sql_type
         return sql_type
     return func
 
@@ -188,8 +217,8 @@ class SQLType:
             python_type (type): The python type.
         """
 
-        if _defaults.get(python_type):
-            return _defaults[python_type](cls)
+        if DEFAULT_TYPES.get(python_type):
+            return DEFAULT_TYPES[python_type](cls)
 
         raise TypeError(
-            f'Could not find an applicable SQL type for Python type {python_type.__name__}.')
+            f'Could not find an applicable SQL type for Python type {python_type!r}.')

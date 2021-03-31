@@ -11,7 +11,7 @@ def find_root():
     return str(Path(__file__).parent.parent)
 
 
-class TestFlake8(TestCase):
+class TestLinters(TestCase):
 
     def test_flake8(self):
         try:
@@ -30,3 +30,21 @@ class TestFlake8(TestCase):
         except subprocess.CalledProcessError as e:
             output = e.output.decode()
             raise AssertionError('flake8 file validation failed:\n{}'.format(output))
+
+    def test_mypy(self):
+        try:
+            import mypy  # NoQa
+        except ImportError:
+            raise SkipTest('mypy module not installed')
+
+        try:
+            subprocess.run(
+                (sys.executable, '-m', 'mypy', 'donphan'),
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=find_root()
+            )
+        except subprocess.CalledProcessError as e:
+            output = e.output.decode()
+            raise AssertionError('mypy file validation failed:\n{}'.format(output))
