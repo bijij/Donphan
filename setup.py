@@ -45,7 +45,7 @@ setup(
             'mypy'
         ]
     },
-    python_requires='>=3.6.2',
+    python_requires='>=3.7.2',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
