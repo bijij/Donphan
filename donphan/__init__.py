@@ -31,7 +31,9 @@ __version__ = '3.0.2'
 from .column import Column as Column
 from .connection import (
     create_pool as create_pool,
-    MaybeAcquire as MaybeAcquire
+    MaybeAcquire as MaybeAcquire,
+    TYPE_CODECS as TYPE_CODECS,
+    OPTIONAL_CODECS as OPTIONAL_CODECS
 )
 from .table import (
     create_tables as create_tables,

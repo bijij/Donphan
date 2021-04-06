@@ -22,27 +22,64 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import datetime
 import json
 
+from typing import Any, Callable, Dict, Literal, NamedTuple, Tuple, TypeVar
+
 import asyncpg  # type: ignore
+
+
+T = TypeVar('T')
+
+
+# Y2K_DT = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
+Y2K_EPOCH = 946684800000000
 
 
 _pool: asyncpg.pool.Pool = None
 
 
-async def create_pool(dsn: str, **kwargs) -> asyncpg.pool.Pool:
-    """Creates the database connection pool."""
+class TypeCodec(NamedTuple):  # type: ignore
+    format: Literal['text', 'binary', 'tuple']
+    encoder: Callable[..., Any]
+    decoder: Callable[..., Any]
+
+
+def _encode_datetime(value: datetime.datetime) -> Tuple[int]:
+    if value.tzinfo is None:
+        value = value.astimezone(datetime.timezone.utc)
+    return (round(value.timestamp() * 1_000_000) - Y2K_EPOCH,)
+
+
+def _decode_timestamp(value: Tuple[int]) -> datetime.datetime:
+    return datetime.datetime.fromtimestamp(round(value[0] + Y2K_EPOCH) / 1_000_000, datetime.timezone.utc)
+
+
+TYPE_CODECS: Dict[str, TypeCodec] = {
+    'JSON': TypeCodec('text', json.dumps, json.loads),
+    'JSONB': TypeCodec('text', json.dumps, json.loads),
+}
+
+OPTIONAL_CODECS: Dict[str, TypeCodec] = {
+    'TIMESTAMP': TypeCodec('tuple', _encode_datetime, _decode_timestamp)
+}
+
+
+async def create_pool(dsn: str, codecs: Dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> asyncpg.pool.Pool:
+    """Creates the database connection pool.
+
+    Args:
+        dsn (str): A database connection string.
+        codecs (Dict[str, TypeCodec]): A mapping of type to
+            encoder and decoder for custom type codecs,
+            defaults to encoders for JSON and JSONB.
+    """
     global _pool
 
-    def _encode_json(value):
-        return json.dumps(value)
-
-    def _decode_json(value):
-        return json.loads(value)
-
     async def init(connection: asyncpg.Connection):
-        await connection.set_type_codec('json', schema='pg_catalog', encoder=_encode_json, decoder=_decode_json, format='text')
-        await connection.set_type_codec('jsonb', schema='pg_catalog', encoder=_encode_json, decoder=_decode_json, format='text')
+        for type, codec in codecs.items():
+            await connection.set_type_codec(type, schema='pg_catalog', encoder=codec.encoder, decoder=codec.decoder, format=codec.format)
 
     _pool = p = await asyncpg.create_pool(dsn, init=init, **kwargs)
     return p

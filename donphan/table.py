@@ -46,7 +46,10 @@ class Table(Insertable):
                 primary_keys.append(column.name)
             builder.append(f'{column},')
 
-        builder.append(f'PRIMARY KEY ({", ".join(primary_keys)})')
+        if primary_keys:
+            builder.append(f'PRIMARY KEY ({", ".join(primary_keys)})')
+        else:
+            builder[-1] = builder[-1][:-1]
 
         builder.append(')')
 
