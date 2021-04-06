@@ -29,28 +29,29 @@ import decimal
 import ipaddress
 import uuid
 
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, Type, TypeVar
+
+
+T = TypeVar('T', bound=Callable[..., 'SQLType'])
 
 
 DEFAULT_TYPES: Dict[type, Callable[..., SQLType]] = {}
 
 
-def default_for(python_type):
+def default_for(python_type: Type[Any]) -> Callable[[T], T]:
     """Sets a specified python type's default SQL type.
     Args:
         python_type (type): Python type to set the specified sqltype as default for.
     """
-    def func(sql_type):
+    def func(sql_type: T) -> T:
         DEFAULT_TYPES[python_type] = sql_type
         return sql_type
     return func
 
 
 class SQLType:
-    _python = NotImplemented
-    _sql = NotImplemented
 
-    def __init__(self, python, sql):
+    def __init__(self, python: Type[Any], sql: str):
         self._python = python
         self._sql = sql
 
@@ -140,9 +141,9 @@ class SQLType:
 
     @classmethod
     @default_for(datetime.datetime)
-    def Timestamp(cls):
+    def Timestamp(cls, with_timezone: bool = True):
         """Postgres Timestamp Type"""
-        return cls(datetime.datetime, 'TIMESTAMP')
+        return cls(datetime.datetime, 'TIMESTAMP WITH TIME ZONE' if with_timezone else 'TIMESTAMP')
 
     @classmethod
     @default_for(datetime.date)
