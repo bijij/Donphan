@@ -41,7 +41,7 @@ _pool: asyncpg.pool.Pool = None
 
 
 class TypeCodec(NamedTuple):  # type: ignore
-    format: str  # type: Literal['text', 'binary', 'tuple']
+    format: str  # Literal['text', 'binary', 'tuple']
     encoder: Callable[..., Any]
     decoder: Callable[..., Any]
 

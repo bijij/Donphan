@@ -42,7 +42,7 @@ class TestEnum(TestCase):
     async def test_d_fetch_naive_timestamp(self):
         record = await _Test_Table.fetchrow(col_a=naivetime)
         self.assertIsNotNone(record)
-        self.assertEqual(record['col_a'], naivetime)
+        self.assertEqual(record['col_a'], naivetime.astimezone(datetime.timezone.utc))
 
     @async_test
     async def test_e_fetch_timestamp_with_offset(self):
