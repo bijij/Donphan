@@ -25,7 +25,7 @@ SOFTWARE.
 import datetime
 import json
 
-from typing import Any, Callable, Dict, Literal, NamedTuple, Tuple, TypeVar
+from typing import Any, Callable, Dict, NamedTuple, Tuple, TypeVar
 
 import asyncpg  # type: ignore
 
@@ -41,7 +41,7 @@ _pool: asyncpg.pool.Pool = None
 
 
 class TypeCodec(NamedTuple):  # type: ignore
-    format: Literal['text', 'binary', 'tuple']
+    format: str  # type: Literal['text', 'binary', 'tuple']
     encoder: Callable[..., Any]
     decoder: Callable[..., Any]
 
