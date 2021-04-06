@@ -141,7 +141,7 @@ class SQLType:
 
     @classmethod
     @default_for(datetime.datetime)
-    def Timestamp(cls, with_timezone: bool = True):
+    def Timestamp(cls, with_timezone: bool = False):
         """Postgres Timestamp Type"""
         return cls(datetime.datetime, 'TIMESTAMP WITH TIME ZONE' if with_timezone else 'TIMESTAMP')
 

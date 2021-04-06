@@ -26,7 +26,7 @@ __title__ = 'donphan'
 __author__ = 'Bijij'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020 Bijij'
-__version__ = '3.0.1'
+__version__ = '3.0.2'
 
 from .column import Column as Column
 from .connection import (
