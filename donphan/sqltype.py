@@ -157,14 +157,8 @@ class SQLTypeMeta(ObjectMeta):
     def __call__(cls, **kwargs) -> Type[SQLType]:  # type: ignore
         return cast(
             Type[SQLType],
-            type(
-                cls.__name__,
-                (SQLType,),
-                {
-                    "python": cls._python,
-                    "sql": cls._preformatted_sql,
-                    "values": kwargs,
-                },
+            SQLTypeMeta.__new__(
+                SQLTypeMeta, cls.__name__, (SQLType,), {}, python=cls._python, sql=cls._preformatted_sql, values=kwargs
             ),
         )
 
