@@ -35,12 +35,9 @@ from typing import (
     TYPE_CHECKING,
     Union,
     cast,
-    NamedTuple,
-    Optional,
     Callable,
     Dict,
     Type,
-    TypeVar,
 )
 
 from .meta import ObjectMeta
@@ -52,114 +49,29 @@ if TYPE_CHECKING:
 __all__ = ("SQLType",)
 
 
-T = TypeVar("T")
-SqlT = TypeVar("SqlT", bound=Callable[..., "SQLType"])
-
-
-class TypeDefinition(NamedTuple):
-    python: Type
-    sql: Union[str, Callable[..., str]]
-
-
-def _varchar_sql(n: int = 2000):
-    return f"CHARACTER VARYING({n})"
-
-
-def _timestamp_sql(with_timezone: bool = False):
-    return "TIMESTAMP WITH TIME ZONE" if with_timezone else "TIMESTAMP"
-
-
-SQL_TYPES: Dict[str, TypeDefinition] = {
-    # 8.1 Numeric
-    "Integer": TypeDefinition(int, "INTEGER"),
-    "SmallInt": TypeDefinition(int, "SMALLINT"),
-    "BigInt": TypeDefinition(int, "BIGINT"),
-    "Serial": TypeDefinition(int, "SERIAL"),
-    "Float": TypeDefinition(float, "FLOAT"),
-    "DoublePrecision": TypeDefinition(float, "DOUBLE PRECISION"),
-    "Numeric": TypeDefinition(decimal.Decimal, "NUMERIC"),
-    # 8.2 Monetary
-    "Money": TypeDefinition(str, "MONEY"),
-    # 8.14 JSON
-    "JSON": TypeDefinition(dict, "JSON"),
-    "JSONB": TypeDefinition(dict, "JSONB"),
-    # 8.3 Character
-    "CharacterVarying": TypeDefinition(str, _varchar_sql),
-    "Character": TypeDefinition(str, "CHARACTER"),
-    "Text": TypeDefinition(str, "TEXT"),
-    # 8.4 Binary
-    "Bytea": TypeDefinition(bytes, "BYTEA"),
-    # 8.5 Date/Time
-    "Timestamp": TypeDefinition(datetime.datetime, _timestamp_sql),
-    "Date": TypeDefinition(datetime.date, "DATE"),
-    "Interval": TypeDefinition(datetime.timedelta, "INTERVAL"),
-    # 8.6 Boolean
-    "Boolean": TypeDefinition(bool, "BOOLEAN"),
-    # 8.9 Network Adress
-    "CIDR": TypeDefinition(ipaddress._BaseNetwork, "CIDR"),
-    "Inet": TypeDefinition(ipaddress._BaseNetwork, "INET"),
-    "MACAddr": TypeDefinition(str, "MACADDR"),
-    # 8.12 UUID
-    "UUID": TypeDefinition(uuid.UUID, "UUID"),
-}
-
-SQL_TYPE_ALIASES: Dict[str, str] = {
-    "Int": "Integer",
-    "Char": "Character",
-    "VarChar": "CharacterVarying",
-}
-
-DEFAULT_TYPES: Dict[Type, str] = {
-    int: "Integer",
-    float: "Float",
-    decimal.Decimal: "Numeric",
-    str: "Text",
-    bytes: "Bytea",
-    datetime.datetime: "Timestamp",
-    datetime.date: "Date",
-    datetime.timedelta: "Interval",
-    bool: "Boolean",
-    ipaddress.IPv4Network: "CIDR",
-    ipaddress.IPv6Network: "CIDR",
-    ipaddress.IPv4Address: "Inet",
-    ipaddress.IPv6Address: "Inet",
-    uuid.UUID: "UUID",
-    dict: "JSONB",
-}
-
-
 class SQLTypeMeta(ObjectMeta):
     _python: Type
     _preformatted_sql: Union[str, Callable[..., str]]
     _format_values: Dict[str, Any]
 
-    def __new__(
-        cls,
-        name,
-        bases,
-        attrs,
-        *,
-        python: Type[Any] = type(None),
-        sql: Union[str, Callable[..., str]] = "NULL",
-        values: Dict[str, Any] = {},
-        **kwargs: Any,
-    ):
+    def __new__(cls, name, bases, attrs, *, values: Dict[str, Any] = {}, **kwargs: Any) -> Type[Column]:  # type: ignore
         obj = cast(SQLTypeMeta, super().__new__(cls, name, bases, attrs, **kwargs))
-        obj._python = python
-        obj._preformatted_sql = sql
         obj._format_values = values
-
-        return obj
+        return obj  # type: ignore
 
     def __repr__(cls) -> str:
         return f'<donphan.SQLType python="{cls._python}" sql="{cls._sql}">'
 
-    def __call__(cls, **kwargs) -> Type[SQLType]:  # type: ignore
-        return cast(
-            Type[SQLType],
-            SQLTypeMeta.__new__(
-                SQLTypeMeta, cls.__name__, (SQLType,), {}, python=cls._python, sql=cls._preformatted_sql, values=kwargs
-            ),
+    def __call__(cls, **kwargs) -> Type[Column]:  # type: ignore
+        return SQLTypeMeta.__new__(
+            SQLTypeMeta,
+            cls.__name__,
+            (_SQLType,),
+            {
+                "_python": cls._python,
+                "_preformatted_sql": cls._preformatted_sql,
+            },
+            values=kwargs,
         )
 
     def __getattribute__(self, name: str) -> Type[Column]:
@@ -176,7 +88,7 @@ class BaseSQLType:
     ...
 
 
-class SQLType(BaseSQLType, metaclass=SQLTypeMeta):
+class _SQLType(BaseSQLType, metaclass=SQLTypeMeta):
     _python: Type
     _sql: str
 
@@ -193,18 +105,89 @@ class SQLType(BaseSQLType, metaclass=SQLTypeMeta):
             python_type (type): The python type.
         """
 
-        if DEFAULT_TYPES.get(python_type):
-            return getattr(cls, DEFAULT_TYPES[python_type])
+        if python_type in DEFAULT_TYPES:
+            return DEFAULT_TYPES[python_type]
 
         raise TypeError(f"Could not find an applicable SQL type for Python type {python_type!r}.")
 
 
-for name, definition in SQL_TYPES.items():
-    python_type, sql_type = definition
-    type_cls = SQLTypeMeta.__new__(SQLTypeMeta, name, (SQLType,), {}, python=python_type, sql=sql_type)
+def _create_sqltype(name: str, py_type: Type, sql_type: Union[str, Callable[..., str]]) -> Type[Column]:
+    return SQLTypeMeta.__new__(
+        SQLTypeMeta,
+        name,
+        (_SQLType,),
+        {
+            "_python": py_type,
+            "_preformatted_sql": sql_type,
+        },
+    )
 
-    setattr(SQLType, name, type_cls)
+
+def _varchar_sql(n: int = 2000):
+    return f"CHARACTER VARYING({n})"
 
 
-for alias, sqltype in SQL_TYPE_ALIASES.items():
-    setattr(SQLType, alias, getattr(SQLType, sqltype))
+def _timestamp_sql(with_timezone: bool = False):
+    return "TIMESTAMP WITH TIME ZONE" if with_timezone else "TIMESTAMP"
+
+
+class SQLType:
+
+    # 8.1 Numeric
+    Int = Integer = _create_sqltype("Integer", int, "INTEGER")
+    SmallInt = _create_sqltype("SmallInt", int, "SMALLINT")
+    BigInt = _create_sqltype("BigInt", int, "BIGINT")
+    Serial = _create_sqltype("Serial", int, "SERIAL")
+    Float = _create_sqltype("Float", float, "FLOAT")
+    DoublePrecision = _create_sqltype("DoublePrecision", float, "DOUBLE PRECISION")
+    Numeric = _create_sqltype("Numeric", decimal.Decimal, "NUMERIC")
+
+    # 8.2 Monetary
+    Money = _create_sqltype("Money", str, "MONEY")
+
+    # 8.14 JSON
+    JSON = _create_sqltype("JSON", dict, "JSON")
+    JSONB = _create_sqltype("JSONB", dict, "JSONB")
+
+    # 8.3 Character
+    VarChar = CharacterVarying = _create_sqltype("CharacterVarying", str, _varchar_sql)
+    Char = Character = _create_sqltype("Character", str, "CHARACTER")
+    Text = _create_sqltype("Text", str, "TEXT")
+
+    # 8.4 Binary
+    Bytea = _create_sqltype("Bytea", bytes, "BYTEA")
+
+    # 8.5 Date/Time
+    Timestamp = _create_sqltype("Timestamp", datetime.datetime, _timestamp_sql)
+    Date = _create_sqltype("Date", datetime.date, "DATE")
+    Interval = _create_sqltype("Interval", datetime.timedelta, "INTERVAL")
+
+    # 8.6 Boolean
+    Boolean = _create_sqltype("Boolean", bool, "BOOLEAN")
+
+    # 8.9 Network Adress
+    CIDR = _create_sqltype("CIDR", ipaddress._BaseNetwork, "CIDR")
+    Inet = _create_sqltype("Inet", ipaddress._BaseNetwork, "INET")
+    MACAddr = _create_sqltype("MACAddr", str, "MACADDR")
+
+    # 8.12 UUID
+    UUID = _create_sqltype("UUID", uuid.UUID, "UUID")
+
+
+DEFAULT_TYPES: Dict[Type, Type[BaseSQLType]] = {
+    int: SQLType.Integer,
+    float: SQLType.Float,
+    decimal.Decimal: SQLType.Numeric,
+    str: SQLType.Text,
+    bytes: SQLType.Bytea,
+    datetime.datetime: SQLType.Timestamp,
+    datetime.date: SQLType.Date,
+    datetime.timedelta: SQLType.Interval,
+    bool: SQLType.Boolean,
+    ipaddress.IPv4Network: SQLType.CIDR,
+    ipaddress.IPv6Network: SQLType.CIDR,
+    ipaddress.IPv4Address: SQLType.Inet,
+    ipaddress.IPv6Address: SQLType.Inet,
+    uuid.UUID: SQLType.UUID,
+    dict: SQLType.JSONB,
+}

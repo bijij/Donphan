@@ -34,7 +34,7 @@ import asyncpg  # type: ignore
 from .abc import Creatable
 from .connection import MaybeAcquire
 from .consts import DEFAULT_SCHEMA
-from .sqltype import SQLTypeMeta, SQLType
+from .sqltype import SQLTypeMeta, _SQLType
 
 
 __all__ = (
@@ -45,13 +45,15 @@ __all__ = (
 
 
 class CustomTypeMeta(SQLTypeMeta):
-    _sql: str
-
     def __new__(cls, name, bases, attrs, **kwargs):
-        return cast(CustomTypeMeta, super().__new__(cls, name, bases, attrs, sql=name, **kwargs))
+        return super().__new__(cls, name, bases, attrs, **kwargs)
+
+    @property
+    def _sql(cls) -> str:
+        return cls.__name__
 
 
-class CustomType(Creatable, SQLType, metaclass=CustomTypeMeta):
+class CustomType(Creatable, _SQLType, metaclass=CustomTypeMeta):
     @classmethod
     def _query_drop(cls, if_exists=True, cascade=False):
         return cls._base_query_drop("TYPE", if_exists, cascade)

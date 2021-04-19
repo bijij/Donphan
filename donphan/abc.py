@@ -42,9 +42,8 @@ import asyncpg  # type: ignore
 
 from .connection import MaybeAcquire
 from .column import Column
-from .consts import DEFAULT_SCHEMA
 from .meta import ObjectMeta
-from .sqltype import SQLType
+from .sqltype import _SQLType
 
 
 DEFAULT_OPERATORS = {
@@ -159,11 +158,11 @@ class FetchableMeta(ObjectMeta):
                 is_array = True
                 _type = _type[0]
 
-            if inspect.ismethod(_type) and _type.__self__ is SQLType:
+            if inspect.ismethod(_type) and _type.__self__ is _SQLType:
                 _type = _type()
-            elif not isinstance(_type, SQLType):
-                if not issubclass(_type, SQLType):
-                    _type = SQLType._from_python_type(_type)
+            elif not isinstance(_type, _SQLType):
+                if not issubclass(_type, _SQLType):
+                    _type = _SQLType._from_python_type(_type)
 
             column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
             obj._columns.append(column)

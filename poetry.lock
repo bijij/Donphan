@@ -8,16 +8,19 @@ python-versions = "*"
 
 [[package]]
 name = "asyncpg"
-version = "0.18.3"
-description = "An asyncio PosgtreSQL driver"
+version = "0.22.0"
+description = "An asyncio PostgreSQL driver"
 category = "main"
 optional = false
 python-versions = ">=3.5.0"
 
+[package.dependencies]
+typing-extensions = {version = ">=3.7.4.3", markers = "python_version < \"3.8\""}
+
 [package.extras]
-dev = ["Cython (==0.29)", "pytest (>=3.6.0)", "Sphinx (>=1.7.3,<1.8.0)", "sphinxcontrib-asyncio (>=0.2.0,<0.3.0)", "sphinx-rtd-theme (>=0.2.4,<0.3.0)", "flake8 (>=3.5.0,<3.6.0)", "uvloop (>=0.8.0)"]
+dev = ["Cython (>=0.29.20,<0.30.0)", "pytest (>=3.6.0)", "Sphinx (>=1.7.3,<1.8.0)", "sphinxcontrib-asyncio (>=0.2.0,<0.3.0)", "sphinx-rtd-theme (>=0.2.4,<0.3.0)", "pycodestyle (>=2.5.0,<2.6.0)", "flake8 (>=3.7.9,<3.8.0)", "uvloop (>=0.14.0,<0.15.0)"]
 docs = ["Sphinx (>=1.7.3,<1.8.0)", "sphinxcontrib-asyncio (>=0.2.0,<0.3.0)", "sphinx-rtd-theme (>=0.2.4,<0.3.0)"]
-test = ["flake8 (>=3.5.0,<3.6.0)", "uvloop (>=0.8.0)"]
+test = ["pycodestyle (>=2.5.0,<2.6.0)", "flake8 (>=3.7.9,<3.8.0)", "uvloop (>=0.14.0,<0.15.0)"]
 
 [[package]]
 name = "atomicwrites"
@@ -226,7 +229,7 @@ python-versions = "*"
 name = "typing-extensions"
 version = "3.7.4.3"
 description = "Backported and Experimental Type Hints for Python 3.5+"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -244,8 +247,8 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.7"
-content-hash = "ddf3b9fb53e56c4909f458dcd461b136200f246cf9359e1f7d49b24bdf54b82a"
+python-versions = "^3.7.2"
+content-hash = "410157d4caf0a620dec1e78d661271403e0800015de88e3755cb5c5c05fd9429"
 
 [metadata.files]
 appdirs = [
@@ -253,22 +256,21 @@ appdirs = [
     {file = "appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41"},
 ]
 asyncpg = [
-    {file = "asyncpg-0.18.3-cp35-cp35m-macosx_10_13_x86_64.whl", hash = "sha256:814343dc2baa489a11521ff9fad68f337a05c9ae0461fdf9f1ec7ac3541c13a9"},
-    {file = "asyncpg-0.18.3-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:89e727fdba05d90a0156d9d18932fd44a2baa84e90e3368573f432a308ad8fd7"},
-    {file = "asyncpg-0.18.3-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:84084f7dfed0b2d397a0c2fd7eaf29b01904c74f4320e5fe95ad3042042cf188"},
-    {file = "asyncpg-0.18.3-cp35-cp35m-win32.whl", hash = "sha256:378a7ef11ce7b35f11eb816e5252bc1e779119f7583a872233b45a76effac02e"},
-    {file = "asyncpg-0.18.3-cp35-cp35m-win_amd64.whl", hash = "sha256:fd2d13da29f55c2c71b1acc9d9f107c7a5176fffb3f62ff503f2b300f7ecd74e"},
-    {file = "asyncpg-0.18.3-cp36-cp36m-macosx_10_13_x86_64.whl", hash = "sha256:51a3d67a3fa43112b17ec510338723932e1e0611ad99a146acc9960d32210196"},
-    {file = "asyncpg-0.18.3-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:4539bc2e63600a1ee999086bbb59bf717ab32ea771ac20b5b792a2234633b5fb"},
-    {file = "asyncpg-0.18.3-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:4a779a85302241782bed8ed0f2bcb38544805b3e107b16ee7489c5818d8f4228"},
-    {file = "asyncpg-0.18.3-cp36-cp36m-win32.whl", hash = "sha256:c1fe1f0ef848f0f17bf63b90a4c3f446a14e4c899d8531ea988109cc0de014e5"},
-    {file = "asyncpg-0.18.3-cp36-cp36m-win_amd64.whl", hash = "sha256:cc7aa61bf41273ee5d4c11e0e72c0d9340e9c4dbf752464ae2b6816abadaabce"},
-    {file = "asyncpg-0.18.3-cp37-cp37m-macosx_10_13_x86_64.whl", hash = "sha256:ab8b9d367e3ef48f35a059642940714a2bda7a7fce8b017b21bfbc4f8fbf8f5f"},
-    {file = "asyncpg-0.18.3-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:d5450bdf8631fa1200c08a2e70cab06c2e8c09ef608629908531513444d12858"},
-    {file = "asyncpg-0.18.3-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:0677714b26b48d63db728867b812ef365ec3879d2be6fa1c9cf4328503f9a464"},
-    {file = "asyncpg-0.18.3-cp37-cp37m-win32.whl", hash = "sha256:fd35a8082b97d5b97d26bcd1b010fdd65a56311d7a02bf2a7e2c56810b9961a7"},
-    {file = "asyncpg-0.18.3-cp37-cp37m-win_amd64.whl", hash = "sha256:2dee4fb251139f1c1ee4bd9959d516f930f4da37a2f33b07c2b902b837a76666"},
-    {file = "asyncpg-0.18.3.tar.gz", hash = "sha256:58a5eccaac60fd326e32683226efe1046bfea558fa043360bdd1708e0e812c67"},
+    {file = "asyncpg-0.22.0-cp35-cp35m-macosx_10_14_x86_64.whl", hash = "sha256:ccd75cfb4710c7e8debc19516e2e1d4c9863cce3f7a45a3822980d04b16f4fdd"},
+    {file = "asyncpg-0.22.0-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:3af9a8511569983481b5cf94db17b7cbecd06b5398aac9c82e4acb69bb1f4090"},
+    {file = "asyncpg-0.22.0-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:d1cb6e5b58a4e017335f2a1886e153a32bd213ffa9f7129ee5aced2a7210fa3c"},
+    {file = "asyncpg-0.22.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:0f4604a88386d68c46bf7b50c201a9718515b0d2df6d5e9ce024d78ed0f7189c"},
+    {file = "asyncpg-0.22.0-cp36-cp36m-win_amd64.whl", hash = "sha256:b37efafbbec505287bd1499a88f4b59ff2b470709a1d8f7e4db198d3e2c5a2c4"},
+    {file = "asyncpg-0.22.0-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:1d3efdec14f3fbcc665b77619f8b420564f98b89632a21694be2101dafa6bcf2"},
+    {file = "asyncpg-0.22.0-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:f1df7cfd12ef484210717e7827cc2d4d550b16a1b4dd4566c93914c7a2259352"},
+    {file = "asyncpg-0.22.0-cp37-cp37m-win_amd64.whl", hash = "sha256:1f514b13bc54bde65db6cd1d0832ae27f21093e3cb66f741e078fab77768971c"},
+    {file = "asyncpg-0.22.0-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:82e23ba5b37c0c7ee96f290a95cbf9815b2d29b302e8b9c4af1de9b7759fd27b"},
+    {file = "asyncpg-0.22.0-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:062e4ff80e68fe56066c44a8c51989a98785904bf86f49058a242a5887be6ce3"},
+    {file = "asyncpg-0.22.0-cp38-cp38-win_amd64.whl", hash = "sha256:e7a67fb0244e4a5b3baaa40092d0efd642da032b5e891d75947dab993b47d925"},
+    {file = "asyncpg-0.22.0-cp39-cp39-macosx_10_14_x86_64.whl", hash = "sha256:1bbe5e829de506c743cbd5240b3722e487c53669a5f1e159abcc3b92a64a985e"},
+    {file = "asyncpg-0.22.0-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:2cb730241dfe650b9626eae00490cca4cfeb00871ed8b8f389f3a4507b328683"},
+    {file = "asyncpg-0.22.0-cp39-cp39-win_amd64.whl", hash = "sha256:2e3875c82ae609b21e562e6befdc35e52c4290e49d03e7529275d59a0595ca97"},
+    {file = "asyncpg-0.22.0.tar.gz", hash = "sha256:348ad471d9bdd77f0609a00c860142f47c81c9123f4064d13d65c8569415d802"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
