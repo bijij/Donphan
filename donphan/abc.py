@@ -505,7 +505,7 @@ class Insertable(Fetchable):
         record_keys = cls._validate_kwargs(primary_keys_only=True, **record)
 
         builder.append("WHERE")
-        checks = [f"{column.name} = ${i}" for i, column in enumerate(record_keys.keys(), len(sets))]
+        checks = [f"{column.name} = ${i}" for i, column in enumerate(record_keys.keys(), len(sets) + 1)]
 
         builder.append(" AND ".join(checks))
 
