@@ -22,6 +22,11 @@ jobs:
       with:
         python-version: 3.7
 
+    - uses: snok/install-poetry@v1.1.3
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
     - uses: actions/cache@v2
       id: cached-dependecies
       with:
