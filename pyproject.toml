@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Donphan"
-version = "3.2.0"
+version = "3.2.1"
 description = "Asyncronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
@@ -24,7 +24,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.7.2"
-asyncpg = "^0.18.3"
+asyncpg = ">=0.18.3"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
