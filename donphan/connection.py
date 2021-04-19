@@ -25,19 +25,34 @@ SOFTWARE.
 import datetime
 import json
 
-from typing import Any, Callable, Dict, NamedTuple, Tuple, TypeVar
+from typing import (
+    Any,
+    cast,
+    Callable,
+    Dict,
+    NamedTuple,
+    Tuple,
+    TypeVar,
+)
 
 import asyncpg  # type: ignore
 
+__all__ = (
+    "create_pool",
+    "MaybeAcquire",
+    "TYPE_CODECS",
+    "OPTIONAL_CODECS",
+)
 
-T = TypeVar('T')
+
+T = TypeVar("T")
 
 
 # Y2K_DT = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
 Y2K_EPOCH = 946684800000000
 
 
-_pool: asyncpg.pool.Pool = None
+_pool: asyncpg.pool.Pool = None  # type: ignore
 
 
 class TypeCodec(NamedTuple):  # type: ignore
@@ -57,13 +72,11 @@ def _decode_timestamp(value: Tuple[int]) -> datetime.datetime:
 
 
 TYPE_CODECS: Dict[str, TypeCodec] = {
-    'JSON': TypeCodec('text', json.dumps, json.loads),
-    'JSONB': TypeCodec('text', json.dumps, json.loads),
+    "json": TypeCodec("text", json.dumps, json.loads),
+    "jsonb": TypeCodec("text", json.dumps, json.loads),
 }
 
-OPTIONAL_CODECS: Dict[str, TypeCodec] = {
-    'TIMESTAMP': TypeCodec('tuple', _encode_datetime, _decode_timestamp)
-}
+OPTIONAL_CODECS: Dict[str, TypeCodec] = {"timestamp": TypeCodec("tuple", _encode_datetime, _decode_timestamp)}
 
 
 async def create_pool(dsn: str, codecs: Dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> asyncpg.pool.Pool:
@@ -77,11 +90,13 @@ async def create_pool(dsn: str, codecs: Dict[str, TypeCodec] = TYPE_CODECS, **kw
     """
     global _pool
 
-    async def init(connection: asyncpg.Connection):
+    async def init(connection: asyncpg.Connection) -> None:
         for type, codec in codecs.items():
-            await connection.set_type_codec(type, schema='pg_catalog', encoder=codec.encoder, decoder=codec.decoder, format=codec.format)
+            await connection.set_type_codec(
+                type, schema="pg_catalog", encoder=codec.encoder, decoder=codec.decoder, format=codec.format
+            )
 
-    _pool = p = await asyncpg.create_pool(dsn, init=init, **kwargs)
+    _pool = p = cast(asyncpg.pool.Pool, await asyncpg.create_pool(dsn, init=init, **kwargs))
     return p
 
 

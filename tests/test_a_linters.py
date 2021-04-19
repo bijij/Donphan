@@ -12,39 +12,38 @@ def find_root():
 
 
 class TestLinters(TestCase):
-
-    def test_flake8(self):
+    def test_black(self):
         try:
-            import flake8  # NoQa
+            import black  # NoQa
         except ImportError:
-            raise SkipTest('flake8 module not installed')
+            raise SkipTest("black module not installed")
 
         try:
             subprocess.run(
-                (sys.executable, '-m', 'flake8'),
+                (sys.executable, "-m", "black", "--check"),
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                cwd=find_root()
+                cwd=find_root(),
             )
         except subprocess.CalledProcessError as e:
             output = e.output.decode()
-            raise AssertionError('flake8 file validation failed:\n{}'.format(output))
+            raise AssertionError("black file validation failed:\n{}".format(output))
 
     def test_mypy(self):
         try:
             import mypy  # NoQa
         except ImportError:
-            raise SkipTest('mypy module not installed')
+            raise SkipTest("mypy module not installed")
 
         try:
             subprocess.run(
-                (sys.executable, '-m', 'mypy', 'donphan'),
+                (sys.executable, "-m", "mypy", "donphan"),
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                cwd=find_root()
+                cwd=find_root(),
             )
         except subprocess.CalledProcessError as e:
             output = e.output.decode()
-            raise AssertionError('mypy file validation failed:\n{}'.format(output))
+            raise AssertionError("mypy file validation failed:\n{}".format(output))

@@ -22,31 +22,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from typing import Optional
+
 import asyncpg  # type: ignore
 
 from .abc import Fetchable
 from .connection import MaybeAcquire
 
 
+__all__ = (
+    "create_views",
+    "View",
+)
+
+
 class View(Fetchable):
+    _select: str
+    _query: str
 
     @classmethod
     def _query_create(cls, drop_if_exists=True, if_not_exists=True):
-        builder = ['CREATE']
+        builder = ["CREATE"]
 
         if drop_if_exists:
-            builder.append('OR REPLACE')
+            builder.append("OR REPLACE")
 
-        builder.append(F'VIEW {cls._name} AS')
+        builder.append(f"VIEW {cls._name} AS")
 
-        builder.append('SELECT')
+        builder.append("SELECT")
 
-        if hasattr(cls, '_select'):
+        if hasattr(cls, "_select"):
             builder.append(cls._select)
         else:
-            for i, column in enumerate(cls._columns.values(), 1):
-                builder.append(
-                    f'\t{column.name}{"," if i != len(cls._columns) else ""}')
+            for i, column in enumerate(cls._columns, 1):
+                builder.append(f'\t{column.name}{"," if i != len(cls._columns) else ""}')
 
         builder.append(cls._query)
 
@@ -54,10 +63,10 @@ class View(Fetchable):
 
     @classmethod
     def _query_drop(cls, if_exists=True, cascade=False):
-        return cls._base_query_drop('VIEW', if_exists, cascade)
+        return cls._base_query_drop("VIEW", if_exists, cascade)
 
 
-async def create_views(connection: asyncpg.Connection = None, drop_if_exists: bool = False):
+async def create_views(connection: Optional[asyncpg.Connection] = None, drop_if_exists: bool = False):
     """Create all defined views.
 
     Args:

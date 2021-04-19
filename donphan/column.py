@@ -25,15 +25,28 @@ SOFTWARE.
 from __future__ import annotations
 
 from json import dumps
-from typing import Any, TYPE_CHECKING
 
-from .sqltype import SQLType
+from typing import (
+    Any,
+    cast,
+    TYPE_CHECKING,
+    Type,
+    TypeVar,
+)
+
+from .sqltype import BaseSQLType, SQLType
 
 if TYPE_CHECKING:
     from .table import Table
 
 
-class Column:
+__all__ = ("Column",)
+
+
+T = TypeVar("T")
+
+
+class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
     """Sets Database Table Column Properties.
 
     Args:
@@ -47,8 +60,17 @@ class Column:
         references (Column, optional): Sets the `FOREIGN KEY` constraint.
     """
 
-    def __init__(self, *, index: bool = False, primary_key: bool = False, unique: bool = False, auto_increment: bool = False,
-                 nullable: bool = True, default: Any = NotImplemented, references: 'Column' = None):
+    def __init__(
+        self,
+        *,
+        index: bool = False,
+        primary_key: bool = False,
+        unique: bool = False,
+        auto_increment: bool = False,
+        nullable: bool = True,
+        default: Any = NotImplemented,
+        references: "Column" = None,
+    ):
         self.index = index
         self.primary_key = primary_key
         self.unique = unique
@@ -57,55 +79,57 @@ class Column:
         self.default = default
         self.references = references
 
-    def _update(self, table: Table, name: str, sqltype: SQLType, is_array: bool):
+    def _update(self, table: Table, name: str, sqltype: Type[SQLType], is_array: bool):
         self.table = table
         self.name = name
         self.type = sqltype
         self.is_array = is_array
 
         # Validate column properties
-        if self.references:
-            if self.type != self.references.type:
-                if not self.references.auto_increment or self.type._python != int:
-                    raise AttributeError(f'Column {self} does not match types with referenced column; expected: {self.references.type}, received: {self.type}')
+        if (
+            self.references
+            and self.type != self.references.type
+            and (not self.references.auto_increment or self.type._python != int)
+        ):
+            raise AttributeError(
+                f"Column {self} does not match types with referenced column; expected: {self.references.type}, received: {self.type}"
+            )
 
         if self.auto_increment:
             if self.type._python == int:
-                self.type = SQLType.Serial()
+                self.type = cast(Type[SQLType], SQLType.Serial)
             else:
-                raise TypeError(f'Column {self} is auto_increment and must have a supporting type; expected: {SQLType.Serial()}, received: {self.type}')
+                raise TypeError(
+                    f"Column {self} is auto_increment and must have a supporting type; expected: {SQLType.Serial}, received: {self.type}"
+                )
 
         return self
 
     def __str__(self) -> str:
-        builder = []
-
-        builder.append(f"{self.name}")
-        builder.append(self.type._sql)
+        builder = [f"{self.name}", self.type._sql]  # type: ignore
 
         if self.is_array:
-            builder.append('[]' * self.is_array)
+            builder.append("[]" * self.is_array)
 
         if not self.nullable:
-            builder.append('NOT NULL')
+            builder.append("NOT NULL")
 
         if self.unique:
-            builder.append('UNIQUE')
+            builder.append("UNIQUE")
 
         if self.default is not NotImplemented:
-            builder.append('DEFAULT')
-            if isinstance(self.default, str) and self.type == SQLType.Text():
-                builder.append(f'\'{self.default}\'')
-            elif isinstance(self.default, bool) and self.type == SQLType.Boolean():
+            builder.append("DEFAULT")
+            if isinstance(self.default, str) and self.type == SQLType.Text:
+                builder.append(f"'{self.default}'")
+            elif isinstance(self.default, bool) and self.type == SQLType.Boolean:
                 builder.append(str(self.default).upper())
-            elif isinstance(self.default, dict) and self.type == SQLType.JSONB():
-                builder.append(f'\'{dumps(self.default)}\'::jsonb')
+            elif isinstance(self.default, dict) and self.type == SQLType.JSONB:
+                builder.append(f"'{dumps(self.default)}'::jsonb")
             else:
-                builder.append(f'({self.default})')
+                builder.append(f"({self.default})")
 
         if self.references is not None:
-            builder.append('REFERENCES')
-            builder.append(
-                f'{self.references.table._name}({self.references.name})')  # type: ignore
+            builder.append("REFERENCES")
+            builder.append(f"{self.references.table._name}({self.references.name})")  # type: ignore
 
         return " ".join(builder)

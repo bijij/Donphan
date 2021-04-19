@@ -25,44 +25,36 @@ SOFTWARE.
 import abc
 import inspect
 
-from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    cast,
+    Collection,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import asyncpg  # type: ignore
 
 from .connection import MaybeAcquire
 from .column import Column
 from .consts import DEFAULT_SCHEMA
+from .meta import ObjectMeta
 from .sqltype import SQLType
 
 
 DEFAULT_OPERATORS = {
-    'eq': '=',
-    'ne': '!=',
-    'lt': '<',
-    'gt': '>',
-    'le': '<=',
-    'ge': '>='
+    "eq": "=",
+    "ne": "!=",
+    "lt": "<",
+    "gt": ">",
+    "le": "<=",
+    "ge": ">=",
 }
-
-
-class ObjectMeta(abc.ABCMeta):
-
-    def __new__(cls, name, bases, attrs, **kwargs):
-
-        attrs.update({
-            '_schema': kwargs.get('schema', DEFAULT_SCHEMA)
-        })
-
-        return super().__new__(cls, name, bases, attrs)
-
-    def __getattr__(cls, key):
-        if key == '__name__':
-            return f'{cls.__name__.lower()}'
-
-        if key == '_name':
-            return f'{cls._schema}.{cls.__name__.lower()}'
-
-        raise AttributeError(f'\'{cls.__name__}\' has no attribute \'{key}\'')
 
 
 class Creatable(metaclass=ObjectMeta):
@@ -72,14 +64,14 @@ class Creatable(metaclass=ObjectMeta):
     @classmethod
     def _query_create_schema(cls, if_not_exists: bool = True) -> str:
         """Generates a CREATE SCHEMA stub."""
-        builder = ['CREATE SCHEMA']
+        builder = ["CREATE SCHEMA"]
 
         if if_not_exists:
-            builder.append('IF NOT EXISTS')
+            builder.append("IF NOT EXISTS")
 
         builder.append(cls._schema)  # type: ignore
 
-        return ' '.join(builder)
+        return " ".join(builder)
 
     @classmethod
     @abc.abstractmethod
@@ -90,18 +82,17 @@ class Creatable(metaclass=ObjectMeta):
     @classmethod
     def _base_query_drop(cls, type: str, if_exists: bool = True, cascade: bool = False) -> str:
         """Generates a DROP stub."""
-        builder = ['DROP']
-        builder.append(type)
+        builder = ["DROP", type]
 
         if if_exists:
-            builder.append('IF EXISTS')
+            builder.append("IF EXISTS")
 
         builder.append(cls._name)  # type: ignore
 
         if cascade:
-            builder.append('CASCADE')
+            builder.append("CASCADE")
 
-        return ' '.join(builder)
+        return " ".join(builder)
 
     @classmethod
     @abc.abstractmethod
@@ -145,22 +136,19 @@ class FetchableMeta(ObjectMeta):
 
     def __new__(cls, name, bases, attrs, **kwargs):
 
-        attrs.update({
-            '_columns': list(),
-            '_columns_dict': dict()
-        })
+        attrs.update({"_columns": list(), "_columns_dict": dict()})
 
-        obj = super().__new__(cls, name, bases, attrs, **kwargs)
+        obj = cast(Type[FetchableMeta], super().__new__(cls, name, bases, attrs, **kwargs))
 
-        for _name, _type in attrs.get('__annotations__', {}).items():
+        for _name, _type in attrs.get("__annotations__", {}).items():
 
             # Ignore annotations with leading underscore
-            if _name[0] == '_':
+            if _name[0] == "_":
                 continue
 
             # Raise an exception when an invalid column name is set.
-            if _name.startswith('or_') or _name[-4:-2] == '__':
-                raise NameError(f'Column {_name}\'s name is invalid.')
+            if _name.startswith("or_") or _name[-4:-2] == "__":
+                raise NameError(f"Column {_name}'s name is invalid.")
 
             if isinstance(_type, str):
                 _type = eval(_type)
@@ -174,9 +162,7 @@ class FetchableMeta(ObjectMeta):
             if inspect.ismethod(_type) and _type.__self__ is SQLType:
                 _type = _type()
             elif not isinstance(_type, SQLType):
-                if issubclass(_type, SQLType):
-                    pass
-                else:
+                if not issubclass(_type, SQLType):
                     _type = SQLType._from_python_type(_type)
 
             column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
@@ -193,22 +179,21 @@ class FetchableMeta(ObjectMeta):
 
 
 class Fetchable(Creatable, metaclass=FetchableMeta):
-
     @classmethod
-    def _validate_kwargs(cls, primary_keys_only=False, **kwargs) -> Dict[Column, Any]:
+    def _validate_kwargs(cls, primary_keys_only: bool = False, **kwargs: Any) -> Dict[Column, Any]:
         """Validates passed kwargs against table"""
         verified: Dict[Column, Any] = dict()
         for kwarg, value in kwargs.items():
 
             # Strip Extra operators
-            if kwarg.startswith('or_'):
+            if kwarg.startswith("or_"):
                 kwarg = kwarg[3:]
-            if kwarg[-4:-2] == '__':
+            if kwarg[-4:-2] == "__":
                 kwarg = kwarg[:-4]
 
             # Check column is in Object
             if kwarg not in cls._columns_dict:
-                raise AttributeError(f'Could not find column with name {kwarg} in table {cls._name}')
+                raise AttributeError(f"Could not find column with name {kwarg} in table {cls._name}")
 
             column = cls._columns_dict[kwarg]
 
@@ -218,11 +203,10 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
 
             # Check passing null into a non nullable column
             if not column.nullable and value is None:
-                raise TypeError(
-                    f'Cannot pass None into non-nullable column {column.name}')
+                raise TypeError(f"Cannot pass None into non-nullable column {column.name}")
 
-            def check_type(element):
-                return isinstance(element, (column.type._python, type(None)))
+            def check_type(element: Any) -> bool:
+                return isinstance(element, (column.type._python, type(None)))  # type: ignore
 
             # If column is an array
             if column.is_array:
@@ -238,15 +222,15 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                     else:
                         if not check_type(element):
                             raise TypeError(
-                                f'Column {column.name}; expected {column.type.__name__ }[], received {type(element).__name__}[]')
+                                f"Column {column.name}; expected {column.type._python }[], received {type(element)}[]"
+                            )
 
                 # Check array depth is expected.
                 check_array(value)
 
             # Otherwise check type of element
             elif not check_type(value):
-                raise TypeError(
-                    f'Column {column.name}; expected {column.type.__name__}, received {type(value).__name__}')
+                raise TypeError(f"Column {column.name}; expected {column.type._python}, received {type(value)}")
 
             verified[column] = value
 
@@ -258,40 +242,41 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         verified = cls._validate_kwargs(**kwargs)
 
         # AND / OR statement check
-        statements = ['AND ' for _ in verified]
+        statements = ["AND " for _ in verified]
         # =, <, >, != check
-        operators = ['=' for _ in verified]
+        operators = ["=" for _ in verified]
 
         # Determine operators
         for i, key in enumerate(kwargs):
 
             # First statement has no boolean operator
             if i == 0:
-                statements[i] = ''
-            elif key[:3] == 'or_':
-                statements[i] = 'OR '
+                statements[i] = ""
+            elif key[:3] == "or_":
+                statements[i] = "OR "
 
-            if key[-4:-2] == '__':
+            if key[-4:-2] == "__":
                 try:
                     operators[i] = DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
-                    raise AttributeError(f'Unknown operator type {key[-2:]}')
+                    raise AttributeError(f"Unknown operator type {key[-2:]}")
 
-        builder = [f'SELECT * FROM {cls._name}']
+        builder = [f"SELECT * FROM {cls._name}"]
 
         # Set the WHERE clause
         if verified:
-            builder.append('WHERE')
-            checks = []
-            for i, column in enumerate(verified.keys()):
-                checks.append(f'{statements[i]}{column.name} {operators[i]} ${i+1}')
-            builder.append(' '.join(checks))
+            builder.append("WHERE")
+            checks = [
+                f"{statements[i]}{column.name} {operators[i]} ${i+1}" for i, column in enumerate(verified.keys())
+            ]
+
+            builder.append(" ".join(checks))
 
         if order_by is not None:
-            builder.append(f'ORDER BY {order_by}')
+            builder.append(f"ORDER BY {order_by}")
 
         if limit is not None:
-            builder.append(f'LIMIT {limit}')
+            builder.append(f"LIMIT {limit}")
 
         return (" ".join(builder), verified.values())
 
@@ -299,19 +284,24 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
     def _query_fetch_where(cls, query: str, order_by: Optional[str], limit: Optional[int]) -> str:
         """Generates a SELECT FROM stub"""
 
-        builder = [f'SELECT * FROM {cls._name} WHERE']
-        builder.append(query)
-
+        builder = [f"SELECT * FROM {cls._name} WHERE", query]
         if order_by is not None:
-            builder.append(f'ORDER BY {order_by}')
+            builder.append(f"ORDER BY {order_by}")
 
         if limit is not None:
-            builder.append(f'LIMIT {limit}')
+            builder.append(f"LIMIT {limit}")
 
         return " ".join(builder)
 
     @classmethod
-    async def fetch(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None, **kwargs) -> List[asyncpg.Record]:
+    async def fetch(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        **kwargs,
+    ) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
         Args:
@@ -328,7 +318,13 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchall(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, limit: Optional[int] = None) -> List[asyncpg.Record]:
+    async def fetchall(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List[asyncpg.Record]:
         """Fetches a list of all records from the database.
 
         Args:
@@ -344,7 +340,9 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchrow(cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, **kwargs) -> Optional[asyncpg.Record]:
+    async def fetchrow(
+        cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, **kwargs
+    ) -> Optional[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
@@ -360,8 +358,14 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
             return await connection.fetchrow(query, *values)
 
     @classmethod
-    async def fetch_where(cls, where: str, *values, connection: Optional[asyncpg.Connection] = None,
-                          order_by: Optional[str] = None, limit: Optional[int] = None) -> List[asyncpg.Record]:
+    async def fetch_where(
+        cls,
+        where: str,
+        *values,
+        connection: Optional[asyncpg.Connection] = None,
+        order_by: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
         Args:
@@ -379,7 +383,9 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
             return await connection.fetch(query, *values)
 
     @classmethod
-    async def fetchrow_where(cls, where: str, *values, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None) -> List[asyncpg.Record]:
+    async def fetchrow_where(
+        cls, where: str, *values: Any, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None
+    ) -> List[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
@@ -393,48 +399,52 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         """
         query = cls._query_fetch_where(where, order_by, 1)
         async with MaybeAcquire(connection) as connection:
-            return await connection.fetchrow(query, *values)
+            return await connection.fetchrow(query, *values)  # type: ignore
 
 
 class Insertable(Fetchable):
-
     @classmethod
     def _query_update_on_conflict(cls, conflict_keys: Collection[Column], column: Column) -> str:
         return f'ON CONFLICT ({",".join(col.name for col in conflict_keys)}) DO UPDATE SET {column.name} = EXCLUDED.{column.name}'
 
     @classmethod
-    def _query_insert(cls, ignore_on_conflict: bool, update_on_conflict: Optional[Column],
-                      returning: Optional[Union[str, Iterable[Column]]], **kwargs) -> Tuple[str, Iterable]:
+    def _query_insert(
+        cls,
+        ignore_on_conflict: bool,
+        update_on_conflict: Optional[Column],
+        returning: Optional[Union[str, Column, Iterable[Column]]],
+        **kwargs,
+    ) -> Tuple[str, Iterable]:
         """Generates the INSERT INTO stub."""
         verified = cls._validate_kwargs(**kwargs)
 
-        builder = [f'INSERT INTO {cls._name}']
-        builder.append(f'({", ".join(column.name for column in verified.keys())})')
-        builder.append('VALUES')
+        builder = [
+            f"INSERT INTO {cls._name}",
+            f'({", ".join(column.name for column in verified.keys())})',
+            "VALUES",
+        ]
 
-        values = []
-        for i, _ in enumerate(verified, 1):
-            values.append(f'${i}')
+        values = [f"${i}" for i, _ in enumerate(verified, 1)]
         builder.append(f'({", ".join(values)})')
 
         if ignore_on_conflict and update_on_conflict is not None:
-            raise ValueError('Conflicting ON CONFLICT settings.')
+            raise ValueError("Conflicting ON CONFLICT settings.")
 
         elif ignore_on_conflict:
-            builder.append('ON CONFLICT DO NOTHING')
+            builder.append("ON CONFLICT DO NOTHING")
 
         elif update_on_conflict is not None:
             if update_on_conflict.table != cls:
-                raise ValueError('Supplied column for different table.')
+                raise ValueError("Supplied column for different table.")
 
             conflict_keys = [column for column in verified.keys() if column.primary_key]
             builder.append(cls._query_update_on_conflict(conflict_keys, update_on_conflict))
 
         if returning:
-            builder.append('RETURNING')
+            builder.append("RETURNING")
 
-            if returning == '*':
-                builder.append('*')
+            if returning == "*":
+                builder.append("*")
 
             else:
 
@@ -446,31 +456,33 @@ class Insertable(Fetchable):
 
                 for value in returning:
                     if not isinstance(value, Column):
-                        raise TypeError(
-                            f'Expected a volume for the returning value received {type(value).__name__}')
+                        raise TypeError(f"Expected a volume for the returning value received {type(value)}")
                     if value.table != cls:
-                        raise ValueError('Supplied column for different table.')
+                        raise ValueError("Supplied column for different table.")
 
                     returning_builder.append(value.name)
 
-                builder.append(', '.join(returning_builder))
+                builder.append(", ".join(returning_builder))
 
         return (" ".join(builder), verified.values())
 
     @classmethod
-    def _query_insert_many(cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: Optional[Column]) -> str:
+    def _query_insert_many(
+        cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: Optional[Column]
+    ) -> str:
         """Generates the INSERT INTO stub."""
-        builder = [f'INSERT INTO {cls._name}']
-        builder.append(f'({", ".join(column.name for column in columns)})')
-        builder.append('VALUES')
-        builder.append(
-            f'({", ".join(f"${n+1}" for n in range(len(columns)))})')
+        builder = [
+            f"INSERT INTO {cls._name}",
+            f'({", ".join(column.name for column in columns)})',
+            "VALUES",
+            f'({", ".join(f"${n+1}" for n in range(len(columns)))})',
+        ]
 
         if ignore_on_conflict and update_on_conflict:
-            raise ValueError('Conflicting ON CONFLICT settings.')
+            raise ValueError("Conflicting ON CONFLICT settings.")
 
         elif ignore_on_conflict:
-            builder.append('ON CONFLICT DO NOTHING')
+            builder.append("ON CONFLICT DO NOTHING")
 
         elif update_on_conflict:
             conflict_keys = [column for column in columns if column.primary_key]
@@ -480,116 +492,119 @@ class Insertable(Fetchable):
 
     @classmethod
     def _query_update_record(cls, record, **kwargs) -> Tuple[str, List[Any]]:
-        '''Generates the UPDATE stub'''
+        """Generates the UPDATE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
-        builder = [f'UPDATE {cls._name} SET']
+        builder = [f"UPDATE {cls._name} SET"]
 
         # Set the values
-        sets = []
-        for i, column in enumerate(verified.keys(), 1):
-            sets.append(f'{column.name} = ${i}')
-        builder.append(', '.join(sets))
+        sets = [f"{column.name} = ${i}" for i, column in enumerate(verified.keys(), 1)]
+        builder.append(", ".join(sets))
 
         # Set the QUERY
         record_keys = cls._validate_kwargs(primary_keys_only=True, **record)
 
-        builder.append('WHERE')
-        checks = []
-        for i, column in enumerate(record_keys.keys(), i + 1):
-            checks.append(f'{column.name} = ${i}')
-        builder.append(' AND '.join(checks))
+        builder.append("WHERE")
+        checks = [f"{column.name} = ${i}" for i, column in enumerate(record_keys.keys(), len(sets) + 1)]
+
+        builder.append(" AND ".join(checks))
 
         return (" ".join(builder), list(verified.values()) + list(record_keys.values()))
 
     @classmethod
     def _query_update_where(cls, query, values, **kwargs) -> Tuple[str, List[Any]]:
-        '''Generates the UPDATE stub'''
+        """Generates the UPDATE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
-        builder = [f'UPDATE {cls._name} SET']
+        builder = [f"UPDATE {cls._name} SET"]
 
         # Set the values
-        sets = []
-        for i, column in enumerate(verified.keys(), len(values) + 1):
-            sets.append(f'{column.name} = ${i}')
-        builder.append(', '.join(sets))
+        sets = [f"{column.name} = ${i}" for i, column in enumerate(verified.keys(), len(values) + 1)]
+
+        builder.append(", ".join(sets))
 
         # Set the QUERY
-        builder.append('WHERE')
+        builder.append("WHERE")
         builder.append(query)
 
         return (" ".join(builder), values + tuple(verified.values()))
 
     @classmethod
     def _query_delete(cls, **kwargs) -> Tuple[str, List[Any]]:
-        '''Generates the DELETE stub'''
+        """Generates the DELETE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
         # AND / OR statement check
-        statements = ['AND ' for _ in verified]
+        statements = ["AND " for _ in verified]
         # =, <, >, != check
-        operators = ['=' for _ in verified]
+        operators = ["=" for _ in verified]
 
         # Determine operators
         for i, key in enumerate(kwargs):
 
             # First statement has no boolean operator
             if i == 0:
-                statements[i] = ''
-            elif key[:3] == 'or_':
-                statements[i] = 'OR '
+                statements[i] = ""
+            elif key[:3] == "or_":
+                statements[i] = "OR "
 
-            if key[-4:-2] == '__':
+            if key[-4:-2] == "__":
                 try:
                     operators[i] = DEFAULT_OPERATORS[key[-2:]]
                 except KeyError:
-                    raise AttributeError(f'Unknown operator type {key[-2:]}')
+                    raise AttributeError(f"Unknown operator type {key[-2:]}")
 
-        builder = [f'DELETE FROM {cls._name}']
+        builder = [f"DELETE FROM {cls._name}"]
 
         # Set the WHERE clause
         if verified:
-            builder.append('WHERE')
-            checks = []
-            for i, column in enumerate(verified.keys()):
-                checks.append(f'{statements[i]}{column.name} {operators[i]} ${i+1}')
-            builder.append(' '.join(checks))
+            builder.append("WHERE")
+            checks = [
+                f"{statements[i]}{column.name} {operators[i]} ${i+1}" for i, column in enumerate(verified.keys())
+            ]
+
+            builder.append(" ".join(checks))
 
         return (" ".join(builder), list(verified.values()))
 
     @classmethod
     def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
-        '''Generates the DELETE stub'''
+        """Generates the DELETE stub"""
 
-        builder = [f'DELETE FROM {cls._name}']
+        builder = [f"DELETE FROM {cls._name}"]
 
         # Set the QUERY
         record_keys = cls._validate_kwargs(primary_keys_only=True, **record)
 
-        builder.append('WHERE')
-        checks = []
-        for i, column in enumerate(record_keys.keys(), 1):
-            checks.append(f'{column.name} = ${i}')
-        builder.append(' AND '.join(checks))
+        builder.append("WHERE")
+        checks = [f"{column.name} = ${i}" for i, column in enumerate(record_keys.keys(), 1)]
+
+        builder.append(" AND ".join(checks))
 
         return (" ".join(builder), list(record_keys.values()))
 
     @classmethod
     def _query_delete_where(cls, query) -> str:
-        '''Generates the UPDATE stub'''
+        """Generates the UPDATE stub"""
 
-        builder = [f'DELETE FROM {cls._name}']
+        builder = [f"DELETE FROM {cls._name}"]
 
         # Set the QUERY
-        builder.append('WHERE')
+        builder.append("WHERE")
         builder.append(query)
 
         return " ".join(builder)
 
     @classmethod
-    async def insert(cls, *, connection: asyncpg.Connection = None, ignore_on_conflict: bool = False,
-                     update_on_conflict: Optional[Column] = None, returning: Iterable[Column] = None, **kwargs) -> Optional[asyncpg.Record]:
+    async def insert(
+        cls,
+        *,
+        connection: asyncpg.Connection = None,
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Column] = None,
+        returning: Iterable[Column] = None,
+        **kwargs,
+    ) -> Optional[asyncpg.Record]:
         """Inserts a new record into the database.
 
         Args:
@@ -612,8 +627,14 @@ class Insertable(Fetchable):
         return None
 
     @classmethod
-    async def insert_many(cls, columns: Collection[Column], *values: Iterable[Iterable[Any]],
-                          ignore_on_conflict: bool = False, update_on_conflict: Optional[Column] = None, connection: asyncpg.Connection = None):
+    async def insert_many(
+        cls,
+        columns: Collection[Column],
+        *values: Iterable[Iterable[Any]],
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Column] = None,
+        connection: asyncpg.Connection = None,
+    ):
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.

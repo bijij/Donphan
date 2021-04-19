@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "Donphan"
+version = "3.1.0"
+description = "Asyncronous Database ORM for Postgres"
+authors = ["bijij <josh@josh-is.gay>"]
+license = "MIT"
+readme = "README.rst"
+packages = [
+  { include = "donphan" }
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Utilities"
+]
+
+[tool.poetry.dependencies]
+python = "^3.7.2"
+asyncpg = "^0.18.3"
+
+[tool.poetry.dev-dependencies]
+black = "^20.8b1"
+mypy = ">=0.800"
+pytest = "^6.2.3"
+
+[tool.black]
+line-length = 119
+target-version = ["py37", "py38"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.venv
+)/
+'''
+
+[tool.pytest]
+addopts = "--capture=no --assert=plain --strict-markers --tb native"
+testpaths = "tests"
+filterwarnings = "default"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -31,7 +31,7 @@ class TestEnum(TestCase):
     async def test_c_insert_with_enum(self):
         await _Test_Table.insert(col_a=_Test_Enum.b, col_b=3)
         record = await _Test_Table.fetchrow(col_b=3)
-        assert record['col_a'] == _Test_Enum.b
+        assert record["col_a"] == _Test_Enum.b
 
     @async_test
     async def test_d_drop(self):

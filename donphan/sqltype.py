@@ -24,192 +24,167 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import inspect
 import datetime
 import decimal
 import ipaddress
 import uuid
 
-from typing import Any, Callable, Dict, Type, TypeVar
+from typing import (
+    Any,
+    TYPE_CHECKING,
+    Union,
+    cast,
+    NamedTuple,
+    Optional,
+    Callable,
+    Dict,
+    Type,
+    TypeVar,
+)
+
+from .meta import ObjectMeta
+
+if TYPE_CHECKING:
+    from .column import Column
 
 
-T = TypeVar('T', bound=Callable[..., 'SQLType'])
+__all__ = ("SQLType",)
 
 
-DEFAULT_TYPES: Dict[type, Callable[..., SQLType]] = {}
+T = TypeVar("T")
+SqlT = TypeVar("SqlT", bound=Callable[..., "SQLType"])
 
 
-def default_for(python_type: Type[Any]) -> Callable[[T], T]:
-    """Sets a specified python type's default SQL type.
-    Args:
-        python_type (type): Python type to set the specified sqltype as default for.
-    """
-    def func(sql_type: T) -> T:
-        DEFAULT_TYPES[python_type] = sql_type
-        return sql_type
-    return func
+class TypeDefinition(NamedTuple):
+    python: Type
+    sql: Union[str, Callable[..., str]]
 
 
-class SQLType:
+def _varchar_sql(n: int = 2000):
+    return f"CHARACTER VARYING({n})"
 
-    def __init__(self, python: Type[Any], sql: str):
-        self._python = python
-        self._sql = sql
+
+def _timestamp_sql(with_timezone: bool = False):
+    return "TIMESTAMP WITH TIME ZONE" if with_timezone else "TIMESTAMP"
+
+
+SQL_TYPES: Dict[str, TypeDefinition] = {
+    # 8.1 Numeric
+    "Integer": TypeDefinition(int, "INTEGER"),
+    "SmallInt": TypeDefinition(int, "SMALLINT"),
+    "BigInt": TypeDefinition(int, "BIGINT"),
+    "Serial": TypeDefinition(int, "SERIAL"),
+    "Float": TypeDefinition(float, "FLOAT"),
+    "DoublePrecision": TypeDefinition(float, "DOUBLE PRECISION"),
+    "Numeric": TypeDefinition(decimal.Decimal, "NUMERIC"),
+    # 8.2 Monetary
+    "Money": TypeDefinition(str, "MONEY"),
+    # 8.14 JSON
+    "JSON": TypeDefinition(dict, "JSON"),
+    "JSONB": TypeDefinition(dict, "JSONB"),
+    # 8.3 Character
+    "CharacterVarying": TypeDefinition(str, _varchar_sql),
+    "Character": TypeDefinition(str, "CHARACTER"),
+    "Text": TypeDefinition(str, "TEXT"),
+    # 8.4 Binary
+    "Bytea": TypeDefinition(bytes, "BYTEA"),
+    # 8.5 Date/Time
+    "Timestamp": TypeDefinition(datetime.datetime, _timestamp_sql),
+    "Date": TypeDefinition(datetime.date, "DATE"),
+    "Interval": TypeDefinition(datetime.timedelta, "INTERVAL"),
+    # 8.6 Boolean
+    "Boolean": TypeDefinition(bool, "BOOLEAN"),
+    # 8.9 Network Adress
+    "CIDR": TypeDefinition(ipaddress._BaseNetwork, "CIDR"),
+    "Inet": TypeDefinition(ipaddress._BaseNetwork, "INET"),
+    "MACAddr": TypeDefinition(str, "MACADDR"),
+    # 8.12 UUID
+    "UUID": TypeDefinition(uuid.UUID, "UUID"),
+}
+
+SQL_TYPE_ALIASES: Dict[str, str] = {
+    "Int": "Integer",
+    "Char": "Character",
+    "VarChar": "CharacterVarying",
+}
+
+DEFAULT_TYPES: Dict[Type, str] = {
+    int: "Integer",
+    float: "Float",
+    decimal.Decimal: "Numeric",
+    str: "Text",
+    bytes: "Bytea",
+    datetime.datetime: "Timestamp",
+    datetime.date: "Date",
+    datetime.timedelta: "Interval",
+    bool: "Boolean",
+    ipaddress.IPv4Network: "CIDR",
+    ipaddress.IPv6Network: "CIDR",
+    ipaddress.IPv4Address: "Inet",
+    ipaddress.IPv6Address: "Inet",
+    uuid.UUID: "UUID",
+    dict: "JSONB",
+}
+
+
+class SQLTypeMeta(ObjectMeta):
+    _python: Type
+    _preformatted_sql: Union[str, Callable[..., str]]
+    _format_values: Dict[str, Any]
+
+    def __new__(
+        cls,
+        name,
+        bases,
+        attrs,
+        *,
+        python: Type[Any] = type(None),
+        sql: Union[str, Callable[..., str]] = "NULL",
+        values: Dict[str, Any] = {},
+        **kwargs: Any,
+    ):
+        obj = cast(SQLTypeMeta, super().__new__(cls, name, bases, attrs, **kwargs))
+        obj._python = python
+        obj._preformatted_sql = sql
+        obj._format_values = values
+
+        return obj
+
+    def __repr__(cls) -> str:
+        return f'<donphan.SQLType python="{cls._python}" sql="{cls._sql}">'
+
+    def __call__(cls, **kwargs) -> Type[SQLType]:  # type: ignore
+        return cast(
+            Type[SQLType],
+            SQLTypeMeta.__new__(
+                SQLTypeMeta, cls.__name__, (SQLType,), {}, python=cls._python, sql=cls._preformatted_sql, values=kwargs
+            ),
+        )
+
+    def __getattribute__(self, name: str) -> Type[Column]:
+        return super().__getattribute__(name)  # type: ignore
+
+    @property
+    def _sql(cls) -> str:
+        if inspect.isfunction(cls._preformatted_sql):
+            return cls._preformatted_sql(**cls._format_values)  # type: ignore
+        return cls._preformatted_sql  # type: ignore
+
+
+class BaseSQLType:
+    ...
+
+
+class SQLType(BaseSQLType, metaclass=SQLTypeMeta):
+    _python: Type
+    _sql: str
 
     def __repr__(self):
-        return f'<SQLType sql=\'{self._sql}\' python=\'{self.__name__}\'>'
+        return f"<SQLType sql='{self._sql}' python='{self._python.__name__}'>"
 
     def __eq__(self, other) -> bool:
         return self._sql == other._sql
-
-    @property
-    def __name__(self) -> str:
-        return self._python.__name__
-
-    # 8.1 Numeric
-
-    @classmethod
-    @default_for(int)
-    def Integer(cls):
-        """Postgres Integer Type"""
-        return cls(int, 'INTEGER')
-
-    @classmethod
-    def SmallInt(cls):
-        """Postgres SmallInt Type"""
-        return cls(int, 'SMALLINT')
-
-    @classmethod
-    def BigInt(cls):
-        """Postgres BigInt Type"""
-        return cls(int, 'BIGINT')
-
-    @classmethod
-    def Serial(cls):
-        """Postgres Serial Type"""
-        return cls(int, 'SERIAL')
-
-    @classmethod
-    @default_for(float)
-    def Float(cls):
-        """Postgres Float Type"""
-        return cls(float, 'FLOAT')
-
-    @classmethod
-    def DoublePrecision(cls):
-        """Postgres DoublePrecision Type"""
-        return cls(float, 'DOUBLE PRECISION')
-
-    @classmethod
-    @default_for(decimal.Decimal)
-    def Numeric(cls):
-        """Postgres Numeric Type"""
-        return cls(decimal.Decimal, 'NUMERIC')
-
-    # 8.2 Monetary
-
-    @classmethod
-    def Money(cls):
-        """Postgres Money Type"""
-        return cls(str, 'MONEY')
-
-    # 8.3 Character
-
-    @classmethod
-    def CharacterVarying(cls, n: int = 2000):
-        return cls(str, f'CHARACTER VARYING({n})')
-
-    @classmethod
-    def Character(cls):
-        """Postgres Character Type"""
-        return cls(str, 'CHARACTER')
-
-    @classmethod
-    @default_for(str)
-    def Text(cls):
-        """Postgres Text Type"""
-        return cls(str, 'TEXT')
-
-    # 8.4 Binary
-
-    @classmethod
-    @default_for(bytes)
-    def Bytea(cls):
-        """Postgres Bytea Type"""
-        return cls(bytes, 'BYTEA')
-
-    # 8.5 Date/Time
-
-    @classmethod
-    @default_for(datetime.datetime)
-    def Timestamp(cls, with_timezone: bool = False):
-        """Postgres Timestamp Type"""
-        return cls(datetime.datetime, 'TIMESTAMP WITH TIME ZONE' if with_timezone else 'TIMESTAMP')
-
-    @classmethod
-    @default_for(datetime.date)
-    def Date(cls):
-        """Postgres Date Type"""
-        return cls(datetime.date, 'DATE')
-
-    @classmethod
-    @default_for(datetime.timedelta)
-    def Interval(cls):
-        """Postgres Interval Type"""
-        return cls(datetime.timedelta, 'INTERVAL')
-
-    # 8.6 Boolean
-
-    @classmethod
-    @default_for(bool)
-    def Boolean(cls):
-        """Postgres Boolean Type"""
-        return cls(bool, 'BOOLEAN')
-
-    # 8.9 Network Adress
-
-    @classmethod
-    @default_for(ipaddress.IPv4Network)
-    @default_for(ipaddress.IPv6Network)
-    def CIDR(cls):
-        """Postgres CIDR Type"""
-        return cls(ipaddress._BaseNetwork, 'CIDR')
-
-    @classmethod
-    @default_for(ipaddress.IPv4Address)
-    @default_for(ipaddress.IPv6Address)
-    def Inet(cls):
-        """Postgres Inet Type"""
-        return cls(ipaddress._BaseNetwork, 'INET')
-
-    @classmethod
-    def MACAddr(cls):
-        """Postgres MACAddr Type"""
-        return cls(str, 'MACADDR')
-
-    # 8.12 UUID
-
-    @classmethod
-    @default_for(uuid.UUID)
-    def UUID(cls):
-        """Postgres UUID Type"""
-        return cls(uuid.UUID, 'UUID')
-
-    # 8.14 JSON
-
-    @classmethod
-    def JSON(cls):
-        """Postgres JSON Type"""
-        return cls(dict, 'JSON')
-
-    @classmethod
-    @default_for(dict)
-    def JSONB(cls):
-        """Postgres JSONB Type"""
-        return cls(dict, 'JSONB')
-
-    # Aliases
-    Char = Character
-    VarChar = CharacterVarying
 
     @classmethod
     def _from_python_type(cls, python_type: type):
@@ -219,7 +194,17 @@ class SQLType:
         """
 
         if DEFAULT_TYPES.get(python_type):
-            return DEFAULT_TYPES[python_type](cls)
+            return getattr(cls, DEFAULT_TYPES[python_type])
 
-        raise TypeError(
-            f'Could not find an applicable SQL type for Python type {python_type!r}.')
+        raise TypeError(f"Could not find an applicable SQL type for Python type {python_type!r}.")
+
+
+for name, definition in SQL_TYPES.items():
+    python_type, sql_type = definition
+    type_cls = SQLTypeMeta.__new__(SQLTypeMeta, name, (SQLType,), {}, python=python_type, sql=sql_type)
+
+    setattr(SQLType, name, type_cls)
+
+
+for alias, sqltype in SQL_TYPE_ALIASES.items():
+    setattr(SQLType, alias, getattr(SQLType, sqltype))
