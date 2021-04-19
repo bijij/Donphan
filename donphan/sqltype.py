@@ -24,6 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import inspect
 import datetime
 import decimal
 import ipaddress
@@ -32,6 +33,7 @@ import uuid
 from typing import (
     Any,
     TYPE_CHECKING,
+    Union,
     cast,
     NamedTuple,
     Optional,
@@ -54,16 +56,17 @@ T = TypeVar("T")
 SqlT = TypeVar("SqlT", bound=Callable[..., "SQLType"])
 
 
-class TypeOption(NamedTuple):
-    type: Type
-    default: Any
-
-
 class TypeDefinition(NamedTuple):
     python: Type
-    sql: str
-    options: Optional[Dict[str, TypeOption]] = {}
-    format_args: Dict[str, Any] = {}
+    sql: Union[str, Callable[..., str]]
+
+
+def _varchar_sql(n: int = 2000):
+    return f"CHARACTER VARYING({n})"
+
+
+def _timestamp_sql(with_timezone: bool = False):
+    return "TIMESTAMP WITH TIME ZONE" if with_timezone else "TIMESTAMP"
 
 
 SQL_TYPES: Dict[str, TypeDefinition] = {
@@ -81,18 +84,13 @@ SQL_TYPES: Dict[str, TypeDefinition] = {
     "JSON": TypeDefinition(dict, "JSON"),
     "JSONB": TypeDefinition(dict, "JSONB"),
     # 8.3 Character
-    "CharacterVarying": TypeDefinition(str, "CHARACTER VARYING({n})", {"n": TypeOption(int, 2000)}),
+    "CharacterVarying": TypeDefinition(str, _varchar_sql),
     "Character": TypeDefinition(str, "CHARACTER"),
     "Text": TypeDefinition(str, "TEXT"),
     # 8.4 Binary
     "Bytea": TypeDefinition(bytes, "BYTEA"),
     # 8.5 Date/Time
-    "Timestamp": TypeDefinition(
-        datetime.datetime,
-        "TIMESTAMP{mode[with_timezone]}",
-        {"with_timezone": TypeOption(bool, False)},
-        {"mode": [" WITH TIME ZONE", ""]},
-    ),
+    "Timestamp": TypeDefinition(datetime.datetime, _timestamp_sql),
     "Date": TypeDefinition(datetime.date, "DATE"),
     "Interval": TypeDefinition(datetime.timedelta, "INTERVAL"),
     # 8.6 Boolean
@@ -112,28 +110,27 @@ SQL_TYPE_ALIASES: Dict[str, str] = {
 }
 
 DEFAULT_TYPES: Dict[Type, str] = {
-    int: 'Integer',
-    float: 'Float',
-    decimal.Decimal: 'Numeric',
-    str: 'Text',
-    bytes: 'Bytea',
-    datetime.datetime: 'Timestamp',
-    datetime.date: 'Date',
-    datetime.timedelta: 'Interval',
-    bool: 'Boolean',
-    ipaddress.IPv4Network: 'CIDR',
-    ipaddress.IPv6Network: 'CIDR',
-    ipaddress.IPv4Address: 'Inet',
-    ipaddress.IPv6Address: 'Inet',
-    uuid.UUID: 'UUID',
-    dict: 'JSONB'
+    int: "Integer",
+    float: "Float",
+    decimal.Decimal: "Numeric",
+    str: "Text",
+    bytes: "Bytea",
+    datetime.datetime: "Timestamp",
+    datetime.date: "Date",
+    datetime.timedelta: "Interval",
+    bool: "Boolean",
+    ipaddress.IPv4Network: "CIDR",
+    ipaddress.IPv6Network: "CIDR",
+    ipaddress.IPv4Address: "Inet",
+    ipaddress.IPv6Address: "Inet",
+    uuid.UUID: "UUID",
+    dict: "JSONB",
 }
+
 
 class SQLTypeMeta(ObjectMeta):
     _python: Type
-    _preformatted_sql: str
-    _options: Dict[str, TypeOption]
-    _format_args: Dict[str, Any]
+    _preformatted_sql: Union[str, Callable[..., str]]
     _format_values: Dict[str, Any]
 
     def __new__(
@@ -143,29 +140,19 @@ class SQLTypeMeta(ObjectMeta):
         attrs,
         *,
         python: Type[Any] = type(None),
-        sql: str = "NULL",
-        options: Dict[str, TypeOption] = {},
-        format_args: Dict[str, Any] = {},
+        sql: Union[str, Callable[..., str]] = "NULL",
         values: Dict[str, Any] = {},
         **kwargs: Any,
     ):
         obj = cast(SQLTypeMeta, super().__new__(cls, name, bases, attrs, **kwargs))
         obj._python = python
         obj._preformatted_sql = sql
-        obj._options = options
-        obj._format_args = format_args
         obj._format_values = values
 
         return obj
 
     def __repr__(cls) -> str:
-
-        base = f"<donphan.SQLType.{cls.__name__}"
-
-        for option in cls._options:
-            base += f" {option}={...}"
-
-        return base + ">"
+        return f'<donphan.SQLType python="{cls._python}" sql="{cls._sql}">'
 
     def __call__(cls, **kwargs) -> Type[SQLType]:  # type: ignore
         return cast(
@@ -175,9 +162,7 @@ class SQLTypeMeta(ObjectMeta):
                 (SQLType,),
                 {
                     "python": cls._python,
-                    "sql": cls._sql,
-                    "options": options,
-                    "format_args": format_args,
+                    "sql": cls._preformatted_sql,
                     "values": kwargs,
                 },
             ),
@@ -188,7 +173,9 @@ class SQLTypeMeta(ObjectMeta):
 
     @property
     def _sql(cls) -> str:
-        return cls._preformatted_sql.format()
+        if inspect.isfunction(cls._preformatted_sql):
+            return cls._preformatted_sql(**cls._format_values)  # type: ignore
+        return cls._preformatted_sql  # type: ignore
 
 
 class BaseSQLType:
@@ -219,18 +206,9 @@ class SQLType(BaseSQLType, metaclass=SQLTypeMeta):
 
 
 for name, definition in SQL_TYPES.items():
-    python_type, sql_type, options, format_args = definition
-    type_cls = type(
-        name,
-        (SQLType,),
-        {
-            "python": python_type,
-            "sql": sql_type,
-            "options": options,
-            "format_args": format_args,
-            "values": {},
-        },
-    )
+    python_type, sql_type = definition
+    type_cls = SQLTypeMeta.__new__(SQLTypeMeta, name, (SQLType,), {}, python=python_type, sql=sql_type)
+
     setattr(SQLType, name, type_cls)
 
 

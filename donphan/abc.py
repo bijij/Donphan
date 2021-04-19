@@ -222,7 +222,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                     else:
                         if not check_type(element):
                             raise TypeError(
-                                f"Column {column.name}; expected {column.type.__name__ }[], received {type(element).__name__}[]"
+                                f"Column {column.name}; expected {column.type._python }[], received {type(element)}[]"
                             )
 
                 # Check array depth is expected.
@@ -230,9 +230,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
 
             # Otherwise check type of element
             elif not check_type(value):
-                raise TypeError(
-                    f"Column {column.name}; expected {column.type.__name__}, received {type(value).__name__}"
-                )
+                raise TypeError(f"Column {column.name}; expected {column.type._python}, received {type(value)}")
 
             verified[column] = value
 
@@ -458,7 +456,7 @@ class Insertable(Fetchable):
 
                 for value in returning:
                     if not isinstance(value, Column):
-                        raise TypeError(f"Expected a volume for the returning value received {type(value).__name__}")
+                        raise TypeError(f"Expected a volume for the returning value received {type(value)}")
                     if value.table != cls:
                         raise ValueError("Supplied column for different table.")
 
