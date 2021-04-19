@@ -23,4 +23,4 @@ SOFTWARE.
 """
 
 
-DEFAULT_SCHEMA = 'public'
+DEFAULT_SCHEMA = "public"

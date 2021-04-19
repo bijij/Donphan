@@ -26,13 +26,11 @@ from __future__ import annotations
 
 from typing import Any, Callable, Optional, TypeVar, Union
 
-T = TypeVar('T', bound=Callable[..., Any])
+T = TypeVar("T", bound=Callable[..., Any])
 
 
 def _process_decorator(deco):
-
     def _process_wrapped(*args, **kwargs):
-
         def wrap(wrapped):
             return deco(wrapped, *args, **kwargs)
 

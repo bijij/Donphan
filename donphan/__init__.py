@@ -22,30 +22,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__title__ = 'donphan'
-__author__ = 'Bijij'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2020 Bijij'
-__version__ = '3.1.0'
+__title__ = "donphan"
+__author__ = "Bijij"
+__license__ = "MIT"
+__copyright__ = "Copyright 2020 Bijij"
+__version__ = "3.2.0"
 
-from .column import Column as Column
-from .connection import (
-    create_pool as create_pool,
-    MaybeAcquire as MaybeAcquire,
-    TYPE_CODECS as TYPE_CODECS,
-    OPTIONAL_CODECS as OPTIONAL_CODECS
-)
-from .table import (
-    create_tables as create_tables,
-    Table as Table
-)
-from .types import (
-    create_types as create_types,
-    enum as enum,
-    Enum as Enum
-)
-from .sqltype import SQLType as SQLType
-from .view import (
-    create_views as create_views,
-    View as View
-)
+from . import utils as utils
+from .column import *
+from .connection import *
+from .table import *
+from .types import *
+from .sqltype import *
+from .view import *

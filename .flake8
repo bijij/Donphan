@@ -1,8 +1,0 @@
-[flake8]
-show-source=true
-ignore = F403
-exclude = .git,__pycache__,.github,docs,.venv
-max-line-length = 179
-per-file-ignores =
-  donphan/__init__.py:F401
-  donphan/column.py:F821
