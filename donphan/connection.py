@@ -72,11 +72,11 @@ def _decode_timestamp(value: Tuple[int]) -> datetime.datetime:
 
 
 TYPE_CODECS: Dict[str, TypeCodec] = {
-    "JSON": TypeCodec("text", json.dumps, json.loads),
-    "JSONB": TypeCodec("text", json.dumps, json.loads),
+    "json": TypeCodec("text", json.dumps, json.loads),
+    "jsonb": TypeCodec("text", json.dumps, json.loads),
 }
 
-OPTIONAL_CODECS: Dict[str, TypeCodec] = {"TIMESTAMP": TypeCodec("tuple", _encode_datetime, _decode_timestamp)}
+OPTIONAL_CODECS: Dict[str, TypeCodec] = {"timestamp": TypeCodec("tuple", _encode_datetime, _decode_timestamp)}
 
 
 async def create_pool(dsn: str, codecs: Dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> asyncpg.pool.Pool:
