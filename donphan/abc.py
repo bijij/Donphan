@@ -149,13 +149,30 @@ class FetchableMeta(ObjectMeta):
             if _name.startswith("or_") or _name[-4:-2] == "__":
                 raise NameError(f"Column {_name}'s name is invalid.")
 
+            # Handle PEP 563
             if isinstance(_type, str):
                 _type = eval(_type)
 
-            # If the input type is an array
             is_array = False
+
+            # If the input type is List[T]
+            origin = getattr(_type, "__origin__", None)
+            if origin is list:
+                is_array = True
+                args = _type.__args__
+
+                if len(args) != 1:
+                    raise TypeError(f"Column {_name}'s type is invalid lists must only contain one type.")
+
+                _type = args[0]
+
+            # If the input type is an array
             while isinstance(_type, list):
                 is_array = True
+
+                if len(_type) != 1:
+                    raise TypeError(f"Column {_name}'s type is invalid lists must only contain one type.")
+
                 _type = _type[0]
 
             if inspect.ismethod(_type) and _type.__self__ is _SQLType:
