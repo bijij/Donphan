@@ -34,7 +34,7 @@ from typing import (
     TypeVar,
 )
 
-from .sqltype import BaseSQLType, _SQLType
+from .sqltype import BaseSQLType, _SQLType, SQLType
 
 if TYPE_CHECKING:
     from .table import Table
@@ -97,10 +97,10 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
 
         if self.auto_increment:
             if self.type._python == int:
-                self.type = cast(Type[_SQLType], _SQLType.Serial)
+                self.type = cast(Type[_SQLType], SQLType.Serial)
             else:
                 raise TypeError(
-                    f"Column {self} is auto_increment and must have a supporting type; expected: {_SQLType.Serial}, received: {self.type}"
+                    f"Column {self} is auto_increment and must have a supporting type; expected: {SQLType.Serial}, received: {self.type}"
                 )
 
         return self
@@ -119,11 +119,11 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
 
         if self.default is not NotImplemented:
             builder.append("DEFAULT")
-            if isinstance(self.default, str) and self.type == _SQLType.Text:
+            if isinstance(self.default, str) and self.type == SQLType.Text:
                 builder.append(f"'{self.default}'")
-            elif isinstance(self.default, bool) and self.type == _SQLType.Boolean:
+            elif isinstance(self.default, bool) and self.type == SQLType.Boolean:
                 builder.append(str(self.default).upper())
-            elif isinstance(self.default, dict) and self.type == _SQLType.JSONB:
+            elif isinstance(self.default, dict) and self.type == SQLType.JSONB:
                 builder.append(f"'{dumps(self.default)}'::jsonb")
             else:
                 builder.append(f"({self.default})")
