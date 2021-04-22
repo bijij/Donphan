@@ -9,7 +9,7 @@ from .utils import async_test
 
 
 class _Test_Table(Table):
-    col_a: SQLType.Timestamp(with_timezone=False)  # type: ignore
+    col_a: SQLType.Timestamp(with_timezone=False)
 
 
 time = datetime.datetime.now(tz=datetime.timezone.utc)

@@ -35,7 +35,7 @@ from typing import (
     TypeVar,
 )
 
-import asyncpg  # type: ignore
+import asyncpg
 
 __all__ = (
     "create_pool",
@@ -52,10 +52,10 @@ T = TypeVar("T")
 Y2K_EPOCH = 946684800000000
 
 
-_pool: asyncpg.pool.Pool = None  # type: ignore
+_pool: asyncpg.pool.Pool = None
 
 
-class TypeCodec(NamedTuple):  # type: ignore
+class TypeCodec(NamedTuple):
     format: str  # Literal['text', 'binary', 'tuple']
     encoder: Callable[..., Any]
     decoder: Callable[..., Any]
@@ -76,7 +76,9 @@ TYPE_CODECS: Dict[str, TypeCodec] = {
     "jsonb": TypeCodec("text", json.dumps, json.loads),
 }
 
-OPTIONAL_CODECS: Dict[str, TypeCodec] = {"timestamp": TypeCodec("tuple", _encode_datetime, _decode_timestamp)}
+OPTIONAL_CODECS: Dict[str, TypeCodec] = {
+    "timestamp": TypeCodec("tuple", _encode_datetime, _decode_timestamp),
+}
 
 
 async def create_pool(dsn: str, codecs: Dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> asyncpg.pool.Pool:

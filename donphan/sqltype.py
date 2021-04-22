@@ -24,7 +24,6 @@ SOFTWARE.
 
 from __future__ import annotations
 
-import inspect
 import datetime
 import decimal
 import ipaddress
@@ -32,37 +31,43 @@ import uuid
 
 from typing import (
     Any,
-    TYPE_CHECKING,
-    Union,
     cast,
+    Generic,
+    Union,
     Callable,
     Dict,
     Type,
+    TypeVar,
+    TYPE_CHECKING,
 )
 
 from .meta import ObjectMeta
 
 if TYPE_CHECKING:
-    from .column import Column
+    from .column import _Column
+
+
+T = TypeVar("T")
 
 
 __all__ = ("SQLType",)
 
 
 class SQLTypeMeta(ObjectMeta):
-    _python: Type
-    _preformatted_sql: Union[str, Callable[..., str]]
-    _format_values: Dict[str, Any]
+    if TYPE_CHECKING:
+        _python: Type
+        _preformatted_sql: Union[str, Callable[..., str]]
+        _format_values: Dict[str, Any]
 
-    def __new__(cls, name, bases, attrs, *, values: Dict[str, Any] = {}, **kwargs: Any) -> Type[Column]:  # type: ignore
+    def __new__(cls, name, bases, attrs, *, values: Dict[str, Any] = {}, **kwargs: Any) -> Type[_Column]:  # type: ignore[misc]
         obj = cast(SQLTypeMeta, super().__new__(cls, name, bases, attrs, **kwargs))
         obj._format_values = values
-        return obj  # type: ignore
+        return obj  # type: ignore[return-value]
 
     def __repr__(cls) -> str:
         return f'<donphan.SQLType python="{cls._python}" sql="{cls._sql}">'
 
-    def __call__(cls, **kwargs) -> Type[Column]:  # type: ignore
+    def __call__(cls, **kwargs) -> Type[_Column]:  # type: ignore[override]
         return SQLTypeMeta.__new__(
             SQLTypeMeta,
             cls.__name__,
@@ -74,14 +79,14 @@ class SQLTypeMeta(ObjectMeta):
             values=kwargs,
         )
 
-    def __getattribute__(self, name: str) -> Type[Column]:
-        return super().__getattribute__(name)  # type: ignore
+    def __getattribute__(self, name: str) -> Type[_Column]:
+        return super().__getattribute__(name)
 
     @property
     def _sql(cls) -> str:
-        if inspect.isfunction(cls._preformatted_sql):
-            return cls._preformatted_sql(**cls._format_values)  # type: ignore
-        return cls._preformatted_sql  # type: ignore
+        if callable(cls._preformatted_sql):
+            return cls._preformatted_sql(**cls._format_values)
+        return cls._preformatted_sql
 
 
 class BaseSQLType:
@@ -89,7 +94,7 @@ class BaseSQLType:
 
 
 class _SQLType(BaseSQLType, metaclass=SQLTypeMeta):
-    _python: Type
+    _python: Type[Any]
     _sql: str
 
     def __repr__(self):
@@ -99,7 +104,7 @@ class _SQLType(BaseSQLType, metaclass=SQLTypeMeta):
         return self._sql == other._sql
 
     @classmethod
-    def _from_python_type(cls, python_type: type):
+    def _from_python_type(cls, python_type: Type[Any]):
         """Dynamically determines an SQL type given a python type.
         Args:
             python_type (type): The python type.
@@ -111,7 +116,7 @@ class _SQLType(BaseSQLType, metaclass=SQLTypeMeta):
         raise TypeError(f"Could not find an applicable SQL type for Python type {python_type!r}.")
 
 
-def _create_sqltype(name: str, py_type: Type, sql_type: Union[str, Callable[..., str]]) -> Type[Column]:
+def _create_sqltype(name: str, py_type: Type, sql_type: Union[str, Callable[..., str]]) -> Type[_Column]:
     return SQLTypeMeta.__new__(
         SQLTypeMeta,
         name,

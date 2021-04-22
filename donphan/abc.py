@@ -38,10 +38,10 @@ from typing import (
     Union,
 )
 
-import asyncpg  # type: ignore
+import asyncpg
 
 from .connection import MaybeAcquire
-from .column import Column
+from .column import _Column
 from .meta import ObjectMeta
 from .sqltype import _SQLType
 
@@ -61,32 +61,44 @@ class Creatable(metaclass=ObjectMeta):
     _schema: str
 
     @classmethod
-    def _query_create_schema(cls, if_not_exists: bool = True) -> str:
+    def _query_create_schema(
+        cls,
+        if_not_exists: bool = True,
+    ) -> str:
         """Generates a CREATE SCHEMA stub."""
         builder = ["CREATE SCHEMA"]
 
         if if_not_exists:
             builder.append("IF NOT EXISTS")
 
-        builder.append(cls._schema)  # type: ignore
+        builder.append(cls._schema)
 
         return " ".join(builder)
 
     @classmethod
     @abc.abstractmethod
-    def _query_create(cls, drop_if_exists: bool = True, if_not_exists: bool = True) -> str:
+    def _query_create(
+        cls,
+        drop_if_exists: bool = True,
+        if_not_exists: bool = True,
+    ) -> str:
         """Generates a CREATE stub."""
         raise NotImplementedError
 
     @classmethod
-    def _base_query_drop(cls, type: str, if_exists: bool = True, cascade: bool = False) -> str:
+    def _base_query_drop(
+        cls,
+        type: str,
+        if_exists: bool = True,
+        cascade: bool = False,
+    ) -> str:
         """Generates a DROP stub."""
         builder = ["DROP", type]
 
         if if_exists:
             builder.append("IF EXISTS")
 
-        builder.append(cls._name)  # type: ignore
+        builder.append(cls._name)
 
         if cascade:
             builder.append("CASCADE")
@@ -95,12 +107,22 @@ class Creatable(metaclass=ObjectMeta):
 
     @classmethod
     @abc.abstractmethod
-    def _query_drop(cls, if_exists: bool = True, cascade: bool = False) -> str:
+    def _query_drop(
+        cls,
+        if_exists: bool = True,
+        cascade: bool = False,
+    ) -> str:
         """Generates a DROP stub."""
         raise NotImplementedError
 
     @classmethod
-    async def create(cls, *, connection=None, drop_if_exists=True, if_not_exists=True):
+    async def create(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        drop_if_exists: bool = True,
+        if_not_exists: bool = True,
+    ) -> None:
         """Creates this object in the database.
 
         Args:
@@ -116,7 +138,13 @@ class Creatable(metaclass=ObjectMeta):
             await connection.execute(cls._query_create(drop_if_exists, if_not_exists))
 
     @classmethod
-    async def drop(cls, *, connection=None, if_exists: bool = False, cascade: bool = False):
+    async def drop(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        if_exists: bool = False,
+        cascade: bool = False,
+    ) -> None:
         """Drops this object from the database.
 
         Args:
@@ -130,8 +158,8 @@ class Creatable(metaclass=ObjectMeta):
 
 
 class FetchableMeta(ObjectMeta):
-    _columns: List[Column]
-    _columns_dict: Dict[str, Column]
+    _columns: List[_Column]
+    _columns_dict: Dict[str, _Column]
 
     def __new__(cls, name, bases, attrs, **kwargs):
 
@@ -181,7 +209,7 @@ class FetchableMeta(ObjectMeta):
                 if not issubclass(_type, _SQLType):
                     _type = _SQLType._from_python_type(_type)
 
-            column = attrs.get(_name, Column())._update(obj, _name, _type, is_array)
+            column = attrs.get(_name, _Column())._update(obj, _name, _type, is_array)
             obj._columns.append(column)
             obj._columns_dict[_name] = column
 
@@ -196,9 +224,13 @@ class FetchableMeta(ObjectMeta):
 
 class Fetchable(Creatable, metaclass=FetchableMeta):
     @classmethod
-    def _validate_kwargs(cls, primary_keys_only: bool = False, **kwargs: Any) -> Dict[Column, Any]:
+    def _validate_kwargs(
+        cls,
+        primary_keys_only: bool = False,
+        **kwargs: Any,
+    ) -> Dict[_Column, Any]:
         """Validates passed kwargs against table"""
-        verified: Dict[Column, Any] = dict()
+        verified: Dict[_Column, Any] = dict()
         for kwarg, value in kwargs.items():
 
             # Strip Extra operators
@@ -222,7 +254,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
                 raise TypeError(f"Cannot pass None into non-nullable column {column.name}")
 
             def check_type(element: Any) -> bool:
-                return isinstance(element, (column.type._python, type(None)))  # type: ignore
+                return isinstance(element, (column.type._python, type(None)))
 
             # If column is an array
             if column.is_array:
@@ -253,7 +285,12 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         return verified
 
     @classmethod
-    def _query_fetch(cls, order_by: Optional[str], limit: Optional[int], **kwargs) -> Tuple[str, Iterable]:
+    def _query_fetch(
+        cls,
+        order_by: Optional[str],
+        limit: Optional[int],
+        **kwargs: Any,
+    ) -> Tuple[str, Iterable]:
         """Generates a SELECT FROM stub"""
         verified = cls._validate_kwargs(**kwargs)
 
@@ -297,7 +334,12 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         return (" ".join(builder), verified.values())
 
     @classmethod
-    def _query_fetch_where(cls, query: str, order_by: Optional[str], limit: Optional[int]) -> str:
+    def _query_fetch_where(
+        cls,
+        query: str,
+        order_by: Optional[str],
+        limit: Optional[int],
+    ) -> str:
         """Generates a SELECT FROM stub"""
 
         builder = [f"SELECT * FROM {cls._name} WHERE", query]
@@ -316,7 +358,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         connection: Optional[asyncpg.Connection] = None,
         order_by: Optional[str] = None,
         limit: Optional[int] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> List[asyncpg.Record]:
         """Fetches a list of records from the database.
 
@@ -357,7 +399,11 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
 
     @classmethod
     async def fetchrow(
-        cls, *, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None, **kwargs
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        order_by: Optional[str] = None,
+        **kwargs: Any,
     ) -> Optional[asyncpg.Record]:
         """Fetches a record from the database.
 
@@ -377,7 +423,7 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
     async def fetch_where(
         cls,
         where: str,
-        *values,
+        *values: Any,
         connection: Optional[asyncpg.Connection] = None,
         order_by: Optional[str] = None,
         limit: Optional[int] = None,
@@ -400,8 +446,12 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
 
     @classmethod
     async def fetchrow_where(
-        cls, where: str, *values: Any, connection: Optional[asyncpg.Connection] = None, order_by: Optional[str] = None
-    ) -> List[asyncpg.Record]:
+        cls,
+        where: str,
+        *values: Any,
+        connection: Optional[asyncpg.Connection] = None,
+        order_by: Optional[str] = None,
+    ) -> Optional[asyncpg.Record]:
         """Fetches a record from the database.
 
         Args:
@@ -415,20 +465,24 @@ class Fetchable(Creatable, metaclass=FetchableMeta):
         """
         query = cls._query_fetch_where(where, order_by, 1)
         async with MaybeAcquire(connection) as connection:
-            return await connection.fetchrow(query, *values)  # type: ignore
+            return await connection.fetchrow(query, *values)
 
 
 class Insertable(Fetchable):
     @classmethod
-    def _query_update_on_conflict(cls, conflict_keys: Collection[Column], column: Column) -> str:
+    def _query_update_on_conflict(
+        cls,
+        conflict_keys: Collection[_Column],
+        column: _Column,
+    ) -> str:
         return f'ON CONFLICT ({",".join(col.name for col in conflict_keys)}) DO UPDATE SET {column.name} = EXCLUDED.{column.name}'
 
     @classmethod
     def _query_insert(
         cls,
         ignore_on_conflict: bool,
-        update_on_conflict: Optional[Column],
-        returning: Optional[Union[str, Column, Iterable[Column]]],
+        update_on_conflict: Optional[_Column],
+        returning: Optional[Union[str, _Column, Iterable[_Column]]],
         **kwargs,
     ) -> Tuple[str, Iterable]:
         """Generates the INSERT INTO stub."""
@@ -471,7 +525,7 @@ class Insertable(Fetchable):
                 returning_builder = []
 
                 for value in returning:
-                    if not isinstance(value, Column):
+                    if not isinstance(value, _Column):
                         raise TypeError(f"Expected a volume for the returning value received {type(value)}")
                     if value.table != cls:
                         raise ValueError("Supplied column for different table.")
@@ -484,7 +538,10 @@ class Insertable(Fetchable):
 
     @classmethod
     def _query_insert_many(
-        cls, columns: Collection[Column], ignore_on_conflict: bool, update_on_conflict: Optional[Column]
+        cls,
+        columns: Collection[_Column],
+        ignore_on_conflict: bool,
+        update_on_conflict: Optional[_Column],
     ) -> str:
         """Generates the INSERT INTO stub."""
         builder = [
@@ -507,7 +564,11 @@ class Insertable(Fetchable):
         return " ".join(builder)
 
     @classmethod
-    def _query_update_record(cls, record, **kwargs) -> Tuple[str, List[Any]]:
+    def _query_update_record(
+        cls,
+        record: asyncpg.Record,
+        **kwargs: Any,
+    ) -> Tuple[str, List[Any]]:
         """Generates the UPDATE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
@@ -528,7 +589,12 @@ class Insertable(Fetchable):
         return (" ".join(builder), list(verified.values()) + list(record_keys.values()))
 
     @classmethod
-    def _query_update_where(cls, query, values, **kwargs) -> Tuple[str, List[Any]]:
+    def _query_update_where(
+        cls,
+        query: str,
+        values: Tuple[Any, ...],
+        **kwargs: Any,
+    ) -> Tuple[str, Tuple[Any, ...]]:
         """Generates the UPDATE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
@@ -546,7 +612,7 @@ class Insertable(Fetchable):
         return (" ".join(builder), values + tuple(verified.values()))
 
     @classmethod
-    def _query_delete(cls, **kwargs) -> Tuple[str, List[Any]]:
+    def _query_delete(cls, **kwargs: Any) -> Tuple[str, List[Any]]:
         """Generates the DELETE stub"""
         verified = cls._validate_kwargs(**kwargs)
 
@@ -584,7 +650,7 @@ class Insertable(Fetchable):
         return (" ".join(builder), list(verified.values()))
 
     @classmethod
-    def _query_delete_record(cls, record) -> Tuple[str, List[Any]]:
+    def _query_delete_record(cls, record: asyncpg.Record) -> Tuple[str, List[Any]]:
         """Generates the DELETE stub"""
 
         builder = [f"DELETE FROM {cls._name}"]
@@ -600,7 +666,7 @@ class Insertable(Fetchable):
         return (" ".join(builder), list(record_keys.values()))
 
     @classmethod
-    def _query_delete_where(cls, query) -> str:
+    def _query_delete_where(cls, query: str) -> str:
         """Generates the UPDATE stub"""
 
         builder = [f"DELETE FROM {cls._name}"]
@@ -615,10 +681,10 @@ class Insertable(Fetchable):
     async def insert(
         cls,
         *,
-        connection: asyncpg.Connection = None,
+        connection: Optional[asyncpg.Connection] = None,
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Column] = None,
-        returning: Iterable[Column] = None,
+        update_on_conflict: Optional[_Column] = None,
+        returning: Iterable[_Column] = None,
         **kwargs,
     ) -> Optional[asyncpg.Record]:
         """Inserts a new record into the database.
@@ -645,12 +711,12 @@ class Insertable(Fetchable):
     @classmethod
     async def insert_many(
         cls,
-        columns: Collection[Column],
-        *values: Iterable[Iterable[Any]],
+        columns: Collection[_Column],
+        *values: Any,
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Column] = None,
-        connection: asyncpg.Connection = None,
-    ):
+        update_on_conflict: Optional[_Column] = None,
+        connection: Optional[asyncpg.Connection] = None,
+    ) -> None:
         """Inserts multiple records into the database.
         Args:
             columns (list(Column)): The list of columns to insert based on.
@@ -668,7 +734,13 @@ class Insertable(Fetchable):
             await connection.executemany(query, values)
 
     @classmethod
-    async def update_record(cls, record: asyncpg.Record, *, connection: asyncpg.Connection = None, **kwargs):
+    async def update_record(
+        cls,
+        record: asyncpg.Record,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        **kwargs: Any,
+    ) -> None:
         """Updates a record in the database.
 
         Args:
@@ -682,7 +754,13 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def update_where(cls, where: str, *values: Any, connection: asyncpg.Connection = None, **kwargs):
+    async def update_where(
+        cls,
+        where: str,
+        *values: Any,
+        connection: Optional[asyncpg.Connection] = None,
+        **kwargs: Any,
+    ) -> None:
         """Updates any record in the database which satisfies the query.
 
         Args:
@@ -693,12 +771,17 @@ class Insertable(Fetchable):
             **kwargs: Values to update
         """
 
-        query, values = cls._query_update_where(where, values, **kwargs)  # type: ignore
+        query, values = cast(Tuple[str, Tuple[Any, ...]], cls._query_update_where(where, values, **kwargs))
         async with MaybeAcquire(connection) as connection:
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete(cls, *, connection: asyncpg.Connection = None, **kwargs):
+    async def delete(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+        **kwargs: Any,
+    ) -> None:
         """Deletes any records in the database which satisfy the supplied kwargs.
 
         Args:
@@ -711,7 +794,12 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_record(cls, record: asyncpg.Record, *, connection: asyncpg.Connection = None):
+    async def delete_record(
+        cls,
+        record: asyncpg.Record,
+        *,
+        connection: Optional[asyncpg.Connection] = None,
+    ) -> None:
         """Deletes a record in the database.
 
         Args:
@@ -724,7 +812,12 @@ class Insertable(Fetchable):
             await connection.execute(query, *values)
 
     @classmethod
-    async def delete_where(cls, where: str, *values: Optional[Tuple[Any]], connection: asyncpg.Connection = None):
+    async def delete_where(
+        cls,
+        where: str,
+        *values: Any,
+        connection: Optional[asyncpg.Connection] = None,
+    ) -> None:
         """Deletes any record in the database which satisfies the query.
 
         Args:

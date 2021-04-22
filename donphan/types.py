@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+from __future__ import annotations
+
 from typing import (
     cast,
     List,
@@ -29,7 +31,7 @@ from typing import (
     Type,
 )
 
-import asyncpg  # type: ignore
+import asyncpg
 
 from .abc import Creatable
 from .connection import MaybeAcquire
@@ -63,9 +65,9 @@ class EnumMeta(CustomTypeMeta):
     _values: List[str]
     _python: Type
 
-    def __new__(cls, name, bases, attrs, **kwargs):
+    def __new__(cls, name, bases, attrs, *, values: List[str], **kwargs) -> Type[Enum]:  # type: ignore[misc]
 
-        attrs.update({"_values": kwargs.get("values", [])})
+        attrs.update({"_values": values})
 
         obj = cast(EnumMeta, super().__new__(cls, name, bases, attrs, **kwargs))
 
@@ -78,7 +80,7 @@ class EnumMeta(CustomTypeMeta):
 
         obj._python = str
 
-        return obj
+        return obj  # type: ignore[return-value]
 
     def __getattr__(cls, key):
         if key in cls._values:
@@ -113,7 +115,7 @@ def enum(name: str, values: str, *, schema: str = DEFAULT_SCHEMA) -> Type[Enum]:
     Returns:
         (Type): The new enum type.
     """
-    return EnumMeta(name, (Enum,), {}, values=values.split(), schema=schema)  # type: ignore
+    return EnumMeta.__new__(EnumMeta, name, (Enum,), {}, values=values.split(), schema=schema)
 
 
 async def create_types(

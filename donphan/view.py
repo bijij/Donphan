@@ -24,7 +24,7 @@ SOFTWARE.
 
 from typing import Optional
 
-import asyncpg  # type: ignore
+import asyncpg
 
 from .abc import Fetchable
 from .connection import MaybeAcquire

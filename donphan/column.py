@@ -30,6 +30,7 @@ from typing import (
     Any,
     cast,
     TYPE_CHECKING,
+    Optional,
     Type,
     TypeVar,
 )
@@ -43,10 +44,10 @@ if TYPE_CHECKING:
 __all__ = ("Column",)
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound="_Column")
 
 
-class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
+class _Column(BaseSQLType):  # subclasses SQLType to appease type checkers
     """Sets Database Table Column Properties.
 
     Args:
@@ -69,8 +70,8 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
         auto_increment: bool = False,
         nullable: bool = True,
         default: Any = NotImplemented,
-        references: "Column" = None,
-    ):
+        references: "_Column" = None,
+    ) -> None:
         self.index = index
         self.primary_key = primary_key
         self.unique = unique
@@ -79,7 +80,7 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
         self.default = default
         self.references = references
 
-    def _update(self, table: Table, name: str, sqltype: Type[_SQLType], is_array: bool):
+    def _update(self: T, table: Table, name: str, sqltype: Type[_SQLType], is_array: bool) -> T:
         self.table = table
         self.name = name
         self.type = sqltype
@@ -106,7 +107,7 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
         return self
 
     def __str__(self) -> str:
-        builder = [f"{self.name}", self.type._sql]  # type: ignore
+        builder = [f"{self.name}", self.type._sql]
 
         if self.is_array:
             builder.append("[]" * self.is_array)
@@ -130,6 +131,39 @@ class Column(BaseSQLType):  # subclasses SQLType to appease type checkers
 
         if self.references is not None:
             builder.append("REFERENCES")
-            builder.append(f"{self.references.table._name}({self.references.name})")  # type: ignore
+            builder.append(f"{self.references.table._name}({self.references.name})")
 
         return " ".join(builder)
+
+
+def Column(
+    *,
+    index: bool = False,
+    primary_key: bool = False,
+    unique: bool = False,
+    auto_increment: bool = False,
+    nullable: bool = True,
+    default: Any = NotImplemented,
+    references: Optional[_Column] = None,
+) -> Any:
+    """Sets Database Table Column Properties.
+
+    Args:
+        index (bool, optional): Create an index for this column
+        primary_key (bool, optional): Sets this column to be a primary key
+        unique (bool, optional): Sets the `UNIQUE` constraint
+        auto_increment (bool, optional): Sets this column to `AUTO INCREMENT`
+        nullable (bool, optional): Sets the `NOT NULL` constraint
+        default (Any, optional): Sets the `DEFAULT` value of a column.
+            Value can be either a pythonic value or a SQL QUERY
+        references (Column, optional): Sets the `FOREIGN KEY` constraint.
+    """
+    return _Column(
+        index=index,
+        primary_key=primary_key,
+        unique=unique,
+        auto_increment=auto_increment,
+        nullable=nullable,
+        default=default,
+        references=references,
+    )
