@@ -27,7 +27,6 @@ import inspect
 
 from typing import (
     Any,
-    Literal,
     cast,
     Collection,
     Dict,
