@@ -27,6 +27,7 @@ import inspect
 
 from typing import (
     Any,
+    Literal,
     cast,
     Collection,
     Dict,
@@ -36,6 +37,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    overload,
 )
 
 import asyncpg
@@ -677,6 +679,32 @@ class Insertable(Fetchable):
 
         return " ".join(builder)
 
+    @overload
+    @classmethod
+    async def insert(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = ...,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[_Column] = ...,
+        returning: None = ...,
+        **kwargs: Any,
+    ) -> None:
+        ...
+
+    @overload
+    @classmethod
+    async def insert(
+        cls,
+        *,
+        connection: Optional[asyncpg.Connection] = ...,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[_Column] = ...,
+        returning: Union[_Column, Iterable[_Column]] = ...,
+        **kwargs: Any,
+    ) -> asyncpg.Record:
+        ...
+
     @classmethod
     async def insert(
         cls,
@@ -684,8 +712,8 @@ class Insertable(Fetchable):
         connection: Optional[asyncpg.Connection] = None,
         ignore_on_conflict: bool = False,
         update_on_conflict: Optional[_Column] = None,
-        returning: Iterable[_Column] = None,
-        **kwargs,
+        returning: Optional[Union[_Column, Iterable[_Column]]] = None,
+        **kwargs: Any,
     ) -> Optional[asyncpg.Record]:
         """Inserts a new record into the database.
 
