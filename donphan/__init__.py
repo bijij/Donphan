@@ -25,13 +25,5 @@ SOFTWARE.
 __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
-__copyright__ = "Copyright 2020 Bijij"
-__version__ = "3.4.1"
-
-from . import utils as utils
-from .column import *
-from .connection import *
-from .table import *
-from .types import *
-from .sqltype import *
-from .view import *
+__copyright__ = "Copyright 2020-Present Bijij"
+__version__ = "4.0.0a"
