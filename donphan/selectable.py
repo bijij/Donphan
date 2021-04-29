@@ -21,12 +21,12 @@ __all__ = ("Selectable",)
 @not_creatable
 class Selectable(Creatable):
     if TYPE_CHECKING:
-        _columns: dict[str, Column]
-        _primary_keys: Iterable[str]
+        _columns: Iterable[Column]
+        _primary_keys: Iterable[Column]
 
     def __init_subclass__(cls, schema: str = MISSING) -> None:
         cache: dict[str, Any] = {}
-        cls._columns = {}
+        cls._columns = []
         cls._primary_keys = []
 
         # Get global namespaces
@@ -88,9 +88,9 @@ class Selectable(Creatable):
             column.name = name
             column.table = cls
 
-            cls._columns[name] = column
+            cls._columns.append(column)
             if column.primary_key:
-                cls._primary_keys.append(name)
+                cls._primary_keys.append(column)
 
         return super().__init_subclass__(schema=schema)
 

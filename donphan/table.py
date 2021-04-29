@@ -1,11 +1,11 @@
 from __future__ import annotations
-from types import BuiltinMethodType
-from donphan.types import CustomType
+from donphan.column import Column
 
 from typing import TYPE_CHECKING
 
 from .selectable import Selectable
-from .utils import not_creatable, query_builder
+from .types import CustomType
+from .utils import MISSING, not_creatable, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -27,27 +27,37 @@ class Table(Selectable):
         builder.append(cls._name)
         builder.append("(")
 
-        for name, type in cls._columns.items():
-            builder.append(name)
+        for column in cls._columns:
+            builder.append(column.name)
 
-            if issubclass(type.sql_type, CustomType):
-                builder.append(type.sql_type._name)
+            if issubclass(column.sql_type, CustomType):
+                builder.append(column.sql_type._name)
             else:
-                builder.append(type.sql_type.__name__)
+                builder.append(column.sql_type.__name__)
 
-            if type.references is not None:
+            if not column.nullable:
+                builder.append("NOT NULL")
+
+            if column.unique:
+                builder.append("UNIQUE")
+
+            if column.default is not MISSING:
+                builder.append("DEFAULT")
+                builder.append(str(column.default))
+
+            if column.references is not None:
                 builder.append("REFERENCES")
-                builder.append(type.references.table._name)
+                builder.append(column.references.table._name)
                 builder.append("(")
-                builder.append(type.references.name)
+                builder.append(column.references.name)
                 builder.append(")")
 
             builder.append(",")
 
         if cls._primary_keys:
             builder.append("PRIMARY KEY (")
-            for key in cls._primary_keys:
-                builder.append(key)
+            for column in cls._primary_keys:
+                builder.append(column.name)
                 builder.append(",")
 
             builder.pop(-1)
