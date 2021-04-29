@@ -26,7 +26,6 @@ asyncpg = ">=0.22.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
-mypy = ">=0.800"
 pytest = "^6.2.3"
 
 [tool.black]
@@ -36,7 +35,6 @@ include = '\.pyi?$'
 exclude = '''
 /(
     \.git
-  | \.mypy_cache
   | \.pytest_cache
   | \.venv
 )/
@@ -51,3 +49,6 @@ filterwarnings = "default"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+include = ["donphan/**"]
