@@ -122,7 +122,7 @@ class CustomType(SQLType[T], Creatable, sql_type=""):
         return super()._query_drop("TYPE", if_exists, cascade)
 
     @classmethod
-    async def create(cls, connection: Connection, /, *args: Any, if_not_exists: bool = False, **kwargs: Any) -> None:
+    async def create(cls, connection: Connection, /, *args: Any, if_not_exists: bool = True, **kwargs: Any) -> None:
         try:
             await super().create(connection, *args, **kwargs)
         except asyncpg.exceptions.DuplicateObjectError:

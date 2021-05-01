@@ -40,6 +40,18 @@ class Creatable(Protocol):
 
     @classmethod
     @query_builder
+    def _query_create_schema(
+        cls,
+        if_not_exists: bool,
+    ) -> list[str]:
+        builder = ["CREATE SCHEMA"]
+        if if_not_exists:
+            builder.append("IF NOT EXISTS")
+        builder.append(cls._schema)
+        return builder
+
+    @classmethod
+    @query_builder
     def _query_drop(
         cls,
         type: str,
@@ -67,7 +79,8 @@ class Creatable(Protocol):
         cls,
         connection: Connection,
         *,
-        if_not_exists: bool = False,
+        if_not_exists: bool = True,
+        create_schema: bool = True,
     ) -> None:
         """|coro|
 
@@ -79,9 +92,36 @@ class Creatable(Protocol):
             The database connection to use for transactions.
         if_not_exists: :class:`bool`
             Sets whether creation should continue if the object already exists.
-            Defaults to ``False``.
+            Defaults to ``True``.
+        create_schema: :class:`bool`
+            Sets whether the database schema should also be created.
+            Defaults to ``True``.
         """
+        if create_schema:
+            await cls.create_schema(connection, if_not_exists=if_not_exists)
         query = cls._query_create(if_not_exists)
+        await connection.execute(query)
+
+    @classmethod
+    async def create_schema(
+        cls,
+        connection: Connection,
+        *,
+        if_not_exists: bool = True,
+    ) -> None:
+        """|coro|
+
+        Creates the schema this database object uses.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        if_not_exists: :class:`bool`
+            Sets whether creation should continue if the schema already exists.
+            Defaults to ``True``.
+        """
+        query = cls._query_create_schema(if_not_exists)
         await connection.execute(query)
 
     @classmethod
@@ -90,7 +130,8 @@ class Creatable(Protocol):
         connection: Connection,
         /,
         *,
-        if_not_exists: bool = False,
+        if_not_exists: bool = True,
+        create_schema: bool = True,
     ) -> None:
         """|coro|
 
@@ -102,13 +143,24 @@ class Creatable(Protocol):
             The database connection to use for transactions.
         if_not_exists: :class:`bool`
             Sets whether creation should continue if the object already exists.
-            Defaults to ``False``.
+            Defaults to ``True``.
+        create_schema: :class:`bool`
+            Sets whether the database schema should also be created.
+            Defaults to ``True``.
         """
         for subcls in cls.__subclasses__():
             if subcls in NOT_CREATABLE:
-                await subcls.create_all(connection, if_not_exists=if_not_exists)
+                await subcls.create_all(
+                    connection,
+                    if_not_exists=if_not_exists,
+                    create_schema=create_schema,
+                )
             else:
-                await subcls.create(connection, if_not_exists=if_not_exists)
+                await subcls.create(
+                    connection,
+                    if_not_exists=if_not_exists,
+                    create_schema=create_schema,
+                )
 
     @classmethod
     async def drop(
