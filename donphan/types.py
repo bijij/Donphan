@@ -13,7 +13,7 @@ import asyncpg
 
 from .creatable import Creatable
 from .enums import Enum
-from .utils import normalise_name, not_creatable, query_builder
+from .utils import BUILDING_DOCS, normalise_name, not_creatable, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -245,17 +245,22 @@ if not TYPE_CHECKING:
         cls = new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
         new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
 
-        @property
-        def _(cls):
-            return cls
+        if BUILDING_DOCS:
 
-        _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
-        if is_default:
-            qualified_name = ""
-            if py_type.__module__ != "builtins":
-                qualified_name = f"{py_type.__module__}."
-            qualified_name += py_type.__name__
-            _.__doc__ += f" Python class :class:`{qualified_name}`, can be used as a substitute."
+            @property
+            def _(cls):
+                return cls
+
+            _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
+            if is_default:
+                qualified_name = ""
+                if py_type.__module__ != "builtins":
+                    qualified_name = f"{py_type.__module__}."
+                qualified_name += py_type.__name__
+                _.__doc__ += f" Python class :class:`{qualified_name}`, can be used as a substitute."
+
+        else:
+            _ = cls
 
         setattr(SQLType, name, _)
         for alias in aliases:

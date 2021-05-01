@@ -26,7 +26,7 @@ __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
 __copyright__ = "Copyright 2020-Present Bijij"
-__version__ = "4.0.0rc4"
+__version__ = "4.0.0rc5"
 
 
 from .column import *

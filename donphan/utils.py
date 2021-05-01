@@ -20,6 +20,7 @@ __all__ = (
     "query_builder",
     "not_creatable",
     "resolve_annotation",
+    "BUILDING_DOCS",
 )
 
 
@@ -149,3 +150,10 @@ def resolve_annotation(
     if cache is None:
         cache = {}
     return evaluate_annotation(annotation, globalns, locals, cache)
+
+
+BUILDING_DOCS: bool
+try:
+    BUILDING_DOCS = __sphinx_building__  # type: ignore
+except NameError:
+    BUILDING_DOCS = False
