@@ -255,7 +255,7 @@ class Insertable(Selectable):
             columns = cls._get_columns(values[0])
             values = cast(tuple[Iterable[Any]], (value.values() for value in values))
 
-        query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict or [])
+        query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict or [], [])
         await connection.executemany(query, values)
 
     @classmethod
