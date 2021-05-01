@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "Donphan"
-version = "4.0.0rc1"
-description = "Asyncronous Database ORM for Postgres"
+version = "4.0.0rc2"
+description = "Asynchronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
 readme = "README.rst"

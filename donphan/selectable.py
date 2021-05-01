@@ -4,7 +4,7 @@ import inspect
 import sys
 
 from collections.abc import Iterable
-from typing import Any, Literal, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from .column import Column, SQLType
 from .creatable import Creatable
@@ -27,10 +27,7 @@ OPERATORS: dict[str, str] = {
 }
 
 
-class OrderBy(NamedTuple):
-    column: Column
-    direction: Literal["ASC", "DESC"]
-
+OrderBy = tuple[Column, Literal["ASC", "DESC"]]
 
 @not_creatable
 class Selectable(Creatable):

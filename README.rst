@@ -5,4 +5,4 @@ Donphan
     :target: https://donphan.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-Ascynronous database ORM for use with Postgres.
+Asynchronous database ORM for use with Postgres.

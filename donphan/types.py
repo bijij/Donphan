@@ -41,8 +41,38 @@ class SQLType(Generic[T]):
     """
 
     if TYPE_CHECKING:
-        Integer = int
+        # 8.1 Numeric
+        Integer = Int = int
+        SmallInt = int
+        BigInt = int
+        Serial = int
+        float = float
+        dounle = float
+        numeric = decimal.Decimal
+        # 8.2 Monetary
+        Money = str
+        # 8.3 Character
+        # CharacterVarying = VarChar = str
+        Character = str
         Text = str
+        # 8.4 Binary
+        Bytea = bytes
+        # 8.5 Date/Time
+        Timestamp = datetime.datetime
+        TimestampAware = datetime.datetime
+        Date = datetime.date
+        Inteval = datetime.timedelta
+        # 8.6 Boolean
+        Boolean = bool
+        # 8.9 Network Adress
+        CIDR = ipaddress._BaseNetwork
+        Inet = ipaddress._BaseNetwork
+        MACAddr = str
+        # 8.12 UUID
+        UUID = uuid.UUID
+        # 8.14 JSON
+        JSON = dict
+        JSONB = dict
 
     py_type: type[T]
     sql_type: str
