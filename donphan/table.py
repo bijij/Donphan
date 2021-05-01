@@ -15,6 +15,22 @@ __all__ = ("Table",)
 
 @not_creatable
 class Table(Insertable):
+    """Base class for creating representations of SQL Database Tables.
+
+    Attributes
+    ----------
+        _name: :class:`str`
+            The name of the table.
+        _schema: :class:`str`
+            The tables schema.
+        _columns: Iterable[:class:`~.Column`]
+            The columns contained in the table.
+        _columns_dict: Dict[:class:`str`, :class:`~.Column`]
+            A mapping between a column's name and itself.
+        _primary_keys: Iterable[:class:`~.Column`]
+            The primary key columns of the table.
+    """
+
     @classmethod
     @query_builder
     def _query_create(cls, if_not_exists: bool) -> list[str]:
@@ -73,12 +89,32 @@ class Table(Insertable):
     async def migrate_to(
         cls,
         connection: Connection,
+        /,
         table: type[Table],
         migration: Callable[[Record], dict[str, Any]],
         *,
-        create_new_table: bool = True,
+        create_new_table: bool = False,
         drop_table: bool = False,
     ) -> None:
+        """|coro|
+
+        Helper function for migrating data in a table to another.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        table: Type[:class:`.Table`]
+            The new table to migrate to.
+        migration: Callable[[:class:`asyncpg.Record`], Dict[:class:`str`, Any]]
+            The function used to migrate data between tables.
+        create_new_table: :class:`bool`
+            Sets whether the table to migrate to should be created.
+            Defaults to ``False``.
+        drop_table: :class:`bool`
+            Sets whether this table should be dropped after migrating.
+            Defaults to ``False``.
+        """
 
         if create_new_table:
             await table.create(connection)
@@ -88,21 +124,3 @@ class Table(Insertable):
 
         if drop_table:
             await cls.drop(connection)
-
-    @classmethod
-    async def migrate_from(
-        cls,
-        connection: Connection,
-        table: type[Table],
-        migration: Callable[[Record], dict[str, Any]],
-        *,
-        create_table: bool = True,
-        drop_old_table: bool = False,
-    ) -> None:
-        return await table.migrate_to(
-            connection,
-            cls,
-            migration,
-            create_new_table=create_table,
-            drop_table=drop_old_table,
-        )

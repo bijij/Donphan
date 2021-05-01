@@ -1,31 +1,28 @@
+from __future__ import annotations
+
 import types
 
 from typing import Any, NamedTuple, TYPE_CHECKING, Type, TypeVar
 
 __all__ = ("Enum",)
 
-T = TypeVar("T")
-
-
-class _EnumValue(NamedTuple):
-    name: str
-    value: Any
-
-
-def _create_value_cls(name):
-    cls = types.new_class(f"_EnumValue_{name}", (_EnumValue,))
-    cls.__repr__ = lambda self: f"<{name}.{self.name}: {self.value!r}>"  # type: ignore
-    cls.__str__ = lambda self: f"{name}.{self.name}"  # type: ignore
-    return cls
-
-
-def _is_descriptor(obj):
-    return hasattr(obj, "__get__") or hasattr(obj, "__set__") or hasattr(obj, "__delete__")
-
 
 if TYPE_CHECKING:
     from enum import Enum
 else:
+
+    class _EnumValue(NamedTuple):
+        name: str
+        value: Any
+
+    def _create_value_cls(name):
+        cls = types.new_class(f"_EnumValue_{name}", (_EnumValue,))
+        cls.__repr__ = lambda self: f"<{name}.{self.name}: {self.value!r}>"
+        cls.__str__ = lambda self: f"{name}.{self.name}"
+        return cls
+
+    def _is_descriptor(obj):
+        return hasattr(obj, "__get__") or hasattr(obj, "__set__") or hasattr(obj, "__delete__")
 
     class EnumMeta(type):
         def __new__(cls, name, bases, attrs):
@@ -114,13 +111,16 @@ else:
                 return value
 
 
-def create_unknown_value(cls: Type[T], val: Any) -> T:
+ET = TypeVar("ET", bound=Enum)
+
+
+def create_unknown_value(cls: Type[ET], val: Any) -> ET:
     value_cls = cls._enum_value_cls_  # type: ignore
     name = f"unknown_{val}"
     return value_cls(name=name, value=val)
 
 
-def try_enum(cls: Type[T], val: Any) -> T:
+def try_enum(cls: Type[ET], val: Any) -> ET:
     """A function that tries to turn the value into enum ``cls``.
     If it fails it returns a proxy invalid value instead.
     """

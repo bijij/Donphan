@@ -17,7 +17,8 @@ __all__ = ("Insertable",)
 
 @not_creatable
 class Insertable(Selectable):
-    # region query generation
+
+    # region: query generation
 
     @classmethod
     def _get_columns(
@@ -130,13 +131,14 @@ class Insertable(Selectable):
 
     # endregion
 
-    # region public methods
+    # region: public methods
 
     @overload
     @classmethod
     async def insert(
         cls,
         connection: Connection,
+        /,
         *,
         ignore_on_conflict: bool = ...,
         update_on_conflict: Optional[Iterable[Column]] = ...,
@@ -162,12 +164,35 @@ class Insertable(Selectable):
     async def insert(
         cls,
         connection: Connection,
+        /,
         *,
         ignore_on_conflict: bool = False,
         update_on_conflict: Optional[Iterable[Column]] = None,
-        returning: Optional[Iterable[Column]],
+        returning: Optional[Iterable[Column]] = None,
         **values: Any,
     ) -> Optional[Record]:
+        """|coro|
+
+        Inserts a new record into the database.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        ignore_on_conflict: :class:`bool`
+            Sets whether to ignore errors when inserting, defaults to ``False``.
+        update_on_conflict: Optional[Iterable[Column]]
+            An Optional list of columns to update with new data if a conflict occurs.
+        returning: Optional[Iterable[:class:`~.Column`]]
+            An optional list of values to return from the inserted record.
+        \*\*values: Any
+            The column to value mapping for the record to insert.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record containing information from the inserted record.
+        """
         columns = cls._get_columns(values)
         query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict, returning or [])
         if returning is not None:
@@ -179,6 +204,7 @@ class Insertable(Selectable):
     async def insert_many(
         cls,
         connection: Connection,
+        /,
         columns: Iterable[Column],
         *values: Iterable[Any],
         ignore_on_conflict: bool = False,
@@ -191,6 +217,7 @@ class Insertable(Selectable):
     async def insert_many(
         cls,
         connection: Connection,
+        /,
         columns: None,
         *values: dict[str, Any],
         ignore_on_conflict: bool = False,
@@ -202,11 +229,27 @@ class Insertable(Selectable):
     async def insert_many(
         cls,
         connection: Connection,
+        /,
         columns: Optional[Iterable[Column]],
         *values: Union[Iterable[Any], dict[str, Any]],
         ignore_on_conflict: bool = False,
         update_on_conflict: Optional[Iterable[Column]] = None,
     ) -> None:
+        """|coro|
+
+        Inserts a set of new records into the database.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        \*values: Dict[:class:`str`, Any]
+            The column to value mappings for each record to insert.
+        ignore_on_conflict: :class:`bool`
+            Sets whether to ignore errors when inserting, defaults to ``False``.
+        update_on_conflict: Optional[Iterable[Column]]
+            An Optional list of columns to update with new data if a conflict occurs.
+        """
         if columns is None:
             values = cast(tuple[dict[str, Any], ...], values)
             columns = cls._get_columns(values[0])
@@ -219,10 +262,26 @@ class Insertable(Selectable):
     async def update_where(
         cls,
         connection: Connection,
+        /,
         where: str,
         *values: Any,
         **_values: Any,
     ) -> None:
+        """|coro|
+
+        Updates records in the database which match a given WHERE clause.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        where: :class:`str`
+            An SQL WHERE clause.
+        \*values: Any
+            Values to be substituted into the WHERE clause.
+        \*\*values: Any
+            The column to value mapping to assign to updated records.
+        """
         columns = cls._get_columns(_values)
         query = cls._build_query_update(where, len(_values) + 1, columns)
         await connection.execute(query, *values, *_values.values())
@@ -231,9 +290,23 @@ class Insertable(Selectable):
     async def update_record(
         cls,
         connection: Connection,
+        /,
         record: Record,
         **values: Any,
     ) -> None:
+        """|coro|
+
+        Updates a record in the database.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        record: :class:`asyncpg.Record`
+            The record to update.
+        \*\*values: Any
+            The column to value mapping to assign to updated record.
+        """
         primary_keys = cls._get_primary_keys(record)
         where = cls._build_where_clause(primary_keys)
         return await cls.update_where(connection, where, *primary_keys.values(), **values)
@@ -242,9 +315,23 @@ class Insertable(Selectable):
     async def delete_where(
         cls,
         connection: Connection,
+        /,
         where: str,
         *values: Any,
     ) -> None:
+        """|coro|
+
+        Deletes records in the database which match the given WHERE clause.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        where: :class:`str`
+            An SQL WHERE clause.
+        *values: Any
+            Values to be substituted into the WHERE clause.
+        """
         query = cls._build_query_delete(where)
         await connection.execute(query, *values)
 
@@ -252,8 +339,20 @@ class Insertable(Selectable):
     async def delete(
         cls,
         connection: Connection,
+        /,
         **values: Any,
     ) -> None:
+        """|coro|
+
+        Deletes records in the database which contain the given values.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        \*\*values: Any
+            The column to value mapping to filter records with.
+        """
         where = cls._build_where_clause(values)
         return await cls.delete_where(connection, where, *values.values())
 
@@ -261,8 +360,20 @@ class Insertable(Selectable):
     async def delete_record(
         cls,
         connection: Connection,
+        /,
         record: Record,
     ) -> None:
+        """|coro|
+
+        Deletes a given record from the database.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        record: :class:`asyncpg.Record`
+            The record to delete.
+        """
         primary_keys = cls._get_primary_keys(record)
         where = cls._build_where_clause(primary_keys)
         return await cls.delete_where(connection, where, *primary_keys.values())

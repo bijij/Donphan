@@ -30,6 +30,16 @@ ET = TypeVar("ET", bound=Enum)
 
 
 class SQLType(Generic[T]):
+    """A representation of an SQL type
+
+    Attributes
+    ----------
+        py_type: Type[Any]
+            The python type associated with the column.
+        sql_type: Type[:class:`~.SQLType`]
+            The SQL type associated with the column.
+    """
+
     if TYPE_CHECKING:
         Integer = int
         Text = str
@@ -40,7 +50,7 @@ class SQLType(Generic[T]):
     __enum_types: dict[type[Any], type[SQLType[Any]]] = {}
 
     @classmethod
-    def from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
+    def _from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
         if issubclass(type, Enum):
             if type in cls.__enum_types:
                 return cls.__enum_types[type]
@@ -61,6 +71,20 @@ class SQLType(Generic[T]):
 
 @not_creatable
 class CustomType(SQLType[T], Creatable, sql_type=""):
+    """A representation of a Custom SQL type.
+
+    Attributes
+    ----------
+        py_type: Type[Any]
+            The python type associated with the column.
+        sql_type: Type[:class:`~.SQLType`]
+            The SQL type associated with the column.
+        _name: :class:`str`
+            The name of the table.
+        _schema: :class:`str`
+            The tables schema.
+    """
+
     @classmethod
     def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
         return super()._query_drop("TYPE", if_exists, cascade)
@@ -72,6 +96,20 @@ def _encode_enum(value: Enum) -> str:
 
 @not_creatable
 class EnumType(CustomType[ET], sql_type=""):
+    """A representations of an SQL Enum type.
+
+    Attributes
+    ----------
+        py_type: Type[:class:`~.Enum`]
+            The python type associated with the column.
+        sql_type: Type[:class:`~.SQLType`]
+            The SQL type associated with the column.
+        _name: :class:`str`
+            The name of the table.
+        _schema: :class:`str`
+            The tables schema.
+    """
+
     @classmethod
     @query_builder
     def _query_create(cls, if_not_exists: bool) -> list[str]:
@@ -103,7 +141,7 @@ class EnumType(CustomType[ET], sql_type=""):
         )
 
     @classmethod
-    async def create(cls, connection: Connection, *args: Any, **kwargs: Any) -> None:
+    async def create(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
         await super().create(connection, *args, **kwargs)
         ENUM_TYPES.append(cls)
 
@@ -112,7 +150,7 @@ class EnumType(CustomType[ET], sql_type=""):
                 await cls._set_codec(holder._con)
 
     @classmethod
-    async def drop(cls, connection: Connection, *args: Any, **kwargs: Any) -> None:
+    async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
         ENUM_TYPES.remove(cls)
 
         for pool in POOLS:
@@ -162,10 +200,23 @@ if not TYPE_CHECKING:
         "UUID": SQLTypeConfig(uuid.UUID, "UUID", True),
         # 8.14 JSON
         "JSON": SQLTypeConfig(dict, "JSON"),
-        "JSONB": SQLTypeConfig(dict, "JSONB"),
+        "JSONB": SQLTypeConfig(dict, "JSONB", True),
     }.items():
         cls = new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
         new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
-        setattr(SQLType, name, cls)
+
+        @property
+        def _(cls):
+            return cls
+
+        _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
+        if is_default:
+            qualified_name = ""
+            if py_type.__module__ != "builtins":
+                qualified_name = f"{py_type.__module__}."
+            qualified_name += py_type.__name__
+            _.__doc__ += f" Python class :class:`{qualified_name}`, can be used as a substitute."
+
+        setattr(SQLType, name, _)
         for alias in aliases:
-            setattr(SQLType, alias, cls)
+            setattr(SQLType, alias, _)

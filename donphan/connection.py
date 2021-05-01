@@ -4,7 +4,7 @@ import datetime
 import json
 
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING, NamedTuple, TypeVar
+from typing import Any, TYPE_CHECKING, NamedTuple, TypeVar, Literal
 
 import asyncpg
 
@@ -30,7 +30,7 @@ Y2K_EPOCH = 946684800000000
 
 
 class TypeCodec(NamedTuple):
-    format: str  # Literal['text', 'binary', 'tuple']
+    format: Literal["text", "binary", "tuple"]
     encoder: Callable[..., Any]
     decoder: Callable[..., Any]
 
@@ -55,14 +55,26 @@ OPTIONAL_CODECS: dict[str, TypeCodec] = {
 }
 
 
-async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> Pool:
-    """Creates the database connection pool.
-    Args:
-        dsn (str): A database connection string.
-        codecs (Dict[str, TypeCodec]): A mapping of type to
-            encoder and decoder for custom type codecs,
-            defaults to encoders for JSON and JSONB.
+async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> Pool:
+    """|coro|
+
+    Creates the database connection pool.
+
+    Parameters
+    ----------
+    dsn: :class:`str`
+        A database connection string.
+    codecs: Dict[:class:`str`, :class:`.TypeCodec`]
+        A mapping of type to encoder and decoder for custom type codecs.
+    \*\*kwargs: Any
+        Extra keyword arguments to pass to :meth:`asyncpg.create_pool`
+
+    Returns
+    -------
+    :class:`asyncpg.pool.Pool`
+        The new pool which was created.
     """
+    codecs |= TYPE_CODECS
 
     async def init(connection: Connection) -> None:
         for type, codec in codecs.items():
@@ -80,15 +92,31 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = TYPE_CODECS, **kw
 
 class MaybeAcquire:
     """Async helper for acquiring a connection to the database.
-    Args:
-        connection (asyncpg.Connection, optional): A database connection to use
-                If none is supplied a connection will be acquired from the pool.
-    Kwargs:
-        pool (asyncpg.pool.Pool, optional): A connection pool to use.
-            If none is supplied the default pool will be used.
+
+    .. container:: operations
+
+        .. describe:: async with x as c
+
+            Yields a database connection to use,
+            if a new one was created it will be closed on exit.
+
+    Parameters
+    ----------
+        connection: Optional[:class:`asyncpg.Connection`]
+            A database connection to use.
+            If none is supplied a connection will be acquired from the pool.
+        pool: Optional[:class:`asyncpg.pool.Pool`]
+            A connection pool to use.
+
+    Attributes
+    ----------
+        connection: Optional[:class:`asyncpg.Connection`]
+            The supplied database connection, if provided.
+        pool: Optional[:class:`asyncpg.pool.Pool`]
+            The connection pool used to acquire new connections.
     """
 
-    def __init__(self, connection: Connection = None, *, pool: Pool):
+    def __init__(self, connection: Connection = None, /, *, pool: Pool):
         self.connection = connection
         self.pool = pool
         self._cleanup = False

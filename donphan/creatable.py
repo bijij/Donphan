@@ -29,7 +29,7 @@ class Creatable(Protocol):
         cls._name = f"{schema}.{name}"
         super().__init_subclass__()
 
-    # region query generation
+    # region: query generation
 
     @classmethod
     def _query_create(
@@ -60,7 +60,7 @@ class Creatable(Protocol):
 
     # endregion
 
-    # region public methods
+    # region: public methods
 
     @classmethod
     async def create(
@@ -69,6 +69,18 @@ class Creatable(Protocol):
         *,
         if_not_exists: bool = False,
     ) -> None:
+        """|coro|
+
+        Creates this database object.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        if_not_exists: :class:`bool`
+            Sets whether creation should continue if the object already exists.
+            Defaults to ``False``.
+        """
         query = cls._query_create(if_not_exists)
         await connection.execute(query)
 
@@ -76,9 +88,22 @@ class Creatable(Protocol):
     async def create_all(
         cls,
         connection: Connection,
+        /,
         *,
         if_not_exists: bool = False,
     ) -> None:
+        """|coro|
+
+        Creates all subclasses of this database object.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        if_not_exists: :class:`bool`
+            Sets whether creation should continue if the object already exists.
+            Defaults to ``False``.
+        """
         for subcls in cls.__subclasses__():
             if subcls in NOT_CREATABLE:
                 await subcls.create_all(connection, if_not_exists=if_not_exists)
@@ -89,10 +114,24 @@ class Creatable(Protocol):
     async def drop(
         cls,
         connection: Connection,
+        /,
         *,
         if_exists: bool = True,
         cascade: bool = False,
     ) -> None:
+        """|coro|
+
+        Drops this object from the database.
+
+        Parameters
+        ----------
+        if_exists: :class:`bool`
+            Sets whether dropping should not error if the object does not exist.
+            Defaults to ``True``.
+        cascade: :class:`bool`
+            Sets whether dropping should cascade.
+            Defaults to ``False``.
+        """
         query = cls._query_drop(if_exists, cascade)
         await connection.execute(query)
 

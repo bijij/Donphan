@@ -4,7 +4,7 @@ import inspect
 import sys
 
 from collections.abc import Iterable
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Literal, NamedTuple, Optional, TYPE_CHECKING, Union
 
 from .column import Column, SQLType
 from .creatable import Creatable
@@ -25,6 +25,11 @@ OPERATORS: dict[str, str] = {
     "ge": ">=",
     "gt": ">",
 }
+
+
+class OrderBy(NamedTuple):
+    column: Column
+    direction: Literal["ASC", "DESC"]
 
 
 @not_creatable
@@ -60,7 +65,6 @@ class Selectable(Creatable):
             del frame
 
         for name, type in cls.__annotations__.items():
-
             type = resolve_annotation(type, globals, locals, cache)
 
             if getattr(type, "__origin__", None) is not Column:
@@ -75,19 +79,19 @@ class Selectable(Creatable):
 
             try:
                 if not issubclass(type, SQLType):
-                    type = SQLType.from_type(list[type] if is_array else type)  # type: ignore
+                    type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
                 elif is_array:
-                    type = SQLType.from_type(list[type.py_type])  # type: ignore
+                    type = SQLType._from_type(list[type.py_type])  # type: ignore
 
             except TypeError:
                 if getattr(type, "__origin__", None) is not SQLType:
                     raise TypeError("Column typing generics must be a valid SQLType.")
                 type = type.__args__[0]  # type: ignore
 
-                type = SQLType.from_type(list[type] if is_array else type)  # type: ignore
+                type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
 
             if not hasattr(cls, name):
-                column = Column.with_type(type)  # type: ignore
+                column = Column._with_type(type)  # type: ignore
                 setattr(cls, name, column)
             else:
                 column = getattr(cls, name)
@@ -106,7 +110,7 @@ class Selectable(Creatable):
 
         return super().__init_subclass__(schema=schema)
 
-    # region query generation
+    # region: query generation
 
     @classmethod
     @query_builder
@@ -120,7 +124,6 @@ class Selectable(Creatable):
             builder.append("(" * (len(values) - 1))
 
         for i, name in enumerate(values, 1):
-
             is_or = False
             operator = OPERATORS["eq"]
             if name.startswith("or_"):
@@ -156,53 +159,162 @@ class Selectable(Creatable):
     def _build_query_fetch(
         cls,
         where: str,
+        limit: Optional[int],
+        order_by: Optional[OrderBy],
     ) -> list[str]:
         builder = ["SELECT * FROM", cls._name]
         if where:
             builder.append("WHERE")
             builder.append(where)
+
+        if order_by is not None:
+            column, direction = order_by
+            builder.append("ORDER BY")
+            builder.append(column.name)
+            builder.append(direction)
+
+        if limit is not None:
+            builder.append("LIMIT")
+            builder.append(str(limit))
+
         return builder
 
     # endregion
 
-    # region public methods
+    # region: public methods
 
     @classmethod
     async def fetch_where(
         cls,
         connection: Connection,
+        /,
         where: str,
         *values: Any,
+        limit: Optional[int] = None,
+        order_by: Optional[OrderBy] = None,
     ) -> Iterable[Record]:
-        query = cls._build_query_fetch(where)
+        """|coro|
+
+        Fetches records in the database which match a given WHERE clause.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        where: :class:`str`
+            An SQL WHERE clause.
+        \*values: Any
+            Values to be substituted into the WHERE clause.
+        limit: Optional[:class:`int`]
+            If provided, sets the maxmimum number of records to be returned.
+        order_by: Optional[Tuple[:class:`Column`, Literal[`"ASC"``, ``"DESC"``]]]
+            Sets the ORDER BY condition on the database query, takes a tuple
+            concisting of the column and direction.
+
+        Returns
+        -------
+        Iterable[:class:`asyncpg.Record`]
+            Records which match the WHERE clause.
+        """
+        query = cls._build_query_fetch(where, limit, order_by)
         return await connection.fetch(query, *values)
 
     @classmethod
     async def fetch(
         cls,
         connection: Connection,
+        /,
+        *,
+        limit: Optional[int] = None,
+        order_by: Optional[OrderBy] = None,
         **values: Any,
     ) -> Iterable[Record]:
+        """|coro|
+
+        Fetches records in the database which contain the given values.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        limit: Optional[:class:`int`]
+            If provided, sets the maxmimum number of records to be returned.
+        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
+            Sets the ORDER BY condition on the database query, takes a tuple
+            concisting of the column and direction.
+        \*\*values: Any
+            The column to value mapping to filter records with.
+
+        Returns
+        -------
+        Iterable[:class:`asyncpg.Record`]
+            Records which which contain the given values.
+        """
         where = cls._build_where_clause(values)
-        return await cls.fetch_where(connection, where, *values.values())
+        return await cls.fetch_where(connection, where, *values.values(), limit=limit, order_by=order_by)
 
     @classmethod
     async def fetch_row_where(
         cls,
         connection: Connection,
+        /,
         where: str,
         *values: Any,
+        order_by: Optional[OrderBy] = None,
     ) -> Optional[Record]:
-        query = cls._build_query_fetch(where)
+        """|coro|
+
+        Fetches a record in the database which match a given WHERE clause.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        where: :class:`str`
+            An SQL WHERE clause.
+        \*values: Any
+            Values to be substituted into the WHERE clause.
+        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
+            Sets the ORDER BY condition on the database query, takes a tuple
+            concisting of the column and direction.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record which matches the WHERE clause if found.
+        """
+        query = cls._build_query_fetch(where, None, order_by)
         return await connection.fetchrow(query, *values)
 
     @classmethod
     async def fetch_row(
         cls,
         connection: Connection,
+        /,
+        *,
+        order_by: Optional[OrderBy] = None,
         **values: Any,
     ) -> Optional[Record]:
+        """|coro|
+
+        Fetches a records in the database which contains the given values.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection`
+            The database connection to use for transactions.
+        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
+            Sets the ORDER BY condition on the database query, takes a tuple
+            concisting of the column and direction.
+        \*\*values: Any
+            The column to value mapping to filter records with.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record which contains the given values if found.
+        """
         where = cls._build_where_clause(values)
-        return await cls.fetch_row_where(connection, where, *values.values())
+        return await cls.fetch_row_where(connection, where, *values.values(), order_by=order_by)
 
     # endregion
