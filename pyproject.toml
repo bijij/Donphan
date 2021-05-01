@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Donphan"
-version = "4.0.0a"
+version = "4.0.0rc1"
 description = "Asyncronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
