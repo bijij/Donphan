@@ -142,7 +142,7 @@ class Insertable(Selectable):
         *,
         ignore_on_conflict: bool = ...,
         update_on_conflict: Optional[Iterable[Column]] = ...,
-        returning: Iterable[Column],
+        returning: Iterable[Column] = ...,
         **values: Any,
     ) -> Record:
         ...
@@ -155,7 +155,7 @@ class Insertable(Selectable):
         *,
         ignore_on_conflict: bool = ...,
         update_on_conflict: Optional[Iterable[Column]] = ...,
-        returning: None,
+        returning: None = ...,
         **values: Any,
     ) -> None:
         ...
