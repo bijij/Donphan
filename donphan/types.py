@@ -9,6 +9,8 @@ import uuid
 from types import new_class
 from typing import Any, Generic, NamedTuple, Optional, TYPE_CHECKING, TypeVar
 
+import asyncpg
+
 from .creatable import Creatable
 from .enums import Enum
 from .utils import normalise_name, not_creatable, query_builder
@@ -118,6 +120,14 @@ class CustomType(SQLType[T], Creatable, sql_type=""):
     @classmethod
     def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
         return super()._query_drop("TYPE", if_exists, cascade)
+
+    @classmethod
+    async def create(cls, connection: Connection, /, *args: Any, if_not_exists: bool = False, **kwargs: Any) -> None:
+        try:
+            await super().create(connection, *args, **kwargs)
+        except asyncpg.exceptions.DuplicateObjectError:
+            if not if_not_exists:
+                raise
 
 
 def _encode_enum(value: Enum) -> str:

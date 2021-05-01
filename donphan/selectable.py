@@ -29,6 +29,7 @@ OPERATORS: dict[str, str] = {
 
 OrderBy = tuple[Column, Literal["ASC", "DESC"]]
 
+
 @not_creatable
 class Selectable(Creatable):
     if TYPE_CHECKING:
