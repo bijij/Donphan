@@ -1,21 +1,20 @@
 from __future__ import annotations
-from donphan.column import Column
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import Any, TYPE_CHECKING
 
-from .selectable import Selectable
-from .types import CustomType
+from .insertable import Insertable
 from .utils import MISSING, not_creatable, query_builder
 
 if TYPE_CHECKING:
-    from asyncpg import Connection
+    from asyncpg import Connection, Record  # type: ignore
 
 
 __all__ = ("Table",)
 
 
 @not_creatable
-class Table(Selectable):
+class Table(Insertable):
     @classmethod
     @query_builder
     def _query_create(cls, if_not_exists: bool) -> list[str]:
@@ -30,10 +29,7 @@ class Table(Selectable):
         for column in cls._columns:
             builder.append(column.name)
 
-            if issubclass(column.sql_type, CustomType):
-                builder.append(column.sql_type._name)
-            else:
-                builder.append(column.sql_type.__name__)
+            builder.append(column.sql_type.sql_type)
 
             if not column.nullable:
                 builder.append("NOT NULL")
@@ -70,10 +66,15 @@ class Table(Selectable):
         return builder
 
     @classmethod
+    def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
+        return super()._query_drop("TABLE", if_exists, cascade)
+
+    @classmethod
     async def migrate_to(
         cls,
         connection: Connection,
         table: type[Table],
+        migration: Callable[[Record], dict[str, Any]],
         *,
         create_new_table: bool = True,
         drop_table: bool = False,
@@ -82,7 +83,8 @@ class Table(Selectable):
         if create_new_table:
             await table.create(connection)
 
-        # TODO: FETCH -> MODIFY -> INSERT
+        records = await cls.fetch(connection)
+        await table.insert_many(connection, None, *(migration(record) for record in records))
 
         if drop_table:
             await cls.drop(connection)
@@ -92,6 +94,7 @@ class Table(Selectable):
         cls,
         connection: Connection,
         table: type[Table],
+        migration: Callable[[Record], dict[str, Any]],
         *,
         create_table: bool = True,
         drop_old_table: bool = False,
@@ -99,6 +102,7 @@ class Table(Selectable):
         return await table.migrate_to(
             connection,
             cls,
+            migration,
             create_new_table=create_table,
             drop_table=drop_old_table,
         )

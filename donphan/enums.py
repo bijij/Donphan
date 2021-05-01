@@ -1,18 +1,21 @@
 import types
 
-from collections import namedtuple
-
-from typing import Any, TYPE_CHECKING, Type, TypeVar
+from typing import Any, NamedTuple, TYPE_CHECKING, Type, TypeVar
 
 __all__ = ("Enum",)
 
 T = TypeVar("T")
 
 
+class _EnumValue(NamedTuple):
+    name: str
+    value: Any
+
+
 def _create_value_cls(name):
-    cls = namedtuple("_EnumValue_" + name, "name value")
-    cls.__repr__ = lambda self: f"<{name}.{self.name}: {self.value!r}>"
-    cls.__str__ = lambda self: f"{name}.{self.name}"
+    cls = types.new_class(f"_EnumValue_{name}", (_EnumValue,))
+    cls.__repr__ = lambda self: f"<{name}.{self.name}: {self.value!r}>"  # type: ignore
+    cls.__str__ = lambda self: f"{name}.{self.name}"  # type: ignore
     return cls
 
 

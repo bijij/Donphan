@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-
 from dataclasses import dataclass
-from enum import unique
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar, Union
 
 from .types import SQLType

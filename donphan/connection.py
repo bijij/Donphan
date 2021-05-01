@@ -8,8 +8,10 @@ from typing import Any, TYPE_CHECKING, NamedTuple, TypeVar
 
 import asyncpg
 
+from .consts import ENUM_TYPES, POOLS
 
 if TYPE_CHECKING:
+    from asyncpg import Connection
     from asyncpg.pool import Pool
 
 __all__ = (
@@ -53,7 +55,7 @@ OPTIONAL_CODECS: dict[str, TypeCodec] = {
 }
 
 
-async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> asyncpg.pool.Pool:
+async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = TYPE_CODECS, **kwargs) -> Pool:
     """Creates the database connection pool.
     Args:
         dsn (str): A database connection string.
@@ -62,13 +64,18 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = TYPE_CODECS, **kw
             defaults to encoders for JSON and JSONB.
     """
 
-    async def init(connection: asyncpg.Connection) -> None:
+    async def init(connection: Connection) -> None:
         for type, codec in codecs.items():
             await connection.set_type_codec(
                 type, schema="pg_catalog", encoder=codec.encoder, decoder=codec.decoder, format=codec.format
             )
 
-    return await asyncpg.create_pool(dsn, init=init, **kwargs)  # type: ignore
+        for type in ENUM_TYPES:
+            await type._set_codec(connection)
+
+    pool = await asyncpg.create_pool(dsn, init=init, **kwargs)
+    POOLS.append(pool)  # type: ignore
+    return pool  # type: ignore
 
 
 class MaybeAcquire:
@@ -81,12 +88,12 @@ class MaybeAcquire:
             If none is supplied the default pool will be used.
     """
 
-    def __init__(self, connection: asyncpg.Connection = None, *, pool: Pool):
+    def __init__(self, connection: Connection = None, *, pool: Pool):
         self.connection = connection
         self.pool = pool
         self._cleanup = False
 
-    async def __aenter__(self) -> asyncpg.Connection:
+    async def __aenter__(self) -> Connection:
         if self.connection is None:
             self._cleanup = True
             self._connection = c = await self.pool.acquire()
