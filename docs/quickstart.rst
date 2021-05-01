@@ -1,5 +1,11 @@
-Quick Start Guide
-=================
+:orphan:
+
+.. _quickstart:
+
+.. currentmodule:: donphan
+
+Quickstart Guide
+================
 
 Creating a Table
 ----------------
@@ -9,53 +15,50 @@ Tables are simple to define.
 .. code-block:: python3
 
     import asyncio
-    from donphan import create_pool, create_tables, Column, Table, SQLType
+    from donphan import create_pool, Column, Table, MaybeAcquire, SQLType
 
-    class Example_Table(Table):
-        id: int = Column(primary_key=True, auto_increment=True)     # example auto increment primary key
-        created_at: SQLType.Timestamp() = Column(default='NOW()')   # example column with a default value
-        some_text: str                                              # example simple text column                
-        some_other_thing: int = Column(references=Other_Table.id)   # example coulmn with a foreign key
+    class ExampleTable(Table):
+        id: Column[SQLType.Serial] = Column(primary_key=True)            # example auto increment primary key
+        created_at: Column[SQLType.Timestamp] = Column(default='NOW()')  # example column with a default value
+        some_text: Column[str]                                           # example simple text column                
+        a_list_of_numbers: Column[list[int]                              # example coulmn with a foreign key
 
-    if __name__ == '__main__':
-        run = asyncio.get_event_loop().run_until_complete
-
-        run(create_pool('your dsn here')) # Connects to postgres
-        run(create_tables()) # Creates all tables defined. Tables can also be individually created.
-
+    async def main():
+        pool = await create_pool(os.getenv("POSTGRES_DSN"))              # Connects to postgres
+        async with MaybeAcquire(pool=pool) as connection:                # Acquire a connection from the pool
+            await ExampleTable.create(connection)                        # Create the Example Table 
 
 This code shows how one could define a simple table using donphan.
 
-:class:`donphan.Column` names are defined as class atributes, types are specified 
+:class:`.Column` names are defined as class atributes, types are specified 
 as type hints, supplied types can either be defined as a built in python type
-or using a :class:`donphan.SQLType` classmethod.
+or using a :class:`.SQLType` class.
 
-Additional :class:`donphan.Column` properties such as wether the column is a primary key
-can be set by assigning a value to the class attribute.
+Additional :class:`.Column` properties such as wether the column is a primary key
+can be set via creating a :class:`.Column` instance.
 
 
 Interacting with a Table
 ------------------------
 
 Once a table has been defined and created it can be interacted with using asynchronous
-classmethods, A list of applicable methods can be found here: :class:`donphan.Table`
+classmethods, A list of applicable methods can be found here: :class:`Table`
 
 The following shows an inserting a record into a predefined table
 
 .. code-block:: python3
 
-    await Example_Table.insert(
-        some_text = 'This is some text',
-        some_other_thing = 2
+    await ExampleTable.insert(
+        connection,
+        some_text='This is some text',
+        a_list_of_numbers=[1,2,3],
     )
 
 Records can be fetched from the table in a similar way
 
 .. code-block:: python3
 
-    records = await Example_Table.fetch(
-        some_other_thing = 2
-    )
+    records = await ExampleTable.fetch(connection, a_list_of_numbers=[1,2,3])
 
 In this example the variable `records` will hold a list of all records in the table where
 the value of the column `some_other_thing` is equal to `2`.
@@ -67,48 +70,29 @@ to the end of the keyword argument for each respective column.
 
 .. code-block:: python3
 
-    records = await Example_Table.fetch(
-        created_at__lt = 'NOW() - INTERVAL \'30 days\'
+    records = await ExampleTable.fetch(connection, created_at__lt=datetime.datetime.utcnow())
 
 By default all keword arguments applied are assumed to be an SQL `AND` statement. However it is possible
 to use an `OR` statement by appending `or_` to the beginning of a keyword argument for a respective column.
 
 .. code-block:: python3
 
-    records = await Example_Table.fetch(
-        created_at__lt = 'NOW() - INTERVAL \'30 days\'
-        or_some_other_thing = 2
+    records = await ExampleTable.fetch(connection, created_at__lt=datetime.datetime.utcnow(), or_some_other_thing = 2)
 
-If desired a pure SQL where clause may be used.
+If desired a pure SQL where clause may be used. With value subtitution where needed.
 
 .. code-block:: python3
 
-    record = await Example_Table.fetchrow_where(
-        'created_at < NOW() - INTERVAL \'30 days\' OR some_other_thing = 2'
-    )
+    records = await ExampleTable.fetch_where(connection, 'created_at < NOW() OR some_other_thing = $1', 2)
 
-In this instance the varaible `record` will hold the first result of the query or :class:`None`.
+It is possible to obtain a single record from the database as well.
+
+.. code-block:: python3
+
+    record = await ExampleTable.fetch_row(connection, id=1)
 
 Using a :class:`asyncpg.Record` instance we can simply delete a record in a table.
 
 .. code-block:: python3
 
-    await Example_Table.delete_record(record)
-
-
-Views
------
-
-Views are virtual tables which display the result of a SQL Query. In some instances using a view can help
-improve database recall performance especially on complicated queries which may be executed often over a long
-period of time.
-
-Views can be defined as such:
-
-.. code-block:: python3
-
-    class Example_View(View):
-        _select = '*'
-        _query = f'FROM {Example_Table._name} WHERE some_text LIKE \'%abc%\''
-
-Views share some functionality with Tables, allowing for fetch methods to be called on them in a similar fashion.
+    await ExampleTable.delete_record(connection, record)
