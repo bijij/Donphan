@@ -148,7 +148,7 @@ class CustomType(SQLType[T], Creatable, sql_type=""):
     async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
         for pool in POOLS:
             for holder in pool._holders:
-                await holder._con.reset_type_codec(normalise_name(cls.__name__), schema=cls._schema)
+                await holder._con.reset_type_codec(cls._name[len(cls._schema) + 1:], schema=cls._schema)
 
         await super().drop(connection, *args, **kwargs)
         del CUSTOM_TYPES[cls._name]
@@ -197,7 +197,7 @@ class EnumType(CustomType[ET], sql_type=""):
     @classmethod
     async def _set_codec(cls, connection: Connection) -> None:
         await connection.set_type_codec(
-            normalise_name(cls.__name__),
+            cls._name[len(cls._schema) + 1:],
             schema=cls._schema,
             encoder=cls._encoder,
             decoder=cls._decoder,

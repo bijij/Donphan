@@ -19,17 +19,17 @@ class Creatable(Protocol):
     def __init_subclass__(
         cls,
         *,
-        name: str = MISSING,
+        _name: str = MISSING,
         schema: str = MISSING,
     ) -> None:
         if schema is MISSING:
             schema = DEFAULT_SCHEMA
 
-        if name is MISSING:
-            name = normalise_name(cls.__name__)
+        if _name is MISSING:
+            _name = normalise_name(cls.__name__)
 
         cls._schema = schema
-        cls._name = f"{schema}.{name}"
+        cls._name = f"{schema}.{_name}"
         super().__init_subclass__()
 
     # region: query generation

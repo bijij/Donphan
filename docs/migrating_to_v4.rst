@@ -49,7 +49,7 @@ Table name normalisation changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Table names are now normalised differently to allow for more pythonic class naming,
-Custom names can be set using a ``name=`` keyword argument when defining the class.
+Custom names can be set using a ``_name=`` keyword argument when defining the class.
 
 .. code-Block:: python3
 
