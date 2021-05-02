@@ -2,18 +2,28 @@ from __future__ import annotations
 
 import types
 
-from typing import Any, NamedTuple, TYPE_CHECKING, Type, TypeVar
+from typing import Any, NamedTuple, TYPE_CHECKING, TypeVar
 
 __all__ = ("Enum",)
 
 
-if TYPE_CHECKING:
-    from enum import Enum
-else:
+class _EnumValue(NamedTuple):
+    name: str
+    value: Any
 
-    class _EnumValue(NamedTuple):
-        name: str
-        value: Any
+
+if TYPE_CHECKING:
+    from enum import Enum as _Enum
+
+    class Enum(_Enum):
+        if TYPE_CHECKING:
+
+            @classmethod
+            def try_value(cls: type[ET], value: Any) -> ET:
+                ...
+
+
+else:
 
     def _create_value_cls(name):
         cls = types.new_class(f"_EnumValue_{name}", (_EnumValue,))
@@ -114,13 +124,13 @@ else:
 ET = TypeVar("ET", bound=Enum)
 
 
-def create_unknown_value(cls: Type[ET], val: Any) -> ET:
+def create_unknown_value(cls: type[ET], val: Any) -> ET:
     value_cls = cls._enum_value_cls_  # type: ignore
     name = f"unknown_{val}"
     return value_cls(name=name, value=val)
 
 
-def try_enum(cls: Type[ET], val: Any) -> ET:
+def try_enum(cls: type[ET], val: Any) -> ET:
     """A function that tries to turn the value into enum ``cls``.
     If it fails it returns a proxy invalid value instead.
     """

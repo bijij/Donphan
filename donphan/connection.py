@@ -8,7 +8,7 @@ from typing import Any, TYPE_CHECKING, NamedTuple, TypeVar, Literal
 
 import asyncpg
 
-from .consts import ENUM_TYPES, POOLS
+from .consts import CUSTOM_TYPES, POOLS
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -82,7 +82,7 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
                 type, schema="pg_catalog", encoder=codec.encoder, decoder=codec.decoder, format=codec.format
             )
 
-        for type in ENUM_TYPES:
+        for type in CUSTOM_TYPES.values():
             await type._set_codec(connection)
 
     pool = await asyncpg.create_pool(dsn, init=init, **kwargs)

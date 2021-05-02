@@ -6,12 +6,12 @@ if TYPE_CHECKING:
     from asyncpg.pool import Pool
 
     from .creatable import Creatable
-    from .types import EnumType
+    from .types import CustomType
 
 
 NOT_CREATABLE: list[type[Creatable]] = []
 
-ENUM_TYPES: list[type[EnumType[Any]]] = []
+CUSTOM_TYPES: dict[str, type[CustomType[Any]]] = {}
 
 POOLS: list[Pool] = []
 

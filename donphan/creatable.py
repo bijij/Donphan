@@ -18,12 +18,15 @@ class Creatable(Protocol):
 
     def __init_subclass__(
         cls,
+        *,
+        name: str = MISSING,
         schema: str = MISSING,
     ) -> None:
         if schema is MISSING:
             schema = DEFAULT_SCHEMA
 
-        name = normalise_name(cls.__name__)
+        if name is MISSING:
+            name = normalise_name(cls.__name__)
 
         cls._schema = schema
         cls._name = f"{schema}.{name}"

@@ -8,7 +8,7 @@ from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from .column import Column, SQLType
 from .creatable import Creatable
-from .utils import MISSING, not_creatable, query_builder, resolve_annotation
+from .utils import not_creatable, query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -37,7 +37,7 @@ class Selectable(Creatable):
         _columns_dict: dict[str, Column]
         _primary_keys: Iterable[Column]
 
-    def __init_subclass__(cls, schema: str = MISSING) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         cache: dict[str, Any] = {}
         cls._columns = []
         cls._columns_dict = {}
@@ -106,7 +106,7 @@ class Selectable(Creatable):
             if column.primary_key:
                 cls._primary_keys.append(column)
 
-        return super().__init_subclass__(schema=schema)
+        super().__init_subclass__(**kwargs)
 
     # region: query generation
 

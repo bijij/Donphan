@@ -45,6 +45,28 @@ As an example:
 
 You can read more about the new :class:`.SQLType`, :class:`.Column`, and :class:`.Table` in the :doc:`api`
 
+Table name normalisation changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Table names are now normalised differently to allow for more pythonic class naming,
+Custom names can be set using a ``name=`` keyword argument when defining the class.
+
+.. code-Block:: python3
+
+    #before
+    class MyTable(Table):
+        ...
+
+    >>> MyTable._name
+    "public.mytable"
+
+    #after
+    class MyTable(Table):
+        ...
+
+    >>> MyTable._name
+    "public.my_table"
+
 Table class methods now require a connection.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To allow for multiple database connection pools all Table helper methods require a connection to be passed as

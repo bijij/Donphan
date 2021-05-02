@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import decimal
 import datetime
-from donphan.consts import ENUM_TYPES, POOLS
 import ipaddress
 import uuid
 
 from types import new_class
-from typing import Any, Generic, NamedTuple, Optional, TYPE_CHECKING, TypeVar
+from typing import Any, Generic, NamedTuple, Optional, TYPE_CHECKING, TypeVar, Union
 
 import asyncpg
 
+from .consts import CUSTOM_TYPES, POOLS
 from .creatable import Creatable
 from .enums import Enum
 from .utils import BUILDING_DOCS, normalise_name, not_creatable, query_builder
@@ -81,6 +81,19 @@ class SQLType(Generic[T]):
     __defaults: dict[type[Any], type[SQLType[Any]]] = {}
     __enum_types: dict[type[Any], type[SQLType[Any]]] = {}
 
+    def __init_subclass__(
+        cls,
+        *,
+        sql_type: Optional[str] = None,
+        default: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        cls.py_type = cls.__orig_bases__[0].__args__[0]  # type: ignore
+        if default:
+            cls.__defaults[cls.py_type] = cls
+        super().__init_subclass__(**kwargs)
+        cls.sql_type = sql_type or cls._name  # type: ignore
+
     @classmethod
     def _from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
         if issubclass(type, Enum):
@@ -92,13 +105,6 @@ class SQLType(Generic[T]):
             return enum_type
 
         return cls.__defaults[type]
-
-    def __init_subclass__(cls, *, sql_type: Optional[str] = None, default: bool = False, **kwargs: Any) -> None:
-        cls.py_type = cls.__orig_bases__[0].__args__[0]  # type: ignore
-        if default:
-            cls.__defaults[cls.py_type] = cls
-        super().__init_subclass__(**kwargs)
-        cls.sql_type = sql_type or cls._name  # type: ignore
 
 
 @not_creatable
@@ -122,16 +128,30 @@ class CustomType(SQLType[T], Creatable, sql_type=""):
         return super()._query_drop("TYPE", if_exists, cascade)
 
     @classmethod
+    async def _set_codec(cls, connection: Connection) -> None:
+        raise NotImplementedError()
+
+    @classmethod
     async def create(cls, connection: Connection, /, *args: Any, if_not_exists: bool = True, **kwargs: Any) -> None:
         try:
             await super().create(connection, *args, **kwargs)
         except asyncpg.exceptions.DuplicateObjectError:
             if not if_not_exists:
                 raise
+        CUSTOM_TYPES[cls._name] = cls
 
+        for pool in POOLS:
+            for holder in pool._holders:
+                await cls._set_codec(holder._con)
 
-def _encode_enum(value: Enum) -> str:
-    return value.name
+    @classmethod
+    async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
+        for pool in POOLS:
+            for holder in pool._holders:
+                await holder._con.reset_type_codec(normalise_name(cls.__name__), schema=cls._schema)
+
+        await super().drop(connection, *args, **kwargs)
+        del CUSTOM_TYPES[cls._name]
 
 
 @not_creatable
@@ -167,6 +187,10 @@ class EnumType(CustomType[ET], sql_type=""):
         return builder
 
     @classmethod
+    def _encoder(cls, value: Union[ET, Any]) -> str:
+        return cls.py_type.try_value(value).name
+
+    @classmethod
     def _decoder(cls, value: str) -> ET:
         return getattr(cls.py_type, value)
 
@@ -175,29 +199,10 @@ class EnumType(CustomType[ET], sql_type=""):
         await connection.set_type_codec(
             normalise_name(cls.__name__),
             schema=cls._schema,
-            encoder=_encode_enum,
+            encoder=cls._encoder,
             decoder=cls._decoder,
             format="text",
         )
-
-    @classmethod
-    async def create(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
-        await super().create(connection, *args, **kwargs)
-        ENUM_TYPES.append(cls)
-
-        for pool in POOLS:
-            for holder in pool._holders:
-                await cls._set_codec(holder._con)
-
-    @classmethod
-    async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
-        ENUM_TYPES.remove(cls)
-
-        for pool in POOLS:
-            for holder in pool._holders:
-                await holder._con.reset_type_codec(normalise_name(cls.__name__), schema=cls._schema)
-
-        await super().drop(connection, *args, **kwargs)
 
 
 if not TYPE_CHECKING:
