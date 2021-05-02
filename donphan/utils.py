@@ -43,10 +43,10 @@ def normalise_name(name: str) -> str:
     return name[0].lower() + name[1:].translate(_normalisation)
 
 
-def query_builder(func: Callable[..., list[str]]) -> Callable[..., str]:
+def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
     @wraps(func)
     def wrapper(*args, **kwargs):
-        return " ".join(func(*args, **kwargs))
+        return " ".join(str(e) for e in func(*args, **kwargs))
 
     return wrapper
 

@@ -86,8 +86,10 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
             await type._set_codec(connection)
 
     pool = await asyncpg.create_pool(dsn, init=init, **kwargs)
-    POOLS.append(pool)  # type: ignore
-    return pool  # type: ignore
+    if pool is None:
+        raise RuntimeError("Could not create pool.")
+    POOLS.append(pool)
+    return pool
 
 
 class MaybeAcquire:

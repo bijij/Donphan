@@ -1,6 +1,8 @@
 import os
 
-POSTGRES_DSN: str = os.environ.get("POSTGRES_DSN")
+dsn = os.environ.get("POSTGRES_DSN")
 
-if POSTGRES_DSN is None:
+if dsn is None:
     raise ValueError("Cannot run tests without POSTGRES_DSN")
+
+POSTGRES_DSN = dsn

@@ -1,10 +1,14 @@
 import asyncio
-from donphan.utils import decorator
+
+from functools import wraps
+
+from collections.abc import Callable
+from typing import Any, Awaitable
 
 
-@decorator
-def async_test(func):
-    def wrapper(*args, **kwargs):
-        asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
+def async_test(func: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Callable[..., Any]:
+        return asyncio.get_event_loop().run_until_complete(func(*args, **kwargs))
 
     return wrapper
