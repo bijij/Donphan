@@ -102,7 +102,7 @@ class Table(Insertable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         table: Type[:class:`.Table`]
             The new table to migrate to.

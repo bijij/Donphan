@@ -197,7 +197,7 @@ class Selectable(Creatable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         where: :class:`str`
             An SQL WHERE clause.
@@ -233,7 +233,7 @@ class Selectable(Creatable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         limit: Optional[:class:`int`]
             If provided, sets the maxmimum number of records to be returned.
@@ -266,7 +266,7 @@ class Selectable(Creatable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         where: :class:`str`
             An SQL WHERE clause.
@@ -299,7 +299,7 @@ class Selectable(Creatable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
             Sets the ORDER BY condition on the database query, takes a tuple

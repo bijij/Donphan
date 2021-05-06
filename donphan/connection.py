@@ -104,7 +104,7 @@ class MaybeAcquire:
 
     Parameters
     ----------
-        connection: Optional[:class:`asyncpg.Connection`]
+        connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             A database connection to use.
             If none is supplied a connection will be acquired from the pool.
         pool: Optional[:class:`asyncpg.pool.Pool`]
@@ -112,7 +112,7 @@ class MaybeAcquire:
 
     Attributes
     ----------
-        connection: Optional[:class:`asyncpg.Connection`]
+        connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             The supplied database connection, if provided.
         pool: Optional[:class:`asyncpg.pool.Pool`]
             The connection pool used to acquire new connections.

@@ -177,7 +177,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         ignore_on_conflict: :class:`bool`
             Sets whether to ignore errors when inserting, defaults to ``False``.
@@ -241,7 +241,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         \*values: Dict[:class:`str`, Any]
             The column to value mappings for each record to insert.
@@ -273,7 +273,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         where: :class:`str`
             An SQL WHERE clause.
@@ -300,7 +300,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         record: :class:`asyncpg.Record`
             The record to update.
@@ -325,7 +325,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         where: :class:`str`
             An SQL WHERE clause.
@@ -348,7 +348,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         \*\*values: Any
             The column to value mapping to filter records with.
@@ -369,7 +369,7 @@ class Insertable(Selectable):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         record: :class:`asyncpg.Record`
             The record to delete.

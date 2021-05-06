@@ -55,7 +55,7 @@ extlinks = {
 # Links used for cross-referencing stuff in other documentation
 intersphinx_mapping = {
     "py": ("https://docs.python.org/3", None),
-    "asyncpg": ("https://magicstack.github.io/asyncpg/current/", None),
+    "apg": ("https://magicstack.github.io/asyncpg/current/", None),
 }
 
 rst_prolog = """

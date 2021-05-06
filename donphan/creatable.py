@@ -91,7 +91,7 @@ class Creatable(Protocol):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         if_not_exists: :class:`bool`
             Sets whether creation should continue if the object already exists.
@@ -118,7 +118,7 @@ class Creatable(Protocol):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         if_not_exists: :class:`bool`
             Sets whether creation should continue if the schema already exists.
@@ -142,7 +142,7 @@ class Creatable(Protocol):
 
         Parameters
         ----------
-        connection: :class:`asyncpg.Connection`
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
         if_not_exists: :class:`bool`
             Sets whether creation should continue if the object already exists.

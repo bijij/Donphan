@@ -45,9 +45,9 @@ class Column(Generic[T]):
             Whether the column is nullable.
         unique: :class:`bool`
             Whether the column has a unique constraint.
-        default:
+        default: Any
             The default value of the column.
-        references: Optional[:class:`.Column`]
+        references: Optional[:class:`Column`]
             The column which this column references, if set.
     """
 
