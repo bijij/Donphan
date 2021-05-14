@@ -171,7 +171,7 @@ class Insertable(Selectable):
         returning: Optional[Iterable[Column]] = None,
         **values: Any,
     ) -> Optional[Record]:
-        """|coro|
+        r"""|coro|
 
         Inserts a new record into the database.
 
@@ -235,7 +235,7 @@ class Insertable(Selectable):
         ignore_on_conflict: bool = False,
         update_on_conflict: Optional[Iterable[Column]] = None,
     ) -> None:
-        """|coro|
+        r"""|coro|
 
         Inserts a set of new records into the database.
 
@@ -267,7 +267,7 @@ class Insertable(Selectable):
         *values: Any,
         **_values: Any,
     ) -> None:
-        """|coro|
+        r"""|coro|
 
         Updates records in the database which match a given WHERE clause.
 
@@ -294,7 +294,7 @@ class Insertable(Selectable):
         record: Record,
         **values: Any,
     ) -> None:
-        """|coro|
+        r"""|coro|
 
         Updates a record in the database.
 
@@ -342,7 +342,7 @@ class Insertable(Selectable):
         /,
         **values: Any,
     ) -> None:
-        """|coro|
+        r"""|coro|
 
         Deletes records in the database which contain the given values.
 

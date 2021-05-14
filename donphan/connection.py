@@ -56,7 +56,7 @@ OPTIONAL_CODECS: dict[str, TypeCodec] = {
 
 
 async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> Pool:
-    """|coro|
+    r"""|coro|
 
     Creates the database connection pool.
 

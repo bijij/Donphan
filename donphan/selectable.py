@@ -191,7 +191,7 @@ class Selectable(Creatable):
         limit: Optional[int] = None,
         order_by: Optional[OrderBy] = None,
     ) -> Iterable[Record]:
-        """|coro|
+        r"""|coro|
 
         Fetches records in the database which match a given WHERE clause.
 
@@ -227,7 +227,7 @@ class Selectable(Creatable):
         order_by: Optional[OrderBy] = None,
         **values: Any,
     ) -> Iterable[Record]:
-        """|coro|
+        r"""|coro|
 
         Fetches records in the database which contain the given values.
 
@@ -260,7 +260,7 @@ class Selectable(Creatable):
         *values: Any,
         order_by: Optional[OrderBy] = None,
     ) -> Optional[Record]:
-        """|coro|
+        r"""|coro|
 
         Fetches a record in the database which match a given WHERE clause.
 
@@ -293,7 +293,7 @@ class Selectable(Creatable):
         order_by: Optional[OrderBy] = None,
         **values: Any,
     ) -> Optional[Record]:
-        """|coro|
+        r"""|coro|
 
         Fetches a records in the database which contains the given values.
 

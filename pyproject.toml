@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "Donphan"
-version = "4.0.1a"
+version = "4.0.1"
 description = "Asynchronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
 readme = "README.rst"
 packages = [
-  { include = "donphan" }
+  { include = "donphan" },
+  { include = "donphan/py.typed" }
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -59,4 +60,3 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pyright]
 include = ["donphan/**"]
-reportInvalidStringEscapeSequence = false
