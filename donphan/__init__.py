@@ -26,11 +26,17 @@ __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
 __copyright__ = "Copyright 2020-Present Bijij"
-__version__ = "4.0.1"
+__version__ = "4.0.2"
 
+from typing import TYPE_CHECKING
 
 from .column import *
 from .connection import *
+from .custom_types import *
 from .enums import *
 from .table import *
-from .types import *
+
+if TYPE_CHECKING:
+    from . import types as SQLType
+else:
+    from .sqltype import *

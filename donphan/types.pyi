@@ -22,21 +22,41 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from __future__ import annotations
+import decimal
+import datetime
+import ipaddress
+import uuid
 
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from asyncpg.pool import Pool
-
-    from .creatable import Creatable
-    from .custom_types import CustomType
-
-
-NOT_CREATABLE: list[type[Creatable]] = []
-
-CUSTOM_TYPES: dict[str, type[CustomType[Any]]] = {}
-
-POOLS: list[Pool] = []
-
-DEFAULT_SCHEMA: str = "public"
+Integer = int
+Int = int
+SmallInt = int
+BigInt = int
+Serial = int
+Float = float
+DoublePercision = float
+Double = float
+Numeric = decimal.Decimal
+# 8.2 Monetary
+Money = str
+# 8.3 Character
+# CharacterVarying = VarChar = str
+Character = str
+Text = str
+# 8.4 Binary
+Bytea = bytes
+# 8.5 Date/Time
+Timestamp = datetime.datetime
+TimestampAware = datetime.datetime
+Date = datetime.date
+Inteval = datetime.timedelta
+# 8.6 Boolean
+Boolean = bool
+# 8.9 Network Adress
+CIDR = ipaddress._BaseNetwork
+Inet = ipaddress._BaseNetwork
+MACAddr = str
+# 8.12 UUID
+UUID = uuid.UUID
+# 8.14 JSON
+JSON = dict
+JSONB = dict
