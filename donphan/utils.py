@@ -176,8 +176,8 @@ def resolve_annotation(
     return evaluate_annotation(annotation, globalns, locals, cache)
 
 
-BUILDING_DOCS: bool
+DOCS_BUILDING: bool
 try:
-    BUILDING_DOCS = __sphinx_building__  # type: ignore
+    DOCS_BUILDING = __sphinx_building__  # type: ignore
 except NameError:
-    BUILDING_DOCS = False
+    DOCS_BUILDING = False

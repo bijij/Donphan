@@ -69,11 +69,9 @@ if TYPE_CHECKING:
     from enum import Enum as _Enum
 
     class Enum(_Enum):
-        if TYPE_CHECKING:
-
-            @classmethod
-            def try_value(cls: type[ET], value: Any) -> ET:
-                ...
+        @classmethod
+        def try_value(cls: type[ET], value: Any) -> ET:
+            ...
 
 
 else:

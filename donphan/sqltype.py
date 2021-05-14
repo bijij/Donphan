@@ -33,7 +33,7 @@ from types import new_class
 from typing import Any, Generic, NamedTuple, Optional, TYPE_CHECKING, TypeVar
 
 from .enums import Enum
-from .utils import BUILDING_DOCS
+from .utils import DOCS_BUILDING
 
 
 __all__ = ("SQLType",)
@@ -133,7 +133,7 @@ if not TYPE_CHECKING:
         cls = new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
         new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
 
-        if BUILDING_DOCS:
+        if DOCS_BUILDING:
 
             @property
             def _(cls):
