@@ -277,7 +277,7 @@ class Insertable(Selectable):
         if columns is None:
             values = cast(tuple[dict[str, Any], ...], values)
             columns = cls._get_columns(values[0])
-            values = cast(tuple[Iterable[Any]], (value.values() for value in values))
+            values = cast(tuple[list[Any]], (list(value.values()) for value in values))
 
         query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict or [], [])
         await connection.executemany(query, values)
