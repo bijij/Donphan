@@ -139,13 +139,14 @@ if not TYPE_CHECKING:
             def _(cls):
                 return cls
 
-            _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
             if is_default:
                 qualified_name = ""
                 if py_type.__module__ != "builtins":
                     qualified_name = f"{py_type.__module__}."
                 qualified_name += py_type.__name__
                 _.__doc__ += f" Python class :class:`{qualified_name}`, can be used as a substitute."
+            else:
+                _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
 
         else:
             _ = cls

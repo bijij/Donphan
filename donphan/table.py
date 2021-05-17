@@ -88,6 +88,9 @@ class Table(Insertable):
                 builder.append(column.references.name)
                 builder.append(")")
 
+                if column.cascade:
+                    builder.append("ON DELETE CASCADE ON UPDATE CASCADE")
+
             builder.append(",")
 
         if cls._primary_keys:

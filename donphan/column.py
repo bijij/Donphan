@@ -73,6 +73,8 @@ class Column(Generic[T]):
             The default value of the column.
         references: Optional[:class:`Column`]
             The column which this column references, if set.
+        cascade: :class:`bool`
+            Whether deletions / updates the referenced column should cascace. Defaults to ``False``.
     """
 
     if TYPE_CHECKING:
@@ -84,6 +86,7 @@ class Column(Generic[T]):
     index: bool = False
     nullable: bool = True
     unique: bool = False
+    cascade: bool = True
     default: Optional[Union[str, T]] = MISSING
     references: Optional[Column[T]] = None
 
