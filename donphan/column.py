@@ -86,7 +86,7 @@ class Column(Generic[T]):
     index: bool = False
     nullable: bool = True
     unique: bool = False
-    cascade: bool = True
+    cascade: bool = False
     default: Optional[Union[str, T]] = MISSING
     references: Optional[Column[T]] = None
 
