@@ -34,14 +34,32 @@ if TYPE_CHECKING:
     from .selectable import Selectable
 
 
-__all__ = ("Column",)
+__all__ = (
+    "BaseColumn",
+    "Column",
+    "ViewColumn",
+)
 
 
 T = TypeVar("T")
 
 
+class BaseColumn:
+    """A Base class which all Column types inherit.
+
+    Attributes
+    ----------
+        name: :class:`str`
+            The column's name.
+
+    """
+
+    if TYPE_CHECKING:
+        name: str
+
+
 @dataclass
-class Column(Generic[T]):
+class Column(BaseColumn, Generic[T]):
     """A representation of a SQL Database Table Column
 
     Parameters
@@ -50,6 +68,16 @@ class Column(Generic[T]):
             Whether the column is a primary key column, defaults to ``False``.
         index: :class:`bool`
             Whether to create an index for the given column, defaults to ``False``.
+        nullable: :class:`bool`
+            Whether the column is nullable.
+        unique: :class:`bool`
+            Whether the column has a unique constraint.
+        default: Any
+            The default value of the column.
+        references: Optional[:class:`Column`]
+            The column which this column references.
+        cascade: :class:`bool`
+            Whether deletions / updates the referenced column should cascace. Defaults to ``False``.
 
     Attributes
     ----------
@@ -74,7 +102,7 @@ class Column(Generic[T]):
         references: Optional[:class:`Column`]
             The column which this column references, if set.
         cascade: :class:`bool`
-            Whether deletions / updates the referenced column should cascace. Defaults to ``False``.
+            Whether deletions / updates the referenced column should cascace.
     """
 
     if TYPE_CHECKING:
@@ -103,3 +131,31 @@ class Column(Generic[T]):
         column = cls(**options)
         column._sql_type = type
         return column
+
+
+@dataclass
+class ViewColumn(BaseColumn):
+    """A representation of a SQL Database View Column
+
+    Parameters
+    ----------
+        select: :class:`str`
+            the attribute to SELECT from the view QUERY for this column.
+            Defaults to the column name.
+
+    Attributes
+    ----------
+        name: :class:`str`
+            The column's name.
+        view: :class:`~.View`
+            The View the column is a part of.
+        select: :class:`str`
+            the attribute to SELECT from the view QUERY for this column.
+
+    """
+
+    if TYPE_CHECKING:
+        name: str
+        view: type[Selectable]
+
+    select: str = MISSING

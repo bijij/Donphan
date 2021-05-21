@@ -78,7 +78,7 @@ the first parameter.
 To be more in-line with other methods ``Table.fetchrow`` has been renamed to :attr:`.Table.fetch_row`.
 
 
-Support for Views Dropped
--------------------------
+Views
+-----
 
-Support for Views has been temporarily dropped.
+Views have been reworked to allow for named columns simular to tables.

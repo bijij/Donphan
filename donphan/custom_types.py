@@ -73,7 +73,14 @@ class CustomType(SQLType[T], Creatable, sql_type=""):
         raise NotImplementedError()
 
     @classmethod
-    async def create(cls, connection: Connection, /, *args: Any, if_not_exists: bool = True, **kwargs: Any) -> None:
+    async def create(
+        cls,
+        connection: Connection,
+        /,
+        *args: Any,
+        if_not_exists: bool = True,
+        **kwargs: Any,
+    ) -> None:
         try:
             await super().create(connection, *args, **kwargs)
         except asyncpg.exceptions.DuplicateObjectError:

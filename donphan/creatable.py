@@ -24,7 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING
+from typing import ClassVar, Protocol, TYPE_CHECKING
 
 from .consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from .utils import MISSING, normalise_name, query_builder
@@ -37,8 +37,8 @@ __all__ = ("Creatable",)
 
 
 class Creatable(Protocol):
-    _schema: str
-    _name: str
+    _schema: ClassVar[str]
+    _name: ClassVar[str]
 
     def __init_subclass__(
         cls,

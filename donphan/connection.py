@@ -103,7 +103,11 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
     async def init(connection: Connection) -> None:
         for type, codec in codecs.items():
             await connection.set_type_codec(
-                type, schema="pg_catalog", encoder=codec.encoder, decoder=codec.decoder, format=codec.format
+                type,
+                schema="pg_catalog",
+                encoder=codec.encoder,
+                decoder=codec.decoder,
+                format=codec.format,
             )
 
         for type in CUSTOM_TYPES.values():

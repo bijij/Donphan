@@ -24,13 +24,25 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import inspect
+import sys
+
 from collections.abc import Iterable
 
-from typing import Any, cast, Optional, TYPE_CHECKING, Union, overload
+from typing import (
+    Any,
+    cast,
+    ClassVar,
+    Optional,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from .column import Column
+from .column import Column, SQLType
 from .selectable import Selectable
-from .utils import not_creatable, query_builder
+from .utils import not_creatable, query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -39,17 +51,74 @@ if TYPE_CHECKING:
 __all__ = ("Insertable",)
 
 
+T = TypeVar("T")
+
+
 @not_creatable
 class Insertable(Selectable):
 
-    # region: query generation
+    if TYPE_CHECKING:
+        _primary_keys: ClassVar[list[Column]]
 
     @classmethod
-    def _get_columns(
+    def _setup_column(
         cls,
-        values: dict[str, Any],
-    ) -> Iterable[Column]:
-        return [cls._columns_dict[column] for column in values]
+        name: str,
+        type: Any,
+        globals: dict[str, Any],
+        locals: dict[str, Any],
+        cache: dict[str, Any],
+    ) -> None:
+
+        type = resolve_annotation(type, globals, locals, cache)
+
+        if getattr(type, "__origin__", None) is not Column:
+            raise TypeError("Column typings must be of type Column.")
+
+        type = type.__args__[0]
+        is_array = False
+
+        if getattr(type, "__origin__", None) is list:
+            is_array = True
+            type = type.__args__[0]
+
+        try:
+            if not issubclass(type, SQLType):
+                type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
+            elif is_array:
+                type = SQLType._from_type(list[type.py_type])  # type: ignore
+
+        except TypeError:
+            if getattr(type, "__origin__", None) is not SQLType:
+                raise TypeError("Column typing generics must be a valid SQLType.")
+            type = type.__args__[0]  # type: ignore
+
+            type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
+
+        if not hasattr(cls, name):
+            column = Column._with_type(type)  # type: ignore
+            setattr(cls, name, column)
+        else:
+            column = getattr(cls, name)
+            if not isinstance(column, Column):
+                raise ValueError("Column values must be an instance of Column.")
+
+            column._sql_type = type
+
+        column.name = name
+        column.table = cls
+
+        cls._columns.append(column)
+        cls._columns_dict[name] = column
+        if column.primary_key:
+            cls._primary_keys.append(column)
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        cls._primary_keys = []
+
+        super().__init_subclass__(**kwargs)
+
+    # region: query generation
 
     @classmethod
     def _get_primary_keys(

@@ -28,11 +28,11 @@ import inspect
 import sys
 
 from collections.abc import Iterable
-from typing import Any, Literal, Optional, TYPE_CHECKING
+from typing import Any, ClassVar, Literal, Optional, TYPE_CHECKING, Union
 
-from .column import Column, SQLType
+from .column import BaseColumn, Column
 from .creatable import Creatable
-from .utils import not_creatable, query_builder, resolve_annotation
+from .utils import not_creatable, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -51,21 +51,36 @@ OPERATORS: dict[str, str] = {
 }
 
 
-OrderBy = tuple[Column, Literal["ASC", "DESC"]]
+OrderBy = tuple[BaseColumn, Literal["ASC", "DESC"]]
 
 
 @not_creatable
 class Selectable(Creatable):
     if TYPE_CHECKING:
-        _columns: Iterable[Column]
-        _columns_dict: dict[str, Column]
-        _primary_keys: Iterable[Column]
+        _columns: ClassVar[list[Column]]
+        _columns_dict: ClassVar[dict[str, Column]]
+
+    @classmethod
+    def _get_columns(
+        cls,
+        values: dict[str, Any],
+    ) -> Iterable[Column]:
+        return [cls._columns_dict[column] for column in values]
+
+    @classmethod
+    def _setup_column(
+        cls,
+        name: str,
+        type: Any,
+        globals: dict[str, Any],
+        locals: dict[str, Any],
+        cache: dict[str, Any],
+    ) -> None:
+        raise NotImplementedError
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        cache: dict[str, Any] = {}
         cls._columns = []
         cls._columns_dict = {}
-        cls._primary_keys = []
 
         # Get global namespaces
         try:
@@ -86,49 +101,11 @@ class Selectable(Creatable):
         finally:
             del frame
 
+        cache: dict[str, Any] = {}
+
         for name, type in cls.__annotations__.items():
-            type = resolve_annotation(type, globals, locals, cache)
-
-            if getattr(type, "__origin__", None) is not Column:
-                raise TypeError("Column typings must be of type Column.")
-
-            type = type.__args__[0]
-            is_array = False
-
-            if getattr(type, "__origin__", None) is list:
-                is_array = True
-                type = type.__args__[0]
-
-            try:
-                if not issubclass(type, SQLType):
-                    type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
-                elif is_array:
-                    type = SQLType._from_type(list[type.py_type])  # type: ignore
-
-            except TypeError:
-                if getattr(type, "__origin__", None) is not SQLType:
-                    raise TypeError("Column typing generics must be a valid SQLType.")
-                type = type.__args__[0]  # type: ignore
-
-                type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
-
-            if not hasattr(cls, name):
-                column = Column._with_type(type)  # type: ignore
-                setattr(cls, name, column)
-            else:
-                column = getattr(cls, name)
-                if not isinstance(column, Column):
-                    raise ValueError("Column values must be an instance of Column.")
-
-                column._sql_type = type
-
-            column.name = name
-            column.table = cls
-
-            cls._columns.append(column)
-            cls._columns_dict[name] = column
-            if column.primary_key:
-                cls._primary_keys.append(column)
+            if not name.startswith("_"):
+                cls._setup_column(name, type, globals, locals, cache)
 
         super().__init_subclass__(**kwargs)
 
@@ -182,7 +159,7 @@ class Selectable(Creatable):
         cls,
         where: str,
         limit: Optional[int],
-        order_by: Optional[OrderBy],
+        order_by: Optional[Union[OrderBy, str]],
     ) -> list[str]:
         builder = ["SELECT * FROM", cls._name]
         if where:
@@ -190,10 +167,15 @@ class Selectable(Creatable):
             builder.append(where)
 
         if order_by is not None:
-            column, direction = order_by
             builder.append("ORDER BY")
-            builder.append(column.name)
-            builder.append(direction)
+
+            if isinstance(order_by, str):
+                builder.append(order_by)
+
+            else:
+                column, direction = order_by
+                builder.append(column.name)
+                builder.append(direction)
 
         if limit is not None:
             builder.append("LIMIT")
@@ -213,7 +195,7 @@ class Selectable(Creatable):
         where: str,
         *values: Any,
         limit: Optional[int] = None,
-        order_by: Optional[OrderBy] = None,
+        order_by: Optional[Union[OrderBy, str]] = None,
     ) -> Iterable[Record]:
         r"""|coro|
 
@@ -229,9 +211,9 @@ class Selectable(Creatable):
             Values to be substituted into the WHERE clause.
         limit: Optional[:class:`int`]
             If provided, sets the maxmimum number of records to be returned.
-        order_by: Optional[Tuple[:class:`Column`, Literal[`"ASC"``, ``"DESC"``]]]
-            Sets the ORDER BY condition on the database query, takes a tuple
-            concisting of the column and direction.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
 
         Returns
         -------
@@ -248,7 +230,7 @@ class Selectable(Creatable):
         /,
         *,
         limit: Optional[int] = None,
-        order_by: Optional[OrderBy] = None,
+        order_by: Optional[Union[OrderBy, str]] = None,
         **values: Any,
     ) -> Iterable[Record]:
         r"""|coro|
@@ -261,9 +243,9 @@ class Selectable(Creatable):
             The database connection to use for transactions.
         limit: Optional[:class:`int`]
             If provided, sets the maxmimum number of records to be returned.
-        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
-            Sets the ORDER BY condition on the database query, takes a tuple
-            concisting of the column and direction.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
         \*\*values: Any
             The column to value mapping to filter records with.
 
@@ -282,7 +264,7 @@ class Selectable(Creatable):
         /,
         where: str,
         *values: Any,
-        order_by: Optional[OrderBy] = None,
+        order_by: Optional[Union[OrderBy, str]] = None,
     ) -> Optional[Record]:
         r"""|coro|
 
@@ -296,9 +278,9 @@ class Selectable(Creatable):
             An SQL WHERE clause.
         \*values: Any
             Values to be substituted into the WHERE clause.
-        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
-            Sets the ORDER BY condition on the database query, takes a tuple
-            concisting of the column and direction.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
 
         Returns
         -------
@@ -314,7 +296,7 @@ class Selectable(Creatable):
         connection: Connection,
         /,
         *,
-        order_by: Optional[OrderBy] = None,
+        order_by: Optional[Union[OrderBy, str]] = None,
         **values: Any,
     ) -> Optional[Record]:
         r"""|coro|
@@ -325,9 +307,9 @@ class Selectable(Creatable):
         ----------
         connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
             The database connection to use for transactions.
-        order_by: Optional[Tuple[:class:`Column`, Literal["ASC", "DESC"]]]
-            Sets the ORDER BY condition on the database query, takes a tuple
-            concisting of the column and direction.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
         \*\*values: Any
             The column to value mapping to filter records with.
 

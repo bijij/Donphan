@@ -97,6 +97,11 @@ Database Objects
 
 Below are types which are used to interact with the dtabase.
 
+BaseColumn
+~~~~~~~~~~
+.. autoclass:: BaseColumn()
+    :members:
+
 Column
 ~~~~~~
 .. autoclass:: Column
@@ -110,11 +115,17 @@ Table
     :inherited-members:
 
 
+ViewColumn
+~~~~~~~~~~
+.. autoclass:: ViewColumn
+    :members:
+
+
 View
 ~~~~
-.. note:: 
-
-    Views are currently not supported.
+.. autoclass:: View()
+    :members:
+    :inherited-members:
 
 
 Utility Functions / Classes

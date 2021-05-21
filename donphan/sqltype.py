@@ -102,6 +102,8 @@ if not TYPE_CHECKING:
         "SmallInt": SQLTypeConfig(int, "SMALLINT"),
         "BigInt": SQLTypeConfig(int, "BIGINT"),
         "Serial": SQLTypeConfig(int, "SERIAL"),
+        "SmallSerial": SQLTypeConfig(int, "SMALLSERIAL"),
+        "BigSerial": SQLTypeConfig(int, "BIGSERIAL"),
         "Float": SQLTypeConfig(float, "FLOAT", True),
         "DoublePrecision": SQLTypeConfig(float, "DOUBLE PRECISION", False, ("Double",)),
         "Numeric": SQLTypeConfig(decimal.Decimal, "NUMERIC", True),
@@ -131,7 +133,11 @@ if not TYPE_CHECKING:
         "JSONB": SQLTypeConfig(dict, "JSONB", True),
     }.items():
         cls = new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
-        new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
+        new_class(
+            name + "[]",
+            (SQLType[list[py_type]],),
+            {"sql_type": sql_type + "[]", "default": is_default},
+        )
 
         if DOCS_BUILDING:
 
@@ -139,14 +145,14 @@ if not TYPE_CHECKING:
             def _(cls):
                 return cls
 
+            _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
+
             if is_default:
                 qualified_name = ""
                 if py_type.__module__ != "builtins":
                     qualified_name = f"{py_type.__module__}."
                 qualified_name += py_type.__name__
                 _.__doc__ += f" Python class :class:`{qualified_name}`, can be used as a substitute."
-            else:
-                _.__doc__ = f"Represents the SQL ``{sql_type}`` type."
 
         else:
             _ = cls
