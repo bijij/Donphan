@@ -106,6 +106,8 @@ class View(Selectable):
 
         for column in cls._columns:
             builder.append(column.select)
+            builder.append("AS")
+            builder.append(column.name)
             builder.append(",")
 
         builder.pop(-1)
