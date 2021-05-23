@@ -27,7 +27,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from asyncpg.pool import Pool
+    from asyncpg import Pool
 
     from .creatable import Creatable
     from .custom_types import CustomType

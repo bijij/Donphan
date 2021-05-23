@@ -14,7 +14,7 @@ class ConnectionTest(TestCase):
         pool = await create_pool(POSTGRES_DSN)
         set_pool(pool)
 
-        self.assertIsInstance(pool, asyncpg.pool.Pool)
+        self.assertIsInstance(pool, asyncpg.Pool)
 
     @async_test
     @with_pool

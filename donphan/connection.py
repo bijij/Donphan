@@ -35,8 +35,7 @@ import asyncpg
 from .consts import CUSTOM_TYPES, POOLS
 
 if TYPE_CHECKING:
-    from asyncpg import Connection
-    from asyncpg.pool import Pool
+    from asyncpg import Connection, Pool
 
 __all__ = (
     "create_pool",
@@ -95,7 +94,7 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
 
     Returns
     -------
-    :class:`asyncpg.pool.Pool`
+    :class:`asyncpg.Pool`
         The new pool which was created.
     """
     codecs |= TYPE_CODECS
@@ -135,14 +134,14 @@ class MaybeAcquire:
         connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             A database connection to use.
             If none is supplied a connection will be acquired from the pool.
-        pool: Optional[:class:`asyncpg.pool.Pool`]
+        pool: Optional[:class:`asyncpg.Pool`]
             A connection pool to use.
 
     Attributes
     ----------
         connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             The supplied database connection, if provided.
-        pool: Optional[:class:`asyncpg.pool.Pool`]
+        pool: Optional[:class:`asyncpg.Pool`]
             The connection pool used to acquire new connections.
     """
 
