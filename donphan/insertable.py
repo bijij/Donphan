@@ -26,19 +26,8 @@ from __future__ import annotations
 
 import inspect
 import sys
-
 from collections.abc import Iterable
-
-from typing import (
-    Any,
-    cast,
-    ClassVar,
-    Optional,
-    TYPE_CHECKING,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast, overload
 
 from .column import Column, SQLType
 from .selectable import Selectable

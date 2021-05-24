@@ -25,7 +25,7 @@ SOFTWARE.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 from .sqltype import SQLType
 from .utils import MISSING

@@ -23,13 +23,13 @@ SOFTWARE.
 """
 
 from __future__ import annotations
-from donphan.column import ViewColumn
 
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from donphan.column import ViewColumn
 
 from .selectable import Selectable
 from .utils import MISSING, not_creatable, query_builder
-
 
 __all__ = ("View",)
 

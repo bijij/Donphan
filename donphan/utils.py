@@ -25,13 +25,12 @@ SOFTWARE.
 from __future__ import annotations
 
 import io
+import string
 import sys
 import types
-import string
-from functools import wraps
-
 from collections.abc import Callable, Iterable
-from typing import Any, ForwardRef, Optional, Literal, Union, TypeVar, TYPE_CHECKING, TextIO
+from functools import wraps
+from typing import TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
 
 from .consts import NOT_CREATABLE
 

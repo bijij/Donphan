@@ -54,8 +54,7 @@ DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
 import types
-
-from typing import Any, NamedTuple, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 
 __all__ = ("Enum",)
 

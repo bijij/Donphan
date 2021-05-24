@@ -26,9 +26,8 @@ from __future__ import annotations
 
 import inspect
 import sys
-
 from collections.abc import Iterable
-from typing import Any, ClassVar, Literal, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union
 
 from .column import BaseColumn, Column
 from .creatable import Creatable

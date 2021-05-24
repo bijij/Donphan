@@ -24,17 +24,15 @@ SOFTWARE.
 
 from __future__ import annotations
 
-import decimal
 import datetime
+import decimal
 import ipaddress
 import uuid
-
 from types import new_class
-from typing import Any, Generic, NamedTuple, Optional, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional, TypeVar
 
 from .enums import Enum
 from .utils import DOCS_BUILDING
-
 
 __all__ = ("SQLType",)
 
