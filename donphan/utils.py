@@ -24,13 +24,14 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import io
 import sys
 import types
 import string
 from functools import wraps
 
 from collections.abc import Callable, Iterable
-from typing import Any, ForwardRef, Optional, Literal, Union, TypeVar, TYPE_CHECKING
+from typing import Any, ForwardRef, Optional, Literal, Union, TypeVar, TYPE_CHECKING, TextIO
 
 from .consts import NOT_CREATABLE
 
@@ -78,6 +79,19 @@ def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
 def not_creatable(cls: type[CT]) -> type[CT]:
     NOT_CREATABLE.append(cls)
     return cls
+
+
+def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
+    if isinstance(fp, io.TextIOBase):
+        if not fp.writeable():
+            raise ValueError(f"File buffer {fp!r} must be writable")
+    elif isinstance(fp, str):
+        fp = open(fp, "w")
+    else:
+        raise TypeError(f"Could not determine type of file-like object.")
+
+    fp.write(data)
+    return fp
 
 
 PY_310 = sys.version_info >= (3, 10)

@@ -8,10 +8,24 @@ The following page outlines the donphan API.
 Connection Helpers
 ------------------
 
-MaybeAcquire
-~~~~~~~~~~~~
-.. Autoclass:: MaybeAcquire
+.. autofunction:: create_pool
+
+.. autoclass:: MaybeAcquire
     :members:
+
+Type Codecs
+~~~~~~~~~~~
+
+.. autoclass:: TYPE_CODECS()
+    :members:
+
+.. autoclass:: OPTIONAL_CODECS
+    :members:
+
+Database Creation Helpers
+-------------------------
+
+.. autofunction:: create_db
 
 
 SQL Types
@@ -134,6 +148,9 @@ Utility Functions / Classes
 Below are utility some utility functions and classes which interact with donphan.
 
 
+.. autofunction:: export_db
+
+
 Enum
 ~~~~
 .. autoclass:: Enum()
@@ -155,3 +172,9 @@ Enum
         class MyTable(Table):
             key: Column[str] = Column(primary_key=True)
             value: Column[MyEnum]
+
+
+Type Validation Helpers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: TypeCodec

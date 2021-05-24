@@ -24,10 +24,10 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Optional, Protocol, TextIO, Union, overload
 
 from .consts import DEFAULT_SCHEMA, NOT_CREATABLE
-from .utils import MISSING, normalise_name, query_builder
+from .utils import MISSING, normalise_name, query_builder, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -98,6 +98,25 @@ class Creatable(Protocol):
         return builder
 
     # endregion
+
+    @classmethod
+    def _find_schemas(cls) -> list[Creatable]:
+        schema_names = set()
+        schemas = []
+
+        for subcls in cls.__subclasses__():
+
+            if subcls in NOT_CREATABLE:
+                for schema in subcls._find_schemas():
+                    if schema._schema not in schema_names:
+                        schema_names.add(schema._schema)
+                        schemas.append(schema)
+            else:
+                if subcls._schema not in schema_names:
+                    schema_names.add(subcls._schema)
+                    schemas.append(subcls)
+
+        return schemas
 
     # region: public methods
 
@@ -176,18 +195,113 @@ class Creatable(Protocol):
             Defaults to ``True``.
         """
         for subcls in cls.__subclasses__():
+            if create_schema:
+                for schema in cls._find_schemas():
+                    await schema.create_schema(connection, if_not_exists=if_not_exists)
+
             if subcls in NOT_CREATABLE:
                 await subcls.create_all(
                     connection,
                     if_not_exists=if_not_exists,
-                    create_schema=create_schema,
                 )
             else:
                 await subcls.create(
                     connection,
                     if_not_exists=if_not_exists,
-                    create_schema=create_schema,
                 )
+
+    @overload
+    @classmethod
+    def export(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: None = ...) -> str:
+        ...
+
+    @overload
+    @classmethod
+    def export(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: Union[str, TextIO] = ...) -> TextIO:
+        ...
+
+    @classmethod
+    def export(
+        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: Optional[Union[str, TextIO]] = None
+    ) -> Union[TextIO, str]:
+        """|coro|
+
+        Creates this database object.
+
+        Parameters
+        ----------
+        if_not_exists: :class:`bool`
+            Sets whether creation should continue if the object already exists.
+            Defaults to ``False``.
+        """
+        output = ""
+
+        if export_schema:
+            output += cls._query_create_schema(if_not_exists)
+            output += "\n\n"
+
+        output += cls._query_create(if_not_exists)
+
+        if fp is None:
+            return output
+        return write_to_file(fp, output)
+
+    @overload
+    @classmethod
+    def export_all(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: None = ...) -> str:
+        ...
+
+    @overload
+    @classmethod
+    def export_all(
+        cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: Union[str, TextIO] = ...
+    ) -> TextIO:
+        ...
+
+    @classmethod
+    def export_all(
+        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: Optional[Union[str, TextIO]] = None
+    ) -> Union[TextIO, str]:
+        """
+        A function which exports all database objects that subclass this object.
+
+        Parameters
+        ----------
+        if_not_exists: :class:`bool`
+            Sets whether the if_not_exists clause should be set on
+            exported objects. Defaults to ``False``.
+        export_schema: :class:`bool`
+        fp: Optional[:class:`os.PathLike`, :class:`io.TextIOBase`]
+            A file-like object opened in text mode and write mode.
+            or a filename representing a file on disk to write to.
+
+            .. note::
+                If the file-like object passed is opened via :func:`open`
+                ensure the object is in a text-writing mode such as ``"w"``.
+
+        Returns
+        -------
+        Union[:class:`io.TextIOBase`, :class:`str`]
+            The file-like object which was provided or a string containing the
+            exported database objects.
+        """
+        output = ""
+
+        if export_schema:
+            for schema in cls._find_schemas():
+                output += schema._query_create_schema(if_not_exists)
+                output += "\n\n"
+
+        for subcls in cls.__subclasses__():
+            if subcls in NOT_CREATABLE:
+                output += subcls.export_all(if_not_exists=if_not_exists, export_schema=False)
+            else:
+                output += subcls.export(if_not_exists=if_not_exists, export_schema=False)
+                output += "\n\n"
+
+        if fp is None:
+            return output
+        return write_to_file(fp, output)
 
     @classmethod
     async def drop(

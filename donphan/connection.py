@@ -26,21 +26,24 @@ from __future__ import annotations
 
 import datetime
 import json
-
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING, NamedTuple, TypeVar, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional, TextIO, TypeVar, Union, overload
 
 import asyncpg
 
 from .consts import CUSTOM_TYPES, POOLS
+from .utils import DOCS_BUILDING, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Pool
 
 __all__ = (
     "create_pool",
+    "create_db",
+    "export_db",
     "MaybeAcquire",
     "TYPE_CODECS",
+    "TypeCodec",
     "OPTIONAL_CODECS",
 )
 
@@ -52,10 +55,41 @@ T = TypeVar("T")
 Y2K_EPOCH = 946684800000000
 
 
-class TypeCodec(NamedTuple):
-    format: Literal["text", "binary", "tuple"]
-    encoder: Callable[..., Any]
-    decoder: Callable[..., Any]
+class TypeCodec(tuple[T]):
+    """
+    A NamedTuple defining a custom type codec.
+
+    See :meth:`asyncpg.Connection.set_type_codec <asyncpg.connection.Connection.set_type_codec>` for more information.
+
+
+    Parameters
+    ----------
+    format: Literal[``"text"``, ``"binary"``, ``"tuple"``]
+        The type of decoder/encoder to use.
+
+    encoder: collections.abc.Callable[``...``, Any]
+        A callable which given a python object returns an encoded value.
+
+    decoder: collections.abc.Callable[``...``, Any]
+        A callable which given an encoded value returns a python object.
+    """
+
+    if TYPE_CHECKING:
+        format: Literal["text", "binary", "tuple"]
+        encoder: Callable[[T], Any]
+        decoder: Callable[..., T]
+
+    def __new__(
+        cls: type[TypeCodec[T]],
+        format: Literal["text", "binary", "tuple"],
+        encoder: Callable[[T], Any],
+        decoder: Callable[..., T],
+    ) -> TypeCodec[T]:
+        new_cls = super().__new__(cls, (format, encoder, decoder))  # type: ignore
+        new_cls.format = format
+        new_cls.encoder = encoder
+        new_cls.decoder = decoder
+        return new_cls
 
 
 def _encode_datetime(value: datetime.datetime) -> tuple[int]:
@@ -69,13 +103,37 @@ def _decode_timestamp(value: tuple[int]) -> datetime.datetime:
 
 
 TYPE_CODECS: dict[str, TypeCodec] = {
-    "json": TypeCodec("text", json.dumps, json.loads),
-    "jsonb": TypeCodec("text", json.dumps, json.loads),
+    "json": TypeCodec[dict]("text", json.dumps, json.loads),
+    "jsonb": TypeCodec[dict]("text", json.dumps, json.loads),
 }
 
-OPTIONAL_CODECS: dict[str, TypeCodec] = {
-    "timestamp": TypeCodec("tuple", _encode_datetime, _decode_timestamp),
+OPTIONAL_CODECS: dict[str, TypeCodec] = {  # type: ignore
+    "timestamp": TypeCodec[datetime.datetime]("tuple", _encode_datetime, _decode_timestamp),
 }
+
+if DOCS_BUILDING and not TYPE_CHECKING:
+
+    class TYPE_CODECS(dict[str, TypeCodec]):
+        """
+        A dictionary of pre-defined custom type-codecs.
+        """
+
+        @property
+        def json(cls):
+            """Automatically conveters a dictionary to and from json data to be stored in the database."""
+            ...
+
+        jsonb = json
+
+    class OPTIONAL_CODECS(dict[str, TypeCodec]):
+        """
+        A dictionary of optional custom type-codecs.
+        """
+
+        @property
+        def timestamp(cls):
+            """Ensures all timestamps are timezone aware relative to UTC."""
+            ...
 
 
 async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> Pool:
@@ -89,15 +147,17 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
         A database connection string.
     codecs: Dict[:class:`str`, :class:`.TypeCodec`]
         A mapping of type to encoder and decoder for custom type codecs.
+        A pre-defined set of codecs is provided in :class:`TYPE_CODECS` is used by default.
+        As well as a set of :class:`OPTIONAL_CODECS` is provided.
     \*\*kwargs: Any
-        Extra keyword arguments to pass to :meth:`asyncpg.create_pool`
+        Extra keyword arguments to pass to :func:`asyncpg.create_pool <asyncpg.pool.create_pool>`
 
     Returns
     -------
-    :class:`asyncpg.Pool`
+    :class:`asyncpg.Pool <asyncpg.pool.Pool>`
         The new pool which was created.
     """
-    codecs |= TYPE_CODECS
+    codecs = TYPE_CODECS | codecs
 
     async def init(connection: Connection) -> None:
         for type, codec in codecs.items():
@@ -119,6 +179,88 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
     return pool
 
 
+async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
+    """|coro|
+
+    A helper function to create all objects in the database.
+
+    Parameters
+    ----------
+    connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
+            The database connection to use for transactions.
+    if_not_exists: :class:`bool`
+        Sets whether creation should continue if the object already exists.
+        Defaults to ``True``.
+    """
+    # this is a hack because >circular imports<
+    from .creatable import Creatable
+    from .custom_types import CustomType
+    from .table import Table
+    from .view import View
+
+    for schema in Creatable._find_schemas():
+        await schema.create(connection, if_not_exists=if_not_exists)
+
+    for type in (CustomType, Table, View):
+        await type.create_all(connection, if_not_exists=if_not_exists, create_schema=False)
+
+
+@overload
+def export_db(*, if_not_exists: bool = ..., fp: None = ...) -> str:
+    ...
+
+
+@overload
+def export_db(*, if_not_exists: bool = ..., fp: Union[str, TextIO] = ...) -> TextIO:
+    ...
+
+
+def export_db(*, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] = None) -> Union[TextIO, str]:
+    """
+    A helper function which exports all objects in the database.
+
+    Parameters
+    ----------
+    if_not_exists: :class:`bool`
+        Sets whether the if_not_exists clause should be set on
+        exported objects. Defaults to ``False``.
+    fp: Optional[:class:`os.PathLike`, :class:`io.TextIOBase`]
+        A file-like object opened in text mode and write mode.
+        or a filename representing a file on disk to write to.
+
+        .. note::
+            If the file-like object passed is opened via :func:`open`
+            ensure the object is in a text-writing mode such as ``"w"``.
+
+            If the file-like object passed is a path it will be opened in
+            write-mode ``"w"``.
+
+    Returns
+    -------
+    Union[:class:`io.TextIOBase`, :class:`str`]
+        The file-like object which was provided or a string containing the
+        exported database.
+    """
+    # this is a hack because >circular imports<
+    from .creatable import Creatable
+    from .custom_types import CustomType
+    from .table import Table
+    from .view import View
+
+    output = ""
+
+    for schema in Creatable._find_schemas():
+        output += schema._query_create_schema(if_not_exists)
+        output += "\n\n"
+
+    for type in (CustomType, Table, View):
+        output += type.export_all(if_not_exists=if_not_exists, export_schema=False)
+
+    if fp is None:
+        return output
+    return write_to_file(fp, output)
+
+
 class MaybeAcquire:
     """Async helper for acquiring a connection to the database.
 
@@ -134,14 +276,14 @@ class MaybeAcquire:
         connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             A database connection to use.
             If none is supplied a connection will be acquired from the pool.
-        pool: Optional[:class:`asyncpg.Pool`]
+        pool: Optional[:class:`asyncpg.Pool <asyncpg.pool.Pool>`]
             A connection pool to use.
 
     Attributes
     ----------
         connection: Optional[:class:`asyncpg.Connection <asyncpg.connection.Connection>`]
             The supplied database connection, if provided.
-        pool: Optional[:class:`asyncpg.Pool`]
+        pool: Optional[:class:`asyncpg.Pool <asyncpg.pool.Pool>`]
             The connection pool used to acquire new connections.
     """
 
