@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, TextIO, TypeVar, Union
 
 import asyncpg
 
-from .consts import CUSTOM_TYPES, POOLS
+from .consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
 from .utils import DOCS_BUILDING, write_to_file
 
 if TYPE_CHECKING:
@@ -199,7 +199,8 @@ async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
     from .view import View
 
     for schema in Creatable._find_schemas():
-        await schema.create(connection, if_not_exists=if_not_exists)
+        if schema._schema != DEFAULT_SCHEMA:
+            await schema.create(connection, if_not_exists=if_not_exists)
 
     for type in (CustomType, Table, View):
         await type.create_all(connection, if_not_exists=if_not_exists, create_schema=False)
@@ -250,8 +251,9 @@ def export_db(*, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] =
     output = ""
 
     for schema in Creatable._find_schemas():
-        output += schema._query_create_schema(if_not_exists)
-        output += "\n\n"
+        if schema._schema != DEFAULT_SCHEMA:
+            output += schema.export_schema(if_not_exists=if_not_exists)
+            output += "\n\n"
 
     for type in (CustomType, Table, View):
         output += type.export_all(if_not_exists=if_not_exists, export_schema=False)

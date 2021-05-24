@@ -224,23 +224,83 @@ class Creatable(Protocol):
     def export(
         cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: Optional[Union[str, TextIO]] = None
     ) -> Union[TextIO, str]:
-        """|coro|
-
-        Creates this database object.
+        """
+        A function which exports this database object.
 
         Parameters
         ----------
         if_not_exists: :class:`bool`
-            Sets whether creation should continue if the object already exists.
-            Defaults to ``False``.
+            Sets whether the if_not_exists clause should be set on
+            exported objects. Defaults to ``False``.
+        export_schema: :class:`bool`
+            Sets whether to additionally export the schema used by this object.
+            Defaults to ``True``.
+        fp: Optional[:class:`os.PathLike`, :class:`io.TextIOBase`]
+            A file-like object opened in text mode and write mode.
+            or a filename representing a file on disk to write to.
+
+            .. note::
+                If the file-like object passed is opened via :func:`open`
+                ensure the object is in a text-writing mode such as ``"w"``.
+
+        Returns
+        -------
+        Union[:class:`io.TextIOBase`, :class:`str`]
+            The file-like object which was provided or a string containing the
+            exported database object.
         """
         output = ""
 
-        if export_schema:
-            output += cls._query_create_schema(if_not_exists)
+        if export_schema and cls._schema != DEFAULT_SCHEMA:
+            output += cls.export_schema(if_not_exists=if_not_exists)
             output += "\n\n"
 
         output += cls._query_create(if_not_exists)
+        output += ";"
+
+        if fp is None:
+            return output
+        return write_to_file(fp, output)
+
+    @overload
+    @classmethod
+    def export_schema(cls, *, if_not_exists: bool = ..., fp: None = ...) -> str:
+        ...
+
+    @overload
+    @classmethod
+    def export_schema(cls, *, if_not_exists: bool = ..., fp: Union[str, TextIO] = ...) -> TextIO:
+        ...
+
+    @classmethod
+    def export_schema(
+        cls, *, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] = None
+    ) -> Union[TextIO, str]:
+        """|coro|
+
+        A function which exports this database object's schema.
+
+        Parameters
+        ----------
+        if_not_exists: :class:`bool`
+            Sets whether the if_not_exists clause should be set on
+            the exported database schema. Defaults to ``False``.
+        fp: Optional[:class:`os.PathLike`, :class:`io.TextIOBase`]
+            A file-like object opened in text mode and write mode.
+            or a filename representing a file on disk to write to.
+
+            .. note::
+                If the file-like object passed is opened via :func:`open`
+                ensure the object is in a text-writing mode such as ``"w"``.
+
+        Returns
+        -------
+        Union[:class:`io.TextIOBase`, :class:`str`]
+            The file-like object which was provided or a string containing the
+            exported database schema.
+        """
+        output = cls._query_create_schema(if_not_exists)
+        output += ";"
 
         if fp is None:
             return output
@@ -271,6 +331,8 @@ class Creatable(Protocol):
             Sets whether the if_not_exists clause should be set on
             exported objects. Defaults to ``False``.
         export_schema: :class:`bool`
+            Sets whether to additionally export any schemas used by these objects.
+            Defaults to ``True``.
         fp: Optional[:class:`os.PathLike`, :class:`io.TextIOBase`]
             A file-like object opened in text mode and write mode.
             or a filename representing a file on disk to write to.
@@ -289,8 +351,9 @@ class Creatable(Protocol):
 
         if export_schema:
             for schema in cls._find_schemas():
-                output += schema._query_create_schema(if_not_exists)
-                output += "\n\n"
+                if schema._schema != DEFAULT_SCHEMA:
+                    output += schema.export_schema(if_not_exists=if_not_exists)
+                    output += "\n\n"
 
         for subcls in cls.__subclasses__():
             if subcls in NOT_CREATABLE:

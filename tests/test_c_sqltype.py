@@ -1,3 +1,4 @@
+from donphan.utils import not_creatable
 from unittest import TestCase
 
 from donphan import SQLType, CustomType, Enum, EnumType
@@ -16,6 +17,7 @@ class ConnectionTest(TestCase):
         self.assertEqual(c.py_type, int)
 
     def test_b_custom_type(self):
+        @not_creatable
         class A(CustomType, _name="foo", schema="foo"):
             ...
 
