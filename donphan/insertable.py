@@ -365,7 +365,7 @@ class Insertable(Selectable):
             The column to value mapping to assign to updated records.
         """
         columns = cls._get_columns(_values)
-        query = cls._build_query_update(where, len(_values) + 1, columns)
+        query = cls._build_query_update(where, len(values) + 1, columns)
         await connection.execute(query, *values, *_values.values())
 
     @classmethod
