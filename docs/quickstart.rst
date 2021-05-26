@@ -21,7 +21,7 @@ Tables are simple to define.
         id: Column[SQLType.Serial] = Column(primary_key=True)            # example auto increment primary key
         created_at: Column[SQLType.Timestamp] = Column(default='NOW()')  # example column with a default value
         some_text: Column[str]                                           # example simple text column                
-        a_list_of_numbers: Column[list[int]                              # example coulmn with a foreign key
+        a_list_of_numbers: Column[list[int]]                              # example coulmn with a foreign key
 
     async def main():
         pool = await create_pool(os.getenv("POSTGRES_DSN"))              # Connects to postgres
