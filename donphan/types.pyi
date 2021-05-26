@@ -50,7 +50,7 @@ Bytea = bytes
 Timestamp = datetime.datetime
 TimestampAware = datetime.datetime
 Date = datetime.date
-Inteval = datetime.timedelta
+Interval = datetime.timedelta
 # 8.6 Boolean
 Boolean = bool
 # 8.9 Network Adress
