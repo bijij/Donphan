@@ -85,6 +85,7 @@ class Join(Selectable):
 
         cls._columns.append(column)
         cls._columns_dict[column.name] = column
+        setattr(cls, column.name, column)
 
     @classmethod
     def _set_columns(cls) -> None:
@@ -94,7 +95,7 @@ class Join(Selectable):
             cls.set_column(column)
 
         for column in b._columns:
-            if any(column in clause for clause in cls._on):
+            if column.name in cls._columns_dict:
                 continue
             cls.set_column(column)
 

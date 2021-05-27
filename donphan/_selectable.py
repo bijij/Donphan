@@ -325,15 +325,9 @@ class Selectable(Object):
         # this is a hack because >circular imports<
         from ._join import Join
 
-        if isinstance(other, BaseColumn):
-            column = cls._columns_dict[other.name]
-            on = [OnClause(column, other)]
-            other = other._selectable
-
-        else:
-            if isinstance(on, tuple):
-                if isinstance(on[0], BaseColumn):
-                    on = [on]  # type: ignore
+        if isinstance(on, tuple):
+            if isinstance(on[0], BaseColumn):
+                on = [on]  # type: ignore
 
         name = generate_alias()
 
@@ -345,39 +339,20 @@ class Selectable(Object):
 
         return types.new_class(name, (Join,), {}, exec_body)
 
-    @overload
     @classmethod
     def inner_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]] = ...,
-    ) -> type[Join]:
-        ...
-
-    @overload
-    @classmethod
-    def inner_join(
-        cls,
-        other: BaseColumn,
-        on: None = ...,
-    ) -> type[Join]:
-        ...
-
-    @classmethod
-    def inner_join(
-        cls,
-        other: Union[type[Selectable], BaseColumn],
-        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+        on: Union[OnClause, Iterable[OnClause]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising an ``INNER JOIN``.
 
         Parameters
         ----------
-        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
-            The column or columns to join on, if ``other`` was a column this is ignored.
-            Otherwise, a value must be supplied.
+        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+            The column or columns to join on
 
         Returns
         -------
@@ -386,39 +361,20 @@ class Selectable(Object):
         """
         return cls._join(other, "INNER", on)
 
-    @overload
     @classmethod
     def left_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]] = ...,
-    ) -> type[Join]:
-        ...
-
-    @overload
-    @classmethod
-    def left_join(
-        cls,
-        other: BaseColumn,
-        on: None = ...,
-    ) -> type[Join]:
-        ...
-
-    @classmethod
-    def left_join(
-        cls,
-        other: Union[type[Selectable], BaseColumn],
-        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+        on: Union[OnClause, Iterable[OnClause]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``LEFT JOIN``.
 
         Parameters
         ----------
-        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
-            The column or columns to join on, if ``other`` was a column this is ignored.
-            Otherwise, a value must be supplied.
+        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+            The column or columns to join on
 
         Returns
         -------
@@ -427,39 +383,20 @@ class Selectable(Object):
         """
         return cls._join(other, "LEFT", on)
 
-    @overload
     @classmethod
     def right_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]] = ...,
-    ) -> type[Join]:
-        ...
-
-    @overload
-    @classmethod
-    def right_join(
-        cls,
-        other: BaseColumn,
-        on: None = ...,
-    ) -> type[Join]:
-        ...
-
-    @classmethod
-    def right_join(
-        cls,
-        other: Union[type[Selectable], BaseColumn],
-        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+        on: Union[OnClause, Iterable[OnClause]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``RIGHT JOIN``.
 
         Parameters
         ----------
-        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
-            The column or columns to join on, if ``other`` was a column this is ignored.
-            Otherwise, a value must be supplied.
+        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+            The column or columns to join on
 
         Returns
         -------
@@ -468,39 +405,20 @@ class Selectable(Object):
         """
         return cls._join(other, "LEFT", on)
 
-    @overload
     @classmethod
     def full_outer_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]] = ...,
-    ) -> type[Join]:
-        ...
-
-    @overload
-    @classmethod
-    def full_outer_join(
-        cls,
-        other: BaseColumn,
-        on: None = ...,
-    ) -> type[Join]:
-        ...
-
-    @classmethod
-    def full_outer_join(
-        cls,
-        other: Union[type[Selectable], BaseColumn],
-        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+        on: Union[OnClause, Iterable[OnClause]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``FULL OUTER JOIN``.
 
         Parameters
         ----------
-        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
-            The column or columns to join on, if ``other`` was a column this is ignored.
-            Otherwise, a value must be supplied.
+        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+            The column or columns to join on
 
         Returns
         -------
