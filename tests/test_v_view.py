@@ -21,7 +21,7 @@ class ViewTest(TestCase):
     def test_query_create(self):
         self.assertEqual(
             _TestView._query_create(True),
-            'CREATE OR REPLACE VIEW "public.__test_view" ( a ) AS SELECT COUNT(*) AS a FROM "public.__test_table"',
+            'CREATE OR REPLACE VIEW public.__test_view ( a ) AS SELECT COUNT(*) AS a FROM public.__test_table',
         )
 
     @async_test

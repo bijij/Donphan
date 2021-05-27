@@ -67,7 +67,6 @@ class CustomType(SQLType[T], Creatable):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         not_creatable(cls)
         super().__init_subclass__(**kwargs)
-        cls._name = cls._name[1:-1]
         cls.sql_type = cls._name
 
     @classmethod

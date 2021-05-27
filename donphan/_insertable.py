@@ -122,7 +122,7 @@ class Insertable(Selectable):
         update_on_conflict: Iterable[Column],
         returning: Iterable[Column],
     ) -> list[str]:
-        builder = [f"INSERT INTO {cls._name} ("]
+        builder = [f"INSERT INTO", cls._name, "("]
 
         for column in columns:
             builder.append(column.name)
