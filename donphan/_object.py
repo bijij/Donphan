@@ -49,5 +49,5 @@ class Object(Protocol):
             _name = normalise_name(cls.__name__)
 
         cls._schema = schema
-        cls._name = f'{schema}.{_name}'
+        cls._name = f"{schema}.{_name}"
         super().__init_subclass__()

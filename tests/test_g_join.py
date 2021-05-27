@@ -49,7 +49,7 @@ class ViewTest(TestCase):
 
         self.assertEqual(
             join._name,
-            f'( SELECT {a_alias}.a AS a , {a_alias}.b AS b , {b_alias}.c AS c FROM public.__test_table AS {a_alias} INNER JOIN public.__test_table2 AS {b_alias} ON {a_alias}.a = {b_alias}.a ) AS {join._alias}',
+            f"( SELECT {a_alias}.a AS a , {a_alias}.b AS b , {b_alias}.c AS c FROM public.__test_table AS {a_alias} INNER JOIN public.__test_table2 AS {b_alias} ON {a_alias}.a = {b_alias}.a ) AS {join._alias}",
         )
 
     @async_test
