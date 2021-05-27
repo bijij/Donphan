@@ -82,7 +82,8 @@ def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
 
 def not_creatable(cls: type[CT]) -> type[CT]:
     """Marks a type as non-creatable."""
-    NOT_CREATABLE.append(cls)
+    if cls not in NOT_CREATABLE:
+        NOT_CREATABLE.append(cls)
     return cls
 
 
