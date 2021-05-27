@@ -29,8 +29,8 @@ import sys
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast, overload
 
-from .column import Column, SQLType
-from .selectable import Selectable
+from ._column import Column, SQLType
+from ._selectable import Selectable
 from .utils import not_creatable, query_builder, resolve_annotation
 
 if TYPE_CHECKING:

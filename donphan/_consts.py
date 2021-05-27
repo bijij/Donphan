@@ -29,8 +29,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from asyncpg import Pool
 
-    from .creatable import Creatable
-    from .custom_types import CustomType
+    from ._creatable import Creatable
+    from ._custom_types import CustomType
 
 
 NOT_CREATABLE: list[type[Creatable]] = []

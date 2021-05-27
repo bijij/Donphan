@@ -1,4 +1,4 @@
-from donphan.connection import MaybeAcquire
+from donphan import MaybeAcquire
 from unittest import TestCase
 
 import asyncpg

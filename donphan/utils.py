@@ -32,20 +32,13 @@ from collections.abc import Callable, Iterable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
 
-from .consts import NOT_CREATABLE
+from ._consts import NOT_CREATABLE
 
 if TYPE_CHECKING:
-    from .creatable import Creatable
+    from ._creatable import Creatable
 
 
-__all__ = (
-    "MISSING",
-    "normalise_name",
-    "query_builder",
-    "not_creatable",
-    "resolve_annotation",
-    "BUILDING_DOCS",
-)
+__all__ = ("not_creatable",)
 
 
 T = TypeVar("T")
@@ -76,6 +69,7 @@ def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
 
 
 def not_creatable(cls: type[CT]) -> type[CT]:
+    """Marks a type as non-creatable."""
     NOT_CREATABLE.append(cls)
     return cls
 

@@ -30,14 +30,15 @@ __version__ = "4.3.2"
 
 from typing import TYPE_CHECKING
 
-from .column import *
-from .connection import *
-from .custom_types import *
-from .enums import *
-from .table import *
-from .view import *
+from ._column import *
+from ._connection import *
+from ._custom_types import *
+from ._enums import *
+from ._table import *
+from ._view import *
+from . import utils as utils
 
 if TYPE_CHECKING:
-    from . import types as SQLType
+    from . import _types as SQLType
 else:
-    from .sqltype import *
+    from ._sqltype import *

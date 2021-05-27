@@ -27,11 +27,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
-from .sqltype import SQLType
+from ._sqltype import SQLType
 from .utils import MISSING
 
 if TYPE_CHECKING:
-    from .selectable import Selectable
+    from ._selectable import Selectable
 
 
 __all__ = (
@@ -41,7 +41,7 @@ __all__ = (
 )
 
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 class BaseColumn:
@@ -59,7 +59,7 @@ class BaseColumn:
 
 
 @dataclass
-class Column(BaseColumn, Generic[T]):
+class Column(BaseColumn, Generic[_T]):
     """A representation of a SQL Database Table Column
 
     Parameters
@@ -108,26 +108,26 @@ class Column(BaseColumn, Generic[T]):
     if TYPE_CHECKING:
         name: str
         table: type[Selectable]
-        _sql_type: type[SQLType[T]]
+        _sql_type: type[SQLType[_T]]
 
     primary_key: bool = False
     index: bool = False
     nullable: bool = True
     unique: bool = False
     cascade: bool = False
-    default: Optional[Union[str, T]] = MISSING
-    references: Optional[Column[T]] = None
+    default: Optional[Union[str, _T]] = MISSING
+    references: Optional[Column[_T]] = None
 
     @property
-    def py_type(self) -> type[T]:
+    def py_type(self) -> type[_T]:
         return self._sql_type.py_type
 
     @property
-    def sql_type(self) -> type[SQLType[T]]:
+    def sql_type(self) -> type[SQLType[_T]]:
         return self._sql_type
 
     @classmethod
-    def _with_type(cls, type: type[SQLType[T]], **options: Any) -> Column[T]:
+    def _with_type(cls, type: type[SQLType[_T]], **options: Any) -> Column[_T]:
         column = cls(**options)
         column._sql_type = type
         return column

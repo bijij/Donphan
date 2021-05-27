@@ -27,7 +27,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from .insertable import Insertable
+from ._insertable import Insertable
 from .utils import MISSING, not_creatable, query_builder
 
 if TYPE_CHECKING:

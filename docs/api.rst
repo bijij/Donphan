@@ -150,6 +150,8 @@ Below are utility some utility functions and classes which interact with donphan
 
 .. autofunction:: export_db
 
+.. autofunction:: utils.non_creatable
+
 
 Enum
 ~~~~

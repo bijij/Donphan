@@ -31,7 +31,7 @@ import uuid
 from types import new_class
 from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional, TypeVar
 
-from .enums import Enum
+from ._enums import Enum
 from .utils import DOCS_BUILDING
 
 __all__ = ("SQLType",)
@@ -74,7 +74,7 @@ class SQLType(Generic[T]):
     def _from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
         if issubclass(type, Enum):
             # this is a hack because >circular imports<
-            from .custom_types import EnumType
+            from ._custom_types import EnumType
 
             if type in cls.__enum_types:
                 return cls.__enum_types[type]

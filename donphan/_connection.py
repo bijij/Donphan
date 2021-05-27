@@ -27,11 +27,11 @@ from __future__ import annotations
 import datetime
 import json
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, Optional, TextIO, TypeVar, Union, overload
+from typing import Final, TYPE_CHECKING, Any, Literal, Optional, TextIO, TypeVar, Union, overload
 
 import asyncpg
 
-from .consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
+from ._consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
 from .utils import DOCS_BUILDING, write_to_file
 
 if TYPE_CHECKING:
@@ -48,14 +48,14 @@ __all__ = (
 )
 
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 # Y2K_DT = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
-Y2K_EPOCH = 946684800000000
+Y2K_EPOCH: Final[int] = 946684800000000
 
 
-class TypeCodec(tuple[T]):
+class TypeCodec(tuple[_T]):
     """
     A NamedTuple defining a custom type codec.
 
@@ -76,15 +76,15 @@ class TypeCodec(tuple[T]):
 
     if TYPE_CHECKING:
         format: Literal["text", "binary", "tuple"]
-        encoder: Callable[[T], Any]
-        decoder: Callable[..., T]
+        encoder: Callable[[_T], Any]
+        decoder: Callable[..., _T]
 
     def __new__(
-        cls: type[TypeCodec[T]],
+        cls: type[TypeCodec[_T]],
         format: Literal["text", "binary", "tuple"],
-        encoder: Callable[[T], Any],
-        decoder: Callable[..., T],
-    ) -> TypeCodec[T]:
+        encoder: Callable[[_T], Any],
+        decoder: Callable[..., _T],
+    ) -> TypeCodec[_T]:
         new_cls = super().__new__(cls, (format, encoder, decoder))  # type: ignore
         new_cls.format = format
         new_cls.encoder = encoder
@@ -193,10 +193,10 @@ async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
         Defaults to ``True``.
     """
     # this is a hack because >circular imports<
-    from .creatable import Creatable
-    from .custom_types import CustomType
-    from .table import Table
-    from .view import View
+    from ._creatable import Creatable
+    from ._custom_types import CustomType
+    from ._table import Table
+    from ._view import View
 
     for schema in Creatable._find_schemas():
         if schema._schema != DEFAULT_SCHEMA:
@@ -243,10 +243,10 @@ def export_db(*, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] =
         exported database.
     """
     # this is a hack because >circular imports<
-    from .creatable import Creatable
-    from .custom_types import CustomType
-    from .table import Table
-    from .view import View
+    from ._creatable import Creatable
+    from ._custom_types import CustomType
+    from ._table import Table
+    from ._view import View
 
     output = ""
 

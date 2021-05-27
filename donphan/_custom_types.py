@@ -28,10 +28,10 @@ from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import asyncpg
 
-from .consts import CUSTOM_TYPES, POOLS
-from .creatable import Creatable
-from .enums import Enum
-from .sqltype import SQLType
+from ._consts import CUSTOM_TYPES, POOLS
+from ._creatable import Creatable
+from ._enums import Enum
+from ._sqltype import SQLType
 from .utils import not_creatable, query_builder
 
 if TYPE_CHECKING:

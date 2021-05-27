@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Optional, Protocol, TextIO, Union, overload
 
-from .consts import DEFAULT_SCHEMA, NOT_CREATABLE
+from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from .utils import MISSING, normalise_name, query_builder, write_to_file
 
 if TYPE_CHECKING:

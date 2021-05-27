@@ -1,5 +1,5 @@
 import asyncio
-from donphan.connection import MaybeAcquire
+from donphan import MaybeAcquire
 
 from functools import wraps
 

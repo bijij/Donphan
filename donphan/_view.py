@@ -26,9 +26,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from donphan.column import ViewColumn
+from donphan import ViewColumn
 
-from .selectable import Selectable
+from ._selectable import Selectable
 from .utils import MISSING, not_creatable, query_builder
 
 __all__ = ("View",)

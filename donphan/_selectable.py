@@ -29,8 +29,8 @@ import sys
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union
 
-from .column import BaseColumn, Column
-from .creatable import Creatable
+from ._column import BaseColumn, Column
+from ._creatable import Creatable
 from .utils import not_creatable, query_builder
 
 if TYPE_CHECKING:
