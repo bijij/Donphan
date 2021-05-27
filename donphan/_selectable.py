@@ -26,35 +26,28 @@ from __future__ import annotations
 
 import inspect
 import sys
+import types
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union, overload
 
-from ._column import BaseColumn, Column
-from ._creatable import Creatable
-from .utils import not_creatable, query_builder
+from ._column import BaseColumn, Column, OnClause
+from ._consts import OPERATORS
+from ._object import Object
+from .utils import generate_alias, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
+
+    from ._join import Join, JoinType
 
 
 __all__ = ("Selectable",)
 
 
-OPERATORS: dict[str, str] = {
-    "eq": "=",
-    "lt": "<",
-    "le": "<=",
-    "ne": "<>",
-    "ge": ">=",
-    "gt": ">",
-}
-
-
 OrderBy = tuple[BaseColumn, Literal["ASC", "DESC"]]
 
 
-@not_creatable
-class Selectable(Creatable):
+class Selectable(Object):
     if TYPE_CHECKING:
         _columns: ClassVar[list[Column]]
         _columns_dict: ClassVar[dict[str, Column]]
@@ -137,10 +130,10 @@ class Selectable(Creatable):
                 name, operator = name.rsplit("__", 1)
                 if operator not in OPERATORS:
                     raise NameError(f"Unknown operator {operator}.")
-                operator = OPERATORS[operator]
+                operator = OPERATORS[operator]  # type: ignore
 
             if name not in cls._columns_dict:
-                raise NameError(f"Unknown column {name} in table {cls._name}.")
+                raise NameError(f"Unknown column {name} in selectable {cls._name}.")
 
             builder.append(name)
             builder.append(operator)
@@ -321,3 +314,197 @@ class Selectable(Creatable):
         return await cls.fetch_row_where(connection, where, *values.values(), order_by=order_by)
 
     # endregion
+
+    @classmethod
+    def _join(
+        cls,
+        other: Union[type[Selectable], BaseColumn],
+        type: JoinType,
+        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+    ) -> type[Join]:
+        # this is a hack because >circular imports<
+        from ._join import Join
+
+        if isinstance(other, BaseColumn):
+            column = cls._columns_dict[other.name]
+            on = [OnClause(column, other)]
+            other = other._selectable
+
+        else:
+            if isinstance(on, tuple):
+                if isinstance(on[0], BaseColumn):
+                    on = [on]  # type: ignore
+
+        name = generate_alias()
+
+        def exec_body(ns: dict[str, Any]) -> None:
+            ns["_alias"] = name
+            ns["_type"] = type
+            ns["_selectables"] = (cls, other)
+            ns["_on"] = on
+
+        return types.new_class(name, (Join,), {}, exec_body)
+
+    @overload
+    @classmethod
+    def inner_join(
+        cls,
+        other: type[Selectable],
+        on: Union[OnClause, Iterable[OnClause]] = ...,
+    ) -> type[Join]:
+        ...
+
+    @overload
+    @classmethod
+    def inner_join(
+        cls,
+        other: BaseColumn,
+        on: None = ...,
+    ) -> type[Join]:
+        ...
+
+    @classmethod
+    def inner_join(
+        cls,
+        other: Union[type[Selectable], BaseColumn],
+        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+    ) -> type[Join]:
+        """A chainable method to join with another database object utilising an ``INNER JOIN``.
+
+        Parameters
+        ----------
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+            The other database object to join with.
+        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
+            The column or columns to join on, if ``other`` was a column this is ignored.
+            Otherwise, a value must be supplied.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return cls._join(other, "INNER", on)
+
+    @overload
+    @classmethod
+    def left_join(
+        cls,
+        other: type[Selectable],
+        on: Union[OnClause, Iterable[OnClause]] = ...,
+    ) -> type[Join]:
+        ...
+
+    @overload
+    @classmethod
+    def left_join(
+        cls,
+        other: BaseColumn,
+        on: None = ...,
+    ) -> type[Join]:
+        ...
+
+    @classmethod
+    def left_join(
+        cls,
+        other: Union[type[Selectable], BaseColumn],
+        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+    ) -> type[Join]:
+        """A chainable method to join with another database object utilising a ``LEFT JOIN``.
+
+        Parameters
+        ----------
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+            The other database object to join with.
+        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
+            The column or columns to join on, if ``other`` was a column this is ignored.
+            Otherwise, a value must be supplied.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return cls._join(other, "LEFT", on)
+
+    @overload
+    @classmethod
+    def right_join(
+        cls,
+        other: type[Selectable],
+        on: Union[OnClause, Iterable[OnClause]] = ...,
+    ) -> type[Join]:
+        ...
+
+    @overload
+    @classmethod
+    def right_join(
+        cls,
+        other: BaseColumn,
+        on: None = ...,
+    ) -> type[Join]:
+        ...
+
+    @classmethod
+    def right_join(
+        cls,
+        other: Union[type[Selectable], BaseColumn],
+        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+    ) -> type[Join]:
+        """A chainable method to join with another database object utilising a ``RIGHT JOIN``.
+
+        Parameters
+        ----------
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+            The other database object to join with.
+        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
+            The column or columns to join on, if ``other`` was a column this is ignored.
+            Otherwise, a value must be supplied.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return cls._join(other, "LEFT", on)
+
+    @overload
+    @classmethod
+    def full_outer_join(
+        cls,
+        other: type[Selectable],
+        on: Union[OnClause, Iterable[OnClause]] = ...,
+    ) -> type[Join]:
+        ...
+
+    @overload
+    @classmethod
+    def full_outer_join(
+        cls,
+        other: BaseColumn,
+        on: None = ...,
+    ) -> type[Join]:
+        ...
+
+    @classmethod
+    def full_outer_join(
+        cls,
+        other: Union[type[Selectable], BaseColumn],
+        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+    ) -> type[Join]:
+        """A chainable method to join with another database object utilising a ``FULL OUTER JOIN``.
+
+        Parameters
+        ----------
+        other: Union[:class:`Table`, :class:`View`, :class:`Join`, :class:`BaseColumn`]
+            The other database object to join with.
+        on: Optional[Union[:class:`OnClause`, Iterable[:class:`OnClause`]]]
+            The column or columns to join on, if ``other`` was a column this is ignored.
+            Otherwise, a value must be supplied.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return cls._join(other, "FULL OUTER", on)

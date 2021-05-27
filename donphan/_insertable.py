@@ -24,14 +24,12 @@ SOFTWARE.
 
 from __future__ import annotations
 
-import inspect
-import sys
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast, overload
 
 from ._column import Column, SQLType
 from ._selectable import Selectable
-from .utils import not_creatable, query_builder, resolve_annotation
+from .utils import query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -43,7 +41,6 @@ __all__ = ("Insertable",)
 T = TypeVar("T")
 
 
-@not_creatable
 class Insertable(Selectable):
 
     if TYPE_CHECKING:

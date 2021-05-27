@@ -26,7 +26,7 @@ __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
 __copyright__ = "Copyright 2020-Present Bijij"
-__version__ = "4.3.2"
+__version__ = "4.4.0"
 
 from typing import TYPE_CHECKING
 
@@ -34,6 +34,7 @@ from ._column import *
 from ._connection import *
 from ._custom_types import *
 from ._enums import *
+from ._join import *
 from ._table import *
 from ._view import *
 from . import utils as utils

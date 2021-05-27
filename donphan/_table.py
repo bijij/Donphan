@@ -27,6 +27,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from ._creatable import Creatable
 from ._insertable import Insertable
 from .utils import MISSING, not_creatable, query_builder
 
@@ -38,7 +39,7 @@ __all__ = ("Table",)
 
 
 @not_creatable
-class Table(Insertable):
+class Table(Insertable, Creatable):
     """Base class for creating representations of SQL Database Tables.
 
     Attributes

@@ -16,7 +16,7 @@ class ViewTest(TestCase):
     def test_query_create(self):
         self.assertEqual(
             _TestTable._query_create(True),
-            "CREATE TABLE IF NOT EXISTS public.__test_table ( a INTEGER , PRIMARY KEY ( a ) )",
+            'CREATE TABLE IF NOT EXISTS "public.__test_table" ( a INTEGER , PRIMARY KEY ( a ) )',
         )
 
     @async_test

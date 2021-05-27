@@ -137,9 +137,20 @@ ViewColumn
 
 View
 ~~~~
-.. autoclass:: View()
+.. autoclass:: View
     :members:
     :inherited-members:
+
+JoinColumn
+~~~~~~~~~~
+.. autoclass:: JoinColumn
+    :members:
+
+Join
+~~~~
+.. autoclass:: Join()
+    :members:
+    :inherited-members: 
 
 
 Utility Functions / Classes
@@ -150,7 +161,7 @@ Below are utility some utility functions and classes which interact with donphan
 
 .. autofunction:: export_db
 
-.. autofunction:: utils.non_creatable
+.. autofunction:: donphan.utils.not_creatable
 
 
 Enum
@@ -178,5 +189,7 @@ Enum
 
 Type Validation Helpers
 ~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: OnClause
 
 .. autoclass:: TypeCodec

@@ -21,27 +21,66 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
+from ._consts import Operators
 from ._sqltype import SQLType
 from .utils import MISSING
 
 if TYPE_CHECKING:
+    from ._join import Join
     from ._selectable import Selectable
+    from ._view import View
 
 
 __all__ = (
     "BaseColumn",
     "Column",
+    "JoinColumn",
+    "OnClause",
     "ViewColumn",
 )
 
 
 _T = TypeVar("_T")
+
+
+class OnClause(tuple["BaseColumn", "BaseColumn", Operators]):
+    """
+    A NamedTuple defining an on clause for a join.
+
+
+    Parameters
+    ----------
+    a: :class:`BaseColumn`
+        the primary column to join to.
+
+    b: :class:`BaseColumn`
+        the secondary column to join to.
+
+    operator: Literal[``"eq"``, ``"lt"``, ``"le"``, ``"ne"``, ``"ge"``, ``"gt"``]
+        An opterator to use to compare columns, defaults to eq.
+    """
+
+    if TYPE_CHECKING:
+        a: BaseColumn
+        b: BaseColumn
+        operator: Operators
+
+    def __new__(
+        cls: type[OnClause],
+        a: BaseColumn,
+        b: BaseColumn,
+        operator: Operators = "eq",
+    ) -> OnClause:
+        new_cls = super().__new__(cls, (a, b, operator))  # type: ignore
+        new_cls.a = a
+        new_cls.b = b
+        new_cls.operator = operator
+        return new_cls
 
 
 class BaseColumn:
@@ -56,6 +95,67 @@ class BaseColumn:
 
     if TYPE_CHECKING:
         name: str
+        _selectable: type[Selectable]
+
+    def inner_join(self, other: BaseColumn) -> type[Join]:
+        """A shortcut for creating an INNER JOIN between two columns.
+
+        Parameters
+        ----------
+        other: :class:`BaseColumn`
+            The other column to join to.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return self._selectable.inner_join(other._selectable, OnClause(self, other))
+
+    def left_join(self, other: BaseColumn) -> type[Join]:
+        """A shortcut for creating an LEFT JOIN between two columns.
+
+        Parameters
+        ----------
+        other: :class:`BaseColumn`
+            The other column to join to.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return self._selectable.left_join(other._selectable, OnClause(self, other))
+
+    def right_join(self, other: BaseColumn) -> type[Join]:
+        """A shortcut for creating an RIGHT JOIN between two columns.
+
+        Parameters
+        ----------
+        other: :class:`BaseColumn`
+            The other column to join to.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return self._selectable.right_join(other._selectable, OnClause(self, other))
+
+    def full_outer_join(self, other: BaseColumn) -> type[Join]:
+        """A shortcut for creating an FULL OUTER JOIN between two columns.
+
+        Parameters
+        ----------
+        other: :class:`BaseColumn`
+            The other column to join to.
+
+        Returns
+        -------
+        :class:`Join`
+            A representation of a join of which fetch methods can be applied to.
+        """
+        return self._selectable.full_outer_join(other._selectable, OnClause(self, other))
 
 
 @dataclass
@@ -126,6 +226,10 @@ class Column(BaseColumn, Generic[_T]):
     def sql_type(self) -> type[SQLType[_T]]:
         return self._sql_type
 
+    @property
+    def _selectable(self) -> type[Selectable]:
+        return self.table
+
     @classmethod
     def _with_type(cls, type: type[SQLType[_T]], **options: Any) -> Column[_T]:
         column = cls(**options)
@@ -134,8 +238,30 @@ class Column(BaseColumn, Generic[_T]):
 
 
 @dataclass
+class JoinColumn(BaseColumn):
+    """A representation of a column in an Join.
+
+    Attributes
+    ----------
+        name: :class:`str`
+            The column's name.
+        join: :class:`~.Join`
+            The Join the column is a part of.
+    """
+
+    if TYPE_CHECKING:
+        name: str
+        join: type[Join]
+        source: type[Selectable]
+
+    @property
+    def _selectable(self) -> type[Selectable]:
+        return self.join
+
+
+@dataclass
 class ViewColumn(BaseColumn):
-    """A representation of a SQL Database View Column
+    """A representation of a column in an SQL View object.
 
     Parameters
     ----------
@@ -156,6 +282,10 @@ class ViewColumn(BaseColumn):
 
     if TYPE_CHECKING:
         name: str
-        view: type[Selectable]
+        view: type[View]
+
+    @property
+    def _selectable(self) -> type[Selectable]:
+        return self.view
 
     select: str = MISSING

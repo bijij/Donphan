@@ -24,30 +24,30 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import ClassVar, Protocol
 
-if TYPE_CHECKING:
-    from asyncpg import Pool
+from ._consts import DEFAULT_SCHEMA
+from .utils import MISSING, normalise_name
 
-    from ._creatable import Creatable
-    from ._custom_types import CustomType
-
-Operators = Literal["eq", "lt", "le", "ne", "ge", "gt"]
+__all__ = ("Object",)
 
 
-NOT_CREATABLE: list[type[Creatable]] = []
+class Object(Protocol):
+    _schema: ClassVar[str]
+    _name: ClassVar[str]
 
-CUSTOM_TYPES: dict[str, type[CustomType[Any]]] = {}
+    def __init_subclass__(
+        cls,
+        *,
+        _name: str = MISSING,
+        schema: str = MISSING,
+    ) -> None:
+        if schema is MISSING:
+            schema = DEFAULT_SCHEMA
 
-POOLS: list[Pool] = []
+        if _name is MISSING:
+            _name = normalise_name(cls.__name__)
 
-DEFAULT_SCHEMA: str = "public"
-
-OPERATORS: dict[Operators, str] = {
-    "eq": "=",
-    "lt": "<",
-    "le": "<=",
-    "ne": "<>",
-    "ge": ">=",
-    "gt": ">",
-}
+        cls._schema = schema
+        cls._name = f'"{schema}.{_name}"'
+        super().__init_subclass__()

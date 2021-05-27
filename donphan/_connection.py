@@ -27,7 +27,7 @@ from __future__ import annotations
 import datetime
 import json
 from collections.abc import Callable
-from typing import Final, TYPE_CHECKING, Any, Literal, Optional, TextIO, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, Final, Literal, Optional, TextIO, TypeVar, Union, overload
 
 import asyncpg
 

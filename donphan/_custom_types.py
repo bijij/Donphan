@@ -49,20 +49,26 @@ ET = TypeVar("ET", bound=Enum)
 
 
 @not_creatable
-class CustomType(SQLType[T], Creatable, sql_type=""):
+class CustomType(SQLType[T], Creatable):
     """A representation of a Custom SQL type.
 
     Attributes
     ----------
         py_type: Type[Any]
             The python type associated with the column.
-        sql_type: Type[:class:`~.SQLType`]
+        sql_type: str
             The SQL type associated with the column.
         _name: :class:`str`
             The name of the table.
         _schema: :class:`str`
             The tables schema.
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        not_creatable(cls)
+        super().__init_subclass__(**kwargs)
+        cls._name = cls._name[1:-1]
+        cls.sql_type = cls._name
 
     @classmethod
     def _query_drop(cls, if_exists: bool, cascade: bool) -> str:

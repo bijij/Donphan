@@ -27,12 +27,12 @@ from __future__ import annotations
 import datetime
 import decimal
 import ipaddress
+import types
 import uuid
-from types import new_class
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar
 
 from ._enums import Enum
-from .utils import DOCS_BUILDING
+from .utils import DOCS_BUILDING, MISSING
 
 __all__ = ("SQLType",)
 
@@ -48,7 +48,7 @@ class SQLType(Generic[T]):
     ----------
         py_type: Type[Any]
             The python type associated with the column.
-        sql_type: Type[:class:`~.SQLType`]
+        sql_type: str
             The SQL type associated with the column.
     """
 
@@ -60,7 +60,7 @@ class SQLType(Generic[T]):
     def __init_subclass__(
         cls,
         *,
-        sql_type: Optional[str] = None,
+        sql_type: str = MISSING,
         default: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -68,7 +68,7 @@ class SQLType(Generic[T]):
         if default:
             cls.__defaults[cls.py_type] = cls
         super().__init_subclass__(**kwargs)
-        cls.sql_type = sql_type or cls._name  # type: ignore
+        cls.sql_type = sql_type
 
     @classmethod
     def _from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
@@ -79,7 +79,7 @@ class SQLType(Generic[T]):
             if type in cls.__enum_types:
                 return cls.__enum_types[type]
 
-            enum_type = new_class(type.__name__, (EnumType[type],))
+            enum_type = types.new_class(type.__name__, (EnumType[type],))
             cls.__enum_types[type] = enum_type
             return enum_type
 
@@ -130,12 +130,9 @@ if not TYPE_CHECKING:
         "JSON": SQLTypeConfig(dict, "JSON"),
         "JSONB": SQLTypeConfig(dict, "JSONB", True),
     }.items():
-        cls = new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
-        new_class(
-            name + "[]",
-            (SQLType[list[py_type]],),
-            {"sql_type": sql_type + "[]", "default": is_default},
-        )
+        # generate SQLType[T] and SQLType[list[T]]
+        cls = types.new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
+        types.new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
 
         if DOCS_BUILDING:
 

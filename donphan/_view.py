@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from donphan import ViewColumn
 
+from ._creatable import Creatable
 from ._selectable import Selectable
 from .utils import MISSING, not_creatable, query_builder
 
@@ -35,8 +36,8 @@ __all__ = ("View",)
 
 
 @not_creatable
-class View(Selectable):
-    """Base class for creating representations of SQL Database Tables.
+class View(Selectable, Creatable):
+    """Base class for creating representations of SQL Database Views.
 
     Attributes
     ----------
@@ -75,6 +76,7 @@ class View(Selectable):
                 raise ValueError("Column values must be an instance of ViewColumn.")
 
         column.name = name
+        column.view = cls
 
         if column.select is MISSING:
             column.select = column.name

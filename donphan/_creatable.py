@@ -24,10 +24,11 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Optional, Protocol, TextIO, Union, overload
+from typing import TYPE_CHECKING, Optional, TextIO, Union, overload
 
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
-from .utils import MISSING, normalise_name, query_builder, write_to_file
+from ._object import Object
+from .utils import query_builder, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -36,26 +37,7 @@ if TYPE_CHECKING:
 __all__ = ("Creatable",)
 
 
-class Creatable(Protocol):
-    _schema: ClassVar[str]
-    _name: ClassVar[str]
-
-    def __init_subclass__(
-        cls,
-        *,
-        _name: str = MISSING,
-        schema: str = MISSING,
-    ) -> None:
-        if schema is MISSING:
-            schema = DEFAULT_SCHEMA
-
-        if _name is MISSING:
-            _name = normalise_name(cls.__name__)
-
-        cls._schema = schema
-        cls._name = f"{schema}.{_name}"
-        super().__init_subclass__()
-
+class Creatable(Object):
     # region: query generation
 
     @classmethod

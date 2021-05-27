@@ -25,6 +25,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import io
+import os
 import string
 import sys
 import types
@@ -58,6 +59,17 @@ _normalisation = str.maketrans({u: f"_{l}" for u, l in zip(string.ascii_uppercas
 
 def normalise_name(name: str) -> str:
     return name[0].lower() + name[1:].translate(_normalisation)
+
+
+def generate_alias() -> str:
+    n = int.from_bytes(os.urandom(4), "little")
+    alias = ""
+
+    while n > 0:
+        n, d = divmod(n, 26)
+        alias += string.ascii_lowercase[d]
+
+    return alias
 
 
 def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
