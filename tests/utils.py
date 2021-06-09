@@ -1,14 +1,28 @@
+from __future__ import annotations
+
 import asyncio
 from donphan import MaybeAcquire
 
 from functools import wraps
 
 from collections.abc import Callable
-from typing import Any, Awaitable
+from typing import Any, Awaitable, Coroutine, TYPE_CHECKING, TypeVar
 
-import asyncpg
+if TYPE_CHECKING:
+    from typing_extensions import Concatenate, ParamSpec
 
-pool: asyncpg.Pool
+    from asyncpg import Connection, Pool
+
+    P = ParamSpec("P")
+
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+Coro = Coroutine[Any, Any, T]
+
+
+pool: Pool
 
 
 def async_test(func: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
@@ -19,28 +33,28 @@ def async_test(func: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
     return wrapper
 
 
-def set_pool(_pool: asyncpg.Pool):
+def set_pool(_pool: Pool):
     global pool
     pool = _pool
 
 
-def get_pool() -> asyncpg.Pool:
+def get_pool() -> Pool:
     return pool
 
 
-def with_pool(func: Callable[..., Any]) -> Callable[..., Any]:
+def with_pool(func: Callable[Concatenate[U, Pool, P], Coro[T]]) -> Callable[Concatenate[U, P], Coro[T]]:
     @wraps(func)
-    def wrapper(self, *args: Any, **kwargs: Any) -> Callable[..., Any]:
+    def wrapper(self, *args: P.args, **kwargs: P.kwargs) -> Coro[T]:
         pool = get_pool()
         return func(self, pool, *args, **kwargs)
 
     return wrapper
 
 
-def with_connection(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+def with_connection(func: Callable[Concatenate[U, Connection, P], Coro[T]]) -> Callable[Concatenate[U, P], Coro[T]]:
     @wraps(func)
     @with_pool
-    async def wrapper(self, pool, *args: Any, **kwargs: Any) -> Callable[..., Awaitable[Any]]:
+    async def wrapper(self: U, pool: Pool, *args: P.args, **kwargs: P.kwargs) -> T:
         async with MaybeAcquire(pool=pool) as connection:
             return await func(self, connection, *args, **kwargs)
 

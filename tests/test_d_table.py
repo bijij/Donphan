@@ -20,23 +20,19 @@ class ViewTest(TestCase):
         )
 
     @async_test
-    @with_connection
-    async def test_a_table_create(self, conn):
-        await _TestTable.create(conn)
+    async def test_a_table_create(self):
+        await _TestTable.create(None)
 
     @async_test
-    @with_connection
-    async def test_b_table_insert(self, conn):
+    async def test_b_table_insert(self):
         for x in range(NUM_ITEMS):
-            await _TestTable.insert(conn, a=x)
+            await _TestTable.insert(None, a=x)
 
     @async_test
-    @with_connection
-    async def test_c_table_fetch(self, conn):
-        records = list(await _TestTable.fetch(conn))
+    async def test_c_table_fetch(self):
+        records = list(await _TestTable.fetch(None))
         self.assertEqual(len(records), NUM_ITEMS)
 
     @async_test
-    @with_connection
-    async def test_d_table_delete(self, conn):
-        await _TestTable.drop(conn)
+    async def test_d_table_delete(self):
+        await _TestTable.drop(None)

@@ -30,13 +30,20 @@ import string
 import sys
 import types
 from collections.abc import Callable, Iterable
-from functools import wraps
-from typing import TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
+from typing import Coroutine, TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
+
+from typing_extensions import Concatenate
 
 from ._consts import NOT_CREATABLE
 
 if TYPE_CHECKING:
+    from asyncpg import Connection
+    from typing_extensions import ParamSpec
+
     from ._creatable import Creatable
+    from ._object import Object
+
+    P = ParamSpec("P")
 
 
 __all__ = ("not_creatable",)
@@ -44,6 +51,9 @@ __all__ = ("not_creatable",)
 
 T = TypeVar("T")
 CT = TypeVar("CT", bound="Creatable")
+OT = TypeVar("OT", bound="Object")
+
+Coro = Coroutine[Any, Any, T]
 
 
 class _MissingSentinel:
@@ -54,7 +64,9 @@ class _MissingSentinel:
 MISSING: Any = _MissingSentinel()
 
 
-_normalisation = str.maketrans({u: f"_{l}" for u, l in zip(string.ascii_uppercase, string.ascii_lowercase)})
+_normalisation: dict[int, str] = str.maketrans(
+    {u: f"_{l}" for u, l in zip(string.ascii_uppercase, string.ascii_lowercase)}
+)
 
 
 def normalise_name(name: str) -> str:
@@ -72,8 +84,7 @@ def generate_alias() -> str:
     return alias
 
 
-def query_builder(func: Callable[..., list[Any]]) -> Callable[..., str]:
-    @wraps(func)
+def query_builder(func: Callable[P, list[Any]]) -> Callable[P, str]:
     def wrapper(*args, **kwargs):
         return " ".join(str(e) for e in func(*args, **kwargs))
 
@@ -98,6 +109,25 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
 
     fp.write(data)
     return fp
+
+
+def optional_pool(
+    func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]
+) -> Callable[Concatenate[type[OT], Optional[Connection], P], Coro[T]]:
+    async def wrapped(cls: type[OT], connection: Optional[Connection], *args: P.args, **kwargs: P.kwargs) -> T:
+        if connection is not None:
+            return await func(cls, connection, *args, **kwargs)
+
+        # this is a hack because >circular imports<
+        from ._connection import MaybeAcquire
+
+        if cls._pool is None:
+            raise RuntimeError("Database connection or object pool not specified.")
+
+        async with MaybeAcquire(None, pool=cls._pool) as connection:  # type: ignore
+            return await func(cls, connection, *args, **kwargs)
+
+    return wrapped
 
 
 PY_310 = sys.version_info >= (3, 10)

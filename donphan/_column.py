@@ -206,9 +206,9 @@ class Column(BaseColumn, Generic[_T]):
     """
 
     if TYPE_CHECKING:
-        name: str = ...
-        table: type[Selectable] = ...
-        _sql_type: type[SQLType[_T]] = ...
+        name: str = MISSING
+        table: type[Selectable] = MISSING
+        _sql_type: type[SQLType[_T]] = MISSING
 
     primary_key: bool = False
     index: bool = False

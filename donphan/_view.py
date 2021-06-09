@@ -57,6 +57,7 @@ class View(Selectable, Creatable):
         _columns: ClassVar[list[ViewColumn]]
         _columns_dict: ClassVar[dict[str, ViewColumn]]
 
+    _type: ClassVar[str] = "VIEW"
     _query: ClassVar[str]
 
     @classmethod
@@ -117,7 +118,3 @@ class View(Selectable, Creatable):
         builder.append(cls._query)
 
         return builder
-
-    @classmethod
-    def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
-        return super()._query_drop("VIEW", if_exists, cascade)

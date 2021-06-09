@@ -24,20 +24,22 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, TextIO, Union, overload
+from typing import ClassVar, TYPE_CHECKING, Optional, TextIO, Union, overload
 
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from ._object import Object
-from .utils import query_builder, write_to_file
+from .utils import MISSING, optional_pool, query_builder, write_to_file
 
 if TYPE_CHECKING:
-    from asyncpg import Connection
+    from asyncpg import Connection, Pool
 
 
 __all__ = ("Creatable",)
 
 
 class Creatable(Object):
+    _type: ClassVar[str] = MISSING
+
     # region: query generation
 
     @classmethod
@@ -63,11 +65,10 @@ class Creatable(Object):
     @query_builder
     def _query_drop(
         cls,
-        type: str,
         if_exists: bool,
         cascade: bool,
     ) -> list[str]:
-        builder = ["DROP", type]
+        builder = ["DROP", cls._type]
 
         if if_exists:
             builder.append("IF EXISTS")
@@ -103,6 +104,7 @@ class Creatable(Object):
     # region: public methods
 
     @classmethod
+    @optional_pool
     async def create(
         cls,
         connection: Connection,
@@ -131,6 +133,7 @@ class Creatable(Object):
         await connection.execute(query)
 
     @classmethod
+    @optional_pool
     async def create_schema(
         cls,
         connection: Connection,
@@ -153,6 +156,7 @@ class Creatable(Object):
         await connection.execute(query)
 
     @classmethod
+    @optional_pool
     async def create_all(
         cls,
         connection: Connection,
@@ -349,6 +353,7 @@ class Creatable(Object):
         return write_to_file(fp, output)
 
     @classmethod
+    @optional_pool
     async def drop(
         cls,
         connection: Connection,

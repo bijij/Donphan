@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union, overl
 from ._column import BaseColumn, Column, OnClause
 from ._consts import OPERATORS
 from ._object import Object
-from .utils import generate_alias, query_builder
+from .utils import generate_alias, optional_pool, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -180,6 +180,7 @@ class Selectable(Object):
     # region: public methods
 
     @classmethod
+    @optional_pool
     async def fetch_where(
         cls,
         connection: Connection,
@@ -216,6 +217,7 @@ class Selectable(Object):
         return await connection.fetch(query, *values)
 
     @classmethod
+    @optional_pool
     async def fetch(
         cls,
         connection: Connection,
@@ -250,6 +252,7 @@ class Selectable(Object):
         return await cls.fetch_where(connection, where, *values.values(), limit=limit, order_by=order_by)
 
     @classmethod
+    @optional_pool
     async def fetch_row_where(
         cls,
         connection: Connection,
@@ -283,6 +286,7 @@ class Selectable(Object):
         return await connection.fetchrow(query, *values)
 
     @classmethod
+    @optional_pool
     async def fetch_row(
         cls,
         connection: Connection,
@@ -332,6 +336,7 @@ class Selectable(Object):
         name = generate_alias()
 
         def exec_body(ns: dict[str, Any]) -> None:
+            ns["_pool"] = cls._pool
             ns["_alias"] = name
             ns["_type"] = type
             ns["_selectables"] = (cls, other)

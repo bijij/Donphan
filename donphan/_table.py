@@ -25,11 +25,11 @@ SOFTWARE.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from ._creatable import Creatable
 from ._insertable import Insertable
-from .utils import MISSING, not_creatable, query_builder
+from .utils import MISSING, not_creatable, optional_pool, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -55,6 +55,8 @@ class Table(Insertable, Creatable):
         _primary_keys: Iterable[:class:`~.Column`]
             The primary key columns of the table.
     """
+
+    _type: ClassVar[str] = "TABLE"
 
     @classmethod
     @query_builder
@@ -110,10 +112,7 @@ class Table(Insertable, Creatable):
         return builder
 
     @classmethod
-    def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
-        return super()._query_drop("TABLE", if_exists, cascade)
-
-    @classmethod
+    @optional_pool
     async def migrate_to(
         cls,
         connection: Connection,

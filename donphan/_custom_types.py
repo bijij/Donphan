@@ -24,7 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import ClassVar, TYPE_CHECKING, Any, TypeVar, Union
 
 import asyncpg
 
@@ -64,13 +64,11 @@ class CustomType(SQLType[T], Creatable):
             The tables schema.
     """
 
+    _type: ClassVar[str] = "TYPE"
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         cls.sql_type = cls._name
-
-    @classmethod
-    def _query_drop(cls, if_exists: bool, cascade: bool) -> str:
-        return super()._query_drop("TYPE", if_exists, cascade)
 
     @classmethod
     async def _set_codec(cls, connection: Connection) -> None:

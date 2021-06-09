@@ -32,10 +32,12 @@ from typing import TYPE_CHECKING, Any, Final, Literal, Optional, TextIO, TypeVar
 import asyncpg
 
 from ._consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
-from .utils import DOCS_BUILDING, write_to_file
+from .utils import DOCS_BUILDING, MISSING, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Pool
+
+    from ._object import Object
 
 __all__ = (
     "create_pool",
@@ -48,14 +50,15 @@ __all__ = (
 )
 
 
-_T = TypeVar("_T")
+T = TypeVar("T")
+OT = TypeVar("OT", bound="Object")
 
 
 # Y2K_DT = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
 Y2K_EPOCH: Final[int] = 946684800000000
 
 
-class TypeCodec(tuple[_T]):
+class TypeCodec(tuple[T]):
     """
     A NamedTuple defining a custom type codec.
 
@@ -76,15 +79,15 @@ class TypeCodec(tuple[_T]):
 
     if TYPE_CHECKING:
         format: Literal["text", "binary", "tuple"]
-        encoder: Callable[[_T], Any]
-        decoder: Callable[..., _T]
+        encoder: Callable[[T], Any]
+        decoder: Callable[..., T]
 
     def __new__(
-        cls: type[TypeCodec[_T]],
+        cls: type[TypeCodec[T]],
         format: Literal["text", "binary", "tuple"],
-        encoder: Callable[[_T], Any],
-        decoder: Callable[..., _T],
-    ) -> TypeCodec[_T]:
+        encoder: Callable[[T], Any],
+        decoder: Callable[..., T],
+    ) -> TypeCodec[T]:
         new_cls = super().__new__(cls, (format, encoder, decoder))  # type: ignore
         new_cls.format = format
         new_cls.encoder = encoder
@@ -136,7 +139,7 @@ if DOCS_BUILDING and not TYPE_CHECKING:
             ...
 
 
-async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> Pool:
+async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, *, set_as_default: bool = False, **kwargs) -> Pool:
     r"""|coro|
 
     Creates the database connection pool.
@@ -149,6 +152,9 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
         A mapping of type to encoder and decoder for custom type codecs.
         A pre-defined set of codecs is provided in :class:`TYPE_CODECS` is used by default.
         As well as a set of :class:`OPTIONAL_CODECS` is provided.
+    set_as_default: :class:`bool`
+        Sets whether the pool should be used as the default connection pool for database operations.
+        Defaults to ``False``.
     \*\*kwargs: Any
         Extra keyword arguments to pass to :func:`asyncpg.create_pool <asyncpg.pool.create_pool>`
 
@@ -176,6 +182,13 @@ async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, **kwargs) -> 
     if pool is None:
         raise RuntimeError("Could not create pool.")
     POOLS.append(pool)
+
+    if set_as_default:
+        # this is a hack because >circular imports<
+        from ._object import Object
+
+        Object.set_pool(pool)
+
     return pool
 
 
@@ -289,10 +302,18 @@ class MaybeAcquire:
             The connection pool used to acquire new connections.
     """
 
-    def __init__(self, connection: Connection = None, /, *, pool: Pool):
-        self.connection = connection
-        self.pool = pool
-        self._cleanup = False
+    @overload
+    def __init__(self, connection: Connection = ..., /, *, pool: Optional[Pool] = ...):
+        ...
+
+    @overload
+    def __init__(self, connection: None = ..., /, *, pool: Pool = ...):
+        ...
+
+    def __init__(self, connection: Optional[Connection] = None, /, *, pool: Optional[Pool] = None):
+        self.connection: Optional[Connection] = connection
+        self.pool: Optional[Pool] = pool
+        self._cleanup: bool = False
 
     async def __aenter__(self) -> Connection:
         if self.connection is None:

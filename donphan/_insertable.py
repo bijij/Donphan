@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast,
 
 from ._column import Column, SQLType
 from ._selectable import Selectable
-from .utils import query_builder, resolve_annotation
+from .utils import optional_pool, query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
@@ -240,6 +240,7 @@ class Insertable(Selectable):
         ...
 
     @classmethod
+    @optional_pool
     async def insert(
         cls,
         connection: Connection,
@@ -273,7 +274,7 @@ class Insertable(Selectable):
             A record containing information from the inserted record.
         """
         columns = cls._get_columns(values)
-        query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict, returning or [])
+        query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict or [], returning or [])
         if returning is not None:
             return await connection.fetchrow(query, *values.values())
         await connection.execute(query, *values.values())
@@ -305,6 +306,7 @@ class Insertable(Selectable):
         ...
 
     @classmethod
+    @optional_pool
     async def insert_many(
         cls,
         connection: Connection,
@@ -338,6 +340,7 @@ class Insertable(Selectable):
         await connection.executemany(query, values)
 
     @classmethod
+    @optional_pool
     async def update_where(
         cls,
         connection: Connection,
@@ -366,6 +369,7 @@ class Insertable(Selectable):
         await connection.execute(query, *values, *_values.values())
 
     @classmethod
+    @optional_pool
     async def update_record(
         cls,
         connection: Connection,
@@ -391,6 +395,7 @@ class Insertable(Selectable):
         return await cls.update_where(connection, where, *primary_keys.values(), **values)
 
     @classmethod
+    @optional_pool
     async def delete_where(
         cls,
         connection: Connection,
@@ -415,6 +420,7 @@ class Insertable(Selectable):
         await connection.execute(query, *values)
 
     @classmethod
+    @optional_pool
     async def delete(
         cls,
         connection: Connection,
@@ -436,6 +442,7 @@ class Insertable(Selectable):
         return await cls.delete_where(connection, where, *values.values())
 
     @classmethod
+    @optional_pool
     async def delete_record(
         cls,
         connection: Connection,
