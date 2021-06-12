@@ -24,14 +24,14 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, TYPE_CHECKING, Optional, TextIO, Union, overload
+from typing import TYPE_CHECKING, ClassVar, Optional, TextIO, Union, overload
 
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from ._object import Object
 from .utils import MISSING, optional_pool, query_builder, write_to_file
 
 if TYPE_CHECKING:
-    from asyncpg import Connection, Pool
+    from asyncpg import Connection
 
 
 __all__ = ("Creatable",)
@@ -83,9 +83,9 @@ class Creatable(Object):
     # endregion
 
     @classmethod
-    def _find_schemas(cls) -> list[Creatable]:
-        schema_names = set()
-        schemas = []
+    def _find_schemas(cls) -> list[type[Creatable]]:
+        schema_names: set[str] = set()
+        schemas: list[type[Creatable]] = []
 
         for subcls in cls.__subclasses__():
 

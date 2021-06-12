@@ -1,6 +1,6 @@
 import random
 
-from tests.utils import async_test, with_connection
+from tests.utils import async_test
 from donphan import Column, Table, SQLType
 from unittest import TestCase
 
@@ -34,5 +34,16 @@ class ViewTest(TestCase):
         self.assertEqual(len(records), NUM_ITEMS)
 
     @async_test
-    async def test_d_table_delete(self):
+    async def test_d_table_insert_returning(self):
+        record = await _TestTable.insert(None, a=10, returning="*")
+        self.assertEqual(record['a'], 10)
+
+        record = await _TestTable.insert(None, a=11, returning=["a"])
+        self.assertEqual(record['a'], 11)
+
+        record = await _TestTable.insert(None, a=12, returning=[_TestTable.a])
+        self.assertEqual(record['a'], 12)
+
+    @async_test
+    async def test_e_table_delete(self):
         await _TestTable.drop(None)

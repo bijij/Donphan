@@ -114,7 +114,8 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
 def optional_pool(
     func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]
 ) -> Callable[Concatenate[type[OT], Optional[Connection], P], Coro[T]]:
-    async def wrapped(cls: type[OT], connection: Optional[Connection], *args: P.args, **kwargs: P.kwargs) -> T:
+
+    async def wrapped(cls: type[OT], connection: Optional[Connection] = None, *args: P.args, **kwargs: P.kwargs) -> T:
         if connection is not None:
             return await func(cls, connection, *args, **kwargs)
 
@@ -226,8 +227,7 @@ def resolve_annotation(
     return evaluate_annotation(annotation, globalns, locals, cache)
 
 
-DOCS_BUILDING: bool
 try:
-    DOCS_BUILDING = __sphinx_building__  # type: ignore
+    DOCS_BUILDING: Literal[True] = __sphinx_building__  # type: ignore
 except NameError:
-    DOCS_BUILDING = False
+    DOCS_BUILDING: Literal[False] = False

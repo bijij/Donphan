@@ -117,18 +117,23 @@ class Insertable(Selectable):
     @query_builder
     def _build_query_insert(
         cls,
-        columns: Iterable[Column],
+        columns: Union[Iterable[Union[Column, str]], str],
         ignore_on_conflict: bool,
-        update_on_conflict: Iterable[Column],
-        returning: Iterable[Column],
+        update_on_conflict: Union[Iterable[Union[Column, str]], str],
+        returning: Union[Iterable[Union[Column, str]], str],
     ) -> list[str]:
         builder = [f"INSERT INTO", cls._name, "("]
 
-        for column in columns:
-            builder.append(column.name)
-            builder.append(",")
+        if isinstance(columns, str):
+            builder.append(columns)
+        else:
+            for column in columns:
+                if isinstance(column, Column):
+                    column = column.name
+                builder.append(column)
+                builder.append(",")
 
-        builder.pop(-1)
+            builder.pop(-1)
 
         builder.append(") VALUES (")
 
@@ -157,20 +162,30 @@ class Insertable(Selectable):
 
             builder.append(") DO UPDATE SET")
 
-            for column in update_on_conflict:
-                builder.append(f"{column.name} = EXCLUDED.{column.name}")
-                builder.append(",")
+            if isinstance(update_on_conflict, str):
+                builder.append(update_on_conflict)
+            else:
+                for column in update_on_conflict:
+                    if isinstance(column, Column):
+                        column = column.name
+                    builder.append(f"{column} = EXCLUDED.{column}")
+                    builder.append(",")
 
-            builder.pop(-1)
+                builder.pop(-1)
 
         if returning:
             builder.append("RETURNING")
 
-            for column in returning:
-                builder.append(column.name)
-                builder.append(",")
+            if isinstance(returning, str):
+                builder.append(returning)
+            else:
+                for column in returning:
+                    if isinstance(column, Column):
+                        column = column.name
+                    builder.append(column)
+                    builder.append(",")
 
-            builder.pop(-1)
+                builder.pop(-1)
 
         return builder
 
@@ -180,12 +195,17 @@ class Insertable(Selectable):
         cls,
         where: str,
         offset: int,
-        columns: Iterable[Column],
+        columns: Union[Iterable[Union[Column, str]], str],
     ) -> list[str]:
         builder = [f"UPDATE", cls._name, "SET"]
 
+        if isinstance(columns, str):
+            columns = [column.strip() for column in columns.split(",")]
+
         for i, column in enumerate(columns, offset):
-            builder.append(column.name)
+            if isinstance(column, Column):
+                column = column.name
+            builder.append(column)
             builder.append(f"= ${i}")
             builder.append(",")
 
@@ -214,26 +234,28 @@ class Insertable(Selectable):
 
     @overload
     @classmethod
+    @optional_pool
     async def insert(
         cls,
         connection: Connection,
         /,
         *,
         ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Iterable[Column]] = ...,
-        returning: Iterable[Column] = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
         **values: Any,
     ) -> Record:
         ...
 
     @overload
     @classmethod
+    @optional_pool
     async def insert(
         cls,
         connection: Connection,
         *,
         ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Iterable[Column]] = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
         returning: None = ...,
         **values: Any,
     ) -> None:
@@ -247,8 +269,8 @@ class Insertable(Selectable):
         /,
         *,
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Iterable[Column]] = None,
-        returning: Optional[Iterable[Column]] = None,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
         **values: Any,
     ) -> Optional[Record]:
         r"""|coro|
@@ -261,10 +283,10 @@ class Insertable(Selectable):
             The database connection to use for transactions.
         ignore_on_conflict: :class:`bool`
             Sets whether to ignore errors when inserting, defaults to ``False``.
-        update_on_conflict: Optional[Iterable[Column]]
-            An Optional list of columns to update with new data if a conflict occurs.
-        returning: Optional[Iterable[:class:`~.Column`]]
-            An optional list of values to return from the inserted record.
+        update_on_conflict: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An Optional list of or string representing columns to update with new data if a conflict occurs.
+        returning: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An optional list of or string representing columns to return from the inserted record.
         \*\*values: Any
             The column to value mapping for the record to insert.
 
@@ -281,19 +303,21 @@ class Insertable(Selectable):
 
     @overload
     @classmethod
+    @optional_pool
     async def insert_many(
         cls,
         connection: Connection,
         /,
-        columns: Iterable[Column],
+        columns: Union[Iterable[Union[Column, str]], str],
         *values: Iterable[Any],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Iterable[Column]] = None,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
     ) -> None:
         ...
 
     @overload
     @classmethod
+    @optional_pool
     async def insert_many(
         cls,
         connection: Connection,
@@ -301,7 +325,7 @@ class Insertable(Selectable):
         columns: None,
         *values: dict[str, Any],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Iterable[Column]] = None,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
     ) -> None:
         ...
 
@@ -311,10 +335,10 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        columns: Optional[Iterable[Column]],
+        columns: Optional[Union[Iterable[Union[Column, str]], str]],
         *values: Union[Iterable[Any], dict[str, Any]],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Iterable[Column]] = None,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
     ) -> None:
         r"""|coro|
 
@@ -328,8 +352,8 @@ class Insertable(Selectable):
             The column to value mappings for each record to insert.
         ignore_on_conflict: :class:`bool`
             Sets whether to ignore errors when inserting, defaults to ``False``.
-        update_on_conflict: Optional[Iterable[Column]]
-            An Optional list of columns to update with new data if a conflict occurs.
+        update_on_conflict: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An Optional list of or string representing columns to update with new data if a conflict occurs.
         """
         if columns is None:
             values = cast(tuple[dict[str, Any], ...], values)
