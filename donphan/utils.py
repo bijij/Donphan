@@ -32,13 +32,11 @@ import types
 from collections.abc import Callable, Iterable
 from typing import Coroutine, TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
 
-from typing_extensions import Concatenate
-
 from ._consts import NOT_CREATABLE
 
 if TYPE_CHECKING:
     from asyncpg import Connection
-    from typing_extensions import ParamSpec
+    from typing_extensions import Concatenate, ParamSpec
 
     from ._creatable import Creatable
     from ._object import Object
