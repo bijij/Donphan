@@ -136,9 +136,14 @@ class Selectable(Object):
                 raise NameError(f"Unknown column {name} in selectable {cls._name}.")
 
             builder.append(name)
-            builder.append(operator)
 
-            builder.append(f"${i}")
+            if operator == "_IN":
+                column = cls._columns_dict[name]
+                builder.append("=")
+                builder.append(f"any(${i}::{column.sql_type.sql_type}[])")
+            else:
+                builder.append(operator)
+                builder.append(f"${i}")
 
             if i > 1:
                 builder.append(")")
@@ -342,7 +347,7 @@ class Selectable(Object):
             ns["_selectables"] = (cls, other)
             ns["_on"] = on
 
-        return types.new_class(name, (Join,), {}, exec_body)
+        return types.new_class(name, (Join,), {}, exec_body)  # type: ignore
 
     @classmethod
     def inner_join(

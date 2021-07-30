@@ -30,7 +30,17 @@ import string
 import sys
 import types
 from collections.abc import Callable, Iterable
-from typing import Coroutine, TYPE_CHECKING, Any, ForwardRef, Literal, Optional, TextIO, TypeVar, Union
+from typing import (
+    Coroutine,
+    TYPE_CHECKING,
+    Any,
+    ForwardRef,
+    Literal,
+    Optional,
+    TextIO,
+    TypeVar,
+    Union,
+)
 
 from ._consts import NOT_CREATABLE
 
@@ -98,7 +108,7 @@ def not_creatable(cls: type[CT]) -> type[CT]:
 
 def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
     if isinstance(fp, io.TextIOBase):
-        if not fp.writeable():
+        if not fp.writeable():  # type: ignore
             raise ValueError(f"File buffer {fp!r} must be writable")
     elif isinstance(fp, str):
         fp = open(fp, "w")
@@ -106,14 +116,18 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
         raise TypeError(f"Could not determine type of file-like object.")
 
     fp.write(data)
-    return fp
+    return fp  # type: ignore
 
 
 def optional_pool(
     func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]
 ) -> Callable[Concatenate[type[OT], Optional[Connection], P], Coro[T]]:
-
-    async def wrapped(cls: type[OT], connection: Optional[Connection] = None, *args: P.args, **kwargs: P.kwargs) -> T:
+    async def wrapped(
+        cls: type[OT],
+        connection: Optional[Connection] = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
         if connection is not None:
             return await func(cls, connection, *args, **kwargs)
 

@@ -80,8 +80,8 @@ class SQLType(Generic[T]):
                 return cls.__enum_types[type]
 
             enum_type = types.new_class(type.__name__, (EnumType[type],))
-            cls.__enum_types[type] = enum_type
-            return enum_type
+            cls.__enum_types[type] = enum_type  # type: ignore
+            return enum_type  # type: ignore
 
         return cls.__defaults[type]
 
@@ -132,7 +132,11 @@ if not TYPE_CHECKING:
     }.items():
         # generate SQLType[T] and SQLType[list[T]]
         cls = types.new_class(name, (SQLType[py_type],), {"sql_type": sql_type, "default": is_default})
-        types.new_class(name + "[]", (SQLType[list[py_type]],), {"sql_type": sql_type + "[]", "default": is_default})
+        types.new_class(
+            name + "[]",
+            (SQLType[list[py_type]],),
+            {"sql_type": sql_type + "[]", "default": is_default},
+        )
 
         if DOCS_BUILDING:
 

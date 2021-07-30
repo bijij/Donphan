@@ -27,7 +27,17 @@ from __future__ import annotations
 import datetime
 import json
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Final, Literal, Optional, TextIO, TypeVar, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Final,
+    Literal,
+    Optional,
+    TextIO,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import asyncpg
 
@@ -139,7 +149,13 @@ if DOCS_BUILDING and not TYPE_CHECKING:
             ...
 
 
-async def create_pool(dsn: str, codecs: dict[str, TypeCodec] = {}, *, set_as_default: bool = False, **kwargs) -> Pool:
+async def create_pool(
+    dsn: str,
+    codecs: dict[str, TypeCodec] = {},
+    *,
+    set_as_default: bool = False,
+    **kwargs,
+) -> Pool:
     r"""|coro|
 
     Creates the database connection pool.
@@ -318,10 +334,10 @@ class MaybeAcquire:
     async def __aenter__(self) -> Connection:
         if self.connection is None:
             self._cleanup = True
-            self._connection = c = await self.pool.acquire()
+            self._connection = c = await self.pool.acquire()  # type: ignore
             return c
         return self.connection
 
     async def __aexit__(self, *args):
         if self._cleanup:
-            await self.pool.release(self._connection)
+            await self.pool.release(self._connection)  # type: ignore
