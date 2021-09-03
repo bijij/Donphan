@@ -118,7 +118,7 @@ class Table(Insertable, Creatable):
         connection: Connection,
         /,
         table: type[Table],
-        migration: Callable[[Record], dict[str, Any]],
+        migration: Callable[[Record], dict[str, Any]] = dict,
         *,
         create_new_table: bool = False,
         drop_table: bool = False,
@@ -135,6 +135,7 @@ class Table(Insertable, Creatable):
             The new table to migrate to.
         migration: Callable[[:class:`asyncpg.Record`], Dict[:class:`str`, Any]]
             The function used to migrate data between tables.
+            By default this passes the record unchanged.
         create_new_table: :class:`bool`
             Sets whether the table to migrate to should be created.
             Defaults to ``False``.
