@@ -119,8 +119,8 @@ class Selectable(Object):
         for name, value in values.items():
             is_or = False
             if name.startswith("or_"):
-                if i == 1:
-                    raise NameError("")
+                if first:
+                    raise NameError("Query cannot accept OR as first clause.")
                 is_or = True
                 name = name[3:]
 
