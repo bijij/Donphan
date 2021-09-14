@@ -31,7 +31,7 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union, overload
 
 from ._column import BaseColumn, Column, OnClause
-from ._consts import OPERATORS
+from ._consts import OPERATORS, NULL_OPERATORS
 from ._object import Object
 from .utils import generate_alias, optional_pool, query_builder
 
@@ -114,9 +114,8 @@ class Selectable(Object):
         if len(values) > 1:
             builder.append("(" * (len(values) - 1))
 
-        for i, name in enumerate(values, 1):
+        for i, (name, value) in enumerate(values.items(), 1):
             is_or = False
-            operator = OPERATORS["eq"]
             if name.startswith("or_"):
                 if i == 1:
                     raise NameError("")
@@ -126,11 +125,21 @@ class Selectable(Object):
             if i > 1:
                 builder.append("OR" if is_or else "AND")
 
+            if value is None:
+                operator = NULL_OPERATORS["eq"]
+            else:
+                operator = OPERATORS["eq"]
             if name[-4:-2] == "__":
                 name, operator = name.rsplit("__", 1)
-                if operator not in OPERATORS:
-                    raise NameError(f"Unknown operator {operator}.")
-                operator = OPERATORS[operator]  # type: ignore
+
+                if value is None:
+                    if operator not in NULL_OPERATORS:
+                        raise NameError(f"Unknown null operator {operator}.")
+                    operator = NULL_OPERATORS[operator]  # type: ignore
+                else:
+                    if operator not in OPERATORS:
+                        raise NameError(f"Unknown operator {operator}.")
+                    operator = OPERATORS[operator]  # type: ignore
 
             if name not in cls._columns_dict:
                 raise NameError(f"Unknown column {name} in selectable {cls._name}.")

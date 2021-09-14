@@ -52,3 +52,8 @@ OPERATORS: dict[Operators, str] = {
     "gt": ">",
     "in": "_IN",
 }
+
+NULL_OPERATORS: dict[Operators, str] = {
+    "eq": "IS",
+    "ne": "IS NOT",
+}
