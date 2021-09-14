@@ -463,7 +463,7 @@ class Insertable(Selectable):
             The column to value mapping to filter records with.
         """
         where = cls._build_where_clause(values)
-        return await cls.delete_where(connection, where, *values.values())
+        return await cls.delete_where(connection, where, *filter(lambda v: v is not None, values.values()))
 
     @classmethod
     @optional_pool

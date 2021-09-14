@@ -53,7 +53,4 @@ OPERATORS: dict[Operators, str] = {
     "in": "_IN",
 }
 
-NULL_OPERATORS: dict[Operators, str] = {
-    "eq": "IS",
-    "ne": "IS NOT",
-}
+NULL_OPERATORS: dict[Operators, str] = {"eq": "_NULL_EQ", "ne": "_NULL_NE"}

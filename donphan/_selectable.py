@@ -114,7 +114,9 @@ class Selectable(Object):
         if len(values) > 1:
             builder.append("(" * (len(values) - 1))
 
-        for i, (name, value) in enumerate(values.items(), 1):
+        i = 1
+        first = True
+        for name, value in values.items():
             is_or = False
             if name.startswith("or_"):
                 if i == 1:
@@ -122,7 +124,7 @@ class Selectable(Object):
                 is_or = True
                 name = name[3:]
 
-            if i > 1:
+            if not first:
                 builder.append("OR" if is_or else "AND")
 
             if value is None:
@@ -150,12 +152,20 @@ class Selectable(Object):
                 column = cls._columns_dict[name]
                 builder.append("=")
                 builder.append(f"any(${i}::{column.sql_type.sql_type}[])")
+                i += 1
+            elif operator == "_NULL_EQ":
+                builder.append("IS NULL")
+            elif operator == "_NULL_NE":
+                builder.append("IS NOT NULL")
             else:
                 builder.append(operator)
                 builder.append(f"${i}")
+                i += 1
 
-            if i > 1:
+            if not first:
                 builder.append(")")
+
+            first = False
 
         return builder
 
@@ -263,7 +273,9 @@ class Selectable(Object):
             Records which which contain the given values.
         """
         where = cls._build_where_clause(values)
-        return await cls.fetch_where(connection, where, *values.values(), limit=limit, order_by=order_by)
+        return await cls.fetch_where(
+            connection, where, *filter(lambda v: v is not None, values.values()), limit=limit, order_by=order_by
+        )
 
     @classmethod
     @optional_pool
@@ -329,7 +341,9 @@ class Selectable(Object):
             A record which contains the given values if found.
         """
         where = cls._build_where_clause(values)
-        return await cls.fetch_row_where(connection, where, *values.values(), order_by=order_by)
+        return await cls.fetch_row_where(
+            connection, where, *filter(lambda v: v is not None, values.values()), order_by=order_by
+        )
 
     # endregion
 
