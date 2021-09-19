@@ -30,6 +30,7 @@ import string
 import sys
 import types
 from collections.abc import Callable, Iterable
+from functools import wraps
 from typing import (
     Coroutine,
     TYPE_CHECKING,
@@ -122,6 +123,7 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
 def optional_pool(
     func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]
 ) -> Callable[Concatenate[type[OT], Optional[Connection], P], Coro[T]]:
+    @wraps(func)
     async def wrapped(
         cls: type[OT],
         connection: Optional[Connection] = None,
