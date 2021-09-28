@@ -354,7 +354,7 @@ class Selectable(Object):
         cls,
         other: Union[type[Selectable], BaseColumn],
         type: JoinType,
-        on: Optional[Union[OnClause, Iterable[OnClause]]] = None,
+        on: Optional[Union[OnClause, Iterable[BaseColumn]]] = None,
     ) -> type[Join]:
         # this is a hack because >circular imports<
         from ._join import Join
@@ -378,7 +378,7 @@ class Selectable(Object):
     def inner_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]],
+        on: Union[OnClause, Iterable[BaseColumn]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising an ``INNER JOIN``.
 
@@ -400,7 +400,7 @@ class Selectable(Object):
     def left_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]],
+        on: Union[OnClause, Iterable[BaseColumn]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``LEFT JOIN``.
 

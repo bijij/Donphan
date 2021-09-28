@@ -14,10 +14,10 @@ class ConnectionTest(TestCase):
         pool = await create_pool(POSTGRES_DSN, set_as_default=True)
         set_pool(pool)
 
-        self.assertIsInstance(pool, asyncpg.Pool)
+        assert isinstance(pool, asyncpg.Pool)
 
     @async_test
     @with_pool
     async def test_b_maybeacquire(self, pool):
         async with MaybeAcquire(None, pool=pool) as conn:
-            self.assertIsInstance(conn, asyncpg.Connection)
+            assert isinstance(conn, asyncpg.Connection)

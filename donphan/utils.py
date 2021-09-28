@@ -171,7 +171,7 @@ def evaluate_annotation(
     cache: dict[str, Any],
     *,
     implicit_str: bool = True,
-):
+) -> Any:
     if isinstance(tp, ForwardRef):
         tp = tp.__forward_arg__
         # ForwardRefs always evaluate their internals

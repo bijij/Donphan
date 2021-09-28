@@ -13,9 +13,9 @@ class ViewTest(TestCase):
     def test_query_fetch_null(self):
         where = _TestLikeTable._build_where_clause({"a__like": r"%foo"})
 
-        self.assertEqual(
-            _TestLikeTable._build_query_fetch(where, None, None),
-            r"SELECT * FROM public.__test_like_table WHERE a LIKE $1",
+        assert (
+            _TestLikeTable._build_query_fetch(where, None, None)
+            == r"SELECT * FROM public.__test_like_table WHERE a LIKE $1"
         )
 
     @async_test

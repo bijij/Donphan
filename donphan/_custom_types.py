@@ -65,6 +65,7 @@ class CustomType(SQLType[T], Creatable):
     """
 
     _type: ClassVar[str] = "TYPE"
+    sql_type: ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

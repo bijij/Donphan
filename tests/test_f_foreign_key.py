@@ -18,9 +18,9 @@ class _TestTable2(Table):
 
 class ViewTest(TestCase):
     def test_query_create(self):
-        self.assertEqual(
-            _TestTable2._query_create(True),
-            "CREATE TABLE IF NOT EXISTS public.__test_table2 ( a INTEGER REFERENCES public.__test_table ( a ) , PRIMARY KEY ( a ) )",
+        assert (
+            _TestTable2._query_create(True)
+            == "CREATE TABLE IF NOT EXISTS public.__test_table2 ( a INTEGER REFERENCES public.__test_table ( a ) , PRIMARY KEY ( a ) )"
         )
 
     @async_test
@@ -40,7 +40,6 @@ class ViewTest(TestCase):
     @with_connection
     async def test_c_table_fetch(self, conn):
         records = list(await _TestTable.fetch(conn))
-        self.assertEqual(len(records), NUM_ITEMS)
 
     @async_test
     @with_connection
