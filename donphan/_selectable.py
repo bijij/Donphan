@@ -127,21 +127,23 @@ class Selectable(Object):
             if not first:
                 builder.append("OR" if is_or else "AND")
 
+            # set default operator
             if value is None:
                 operator = NULL_OPERATORS["eq"]
             else:
                 operator = OPERATORS["eq"]
-            if name[-4:-2] == "__":
-                name, operator = name.rsplit("__", 1)
 
-                if value is None:
-                    if operator not in NULL_OPERATORS:
-                        raise NameError(f"Unknown null operator {operator}.")
-                    operator = NULL_OPERATORS[operator]  # type: ignore
-                else:
-                    if operator not in OPERATORS:
-                        raise NameError(f"Unknown operator {operator}.")
-                    operator = OPERATORS[operator]  # type: ignore
+            for key in OPERATORS:
+                if name.endswith(f"__{key}"):
+                    name, operator = name.rsplit("__", 1)
+                    if value is None:
+                        if operator not in NULL_OPERATORS:
+                            raise NameError(f"Unknown null operator {operator}.")
+                        operator = NULL_OPERATORS[operator]  # type: ignore
+                    else:
+                        if operator not in OPERATORS:
+                            raise NameError(f"Unknown operator {operator}.")
+                        operator = OPERATORS[operator]  # type: ignore
 
             if name not in cls._columns_dict:
                 raise NameError(f"Unknown column {name} in selectable {cls._name}.")
@@ -406,7 +408,7 @@ class Selectable(Object):
         ----------
         other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+        on: Union[:class:`OnClause`, Iterable[:class:`BaseColumn`]]
             The column or columns to join on
 
         Returns
@@ -420,7 +422,7 @@ class Selectable(Object):
     def right_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]],
+        on: Union[OnClause, Iterable[BaseColumn]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``RIGHT JOIN``.
 
@@ -428,7 +430,7 @@ class Selectable(Object):
         ----------
         other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+        on: Union[:class:`OnClause`, Iterable[:class:`BaseColumn`]]
             The column or columns to join on
 
         Returns
@@ -442,7 +444,7 @@ class Selectable(Object):
     def full_outer_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[OnClause]],
+        on: Union[OnClause, Iterable[BaseColumn]],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``FULL OUTER JOIN``.
 
@@ -450,7 +452,7 @@ class Selectable(Object):
         ----------
         other: Union[:class:`Table`, :class:`View`, :class:`Join`]
             The other database object to join with.
-        on: Union[:class:`OnClause`, Iterable[:class:`OnClause`]]
+        on: Union[:class:`OnClause`, Iterable[:class:`BaseColumn`]]
             The column or columns to join on
 
         Returns
