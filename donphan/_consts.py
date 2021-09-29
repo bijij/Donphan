@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from ._creatable import Creatable
     from ._custom_types import CustomType
 
-Operators = Literal["eq", "lt", "le", "ne", "ge", "gt", "in", "like"]
+Operators = Literal["eq", "lt", "le", "ne", "ge", "gt", "in", "like", "ilike"]
 
 
 NOT_CREATABLE: list[type[Creatable]] = []
@@ -52,6 +52,7 @@ OPERATORS: dict[Operators, str] = {
     "gt": ">",
     "in": "_IN",
     "like": "LIKE",
+    "ilike": "ILIKE",
 }
 
 NULL_OPERATORS: dict[Operators, str] = {"eq": "_NULL_EQ", "ne": "_NULL_NE"}

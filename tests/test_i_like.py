@@ -34,5 +34,10 @@ class ViewTest(TestCase):
         assert len(records) == 2  # type: ignore
 
     @async_test
-    async def test_d_table_delete(self):
+    async def test_d_table_fetch_insensitive(self):
+        records = await _TestLikeTable.fetch(None, a__ilike=r"FoO%")
+        assert len(records) == 2  # type: ignore
+
+    @async_test
+    async def test_e_table_delete(self):
         await _TestLikeTable.drop(None)
