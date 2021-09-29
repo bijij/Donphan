@@ -18,7 +18,7 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THEdefault
 SOFTWARE.
 """
 
@@ -81,8 +81,9 @@ class Table(Insertable, Creatable):
                 builder.append("UNIQUE")
 
             if column.default is not MISSING:
-                builder.append("DEFAULT")
+                builder.append("DEFAULT (")
                 builder.append(str(column.default))
+                builder.append(")")
 
             if column.references is not None:
                 builder.append("REFERENCES")

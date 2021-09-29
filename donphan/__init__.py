@@ -26,7 +26,7 @@ __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
 __copyright__ = "Copyright 2020-Present Bijij"
-__version__ = "4.5.4"
+__version__ = "4.6.0"
 
 from typing import TYPE_CHECKING
 
