@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Optional, TextIO, Union, overload
 
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
+from ._column import Column
 from ._object import Object
 from .utils import MISSING, optional_pool, query_builder, write_to_file
 
@@ -41,6 +42,12 @@ class Creatable(Object):
     _type: ClassVar[str] = MISSING
 
     # region: query generation
+
+    @classmethod
+    def _query_exists(
+        cls,
+    ) -> str:
+        raise NotImplementedError()
 
     @classmethod
     def _query_create(
@@ -105,12 +112,31 @@ class Creatable(Object):
 
     @classmethod
     @optional_pool
+    async def exists(
+        cls,
+        connection: Connection,
+    ) -> bool:
+        """
+        Check if the table exists.
+
+        :param conn: The connection to use.
+        :return: True if the table exists, False otherwise.
+        """
+        record = await connection.fetchrow(cls._query_exists(), cls._schema, cls._local_name)
+        if record is None:
+            return False
+        (result,) = record
+        return result
+
+    @classmethod
+    @optional_pool
     async def create(
         cls,
         connection: Connection,
         *,
         if_not_exists: bool = True,
         create_schema: bool = True,
+        automatic_migrations: bool = False,
     ) -> None:
         """|coro|
 
@@ -126,9 +152,37 @@ class Creatable(Object):
         create_schema: :class:`bool`
             Sets whether the database schema should also be created.
             Defaults to ``True``.
+        automatic_migrations: :class:`bool`
+            Sets whether migrations should be automatically run.
+            Defaults to ``False``.
         """
         if create_schema:
             await cls.create_schema(connection, if_not_exists=if_not_exists)
+
+        if automatic_migrations:
+            # this is a hack because >circular imports<
+            from ._table import Table
+
+            if issubclass(cls, Table):
+                if await cls.exists(connection):
+                    old_columns: set[str] = {
+                        record["column_name"]
+                        for record in await connection.fetch(
+                            "SELECT * FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2;",
+                            cls._schema,
+                            cls._local_name,
+                        )
+                    }
+
+                    for column_name in [c for c in cls._columns]:
+                        if column_name.name not in old_columns:
+                            del cls._columns_dict[column_name.name]
+                            await cls.add_column(connection, column_name._copy())
+
+                    for column_name in old_columns:
+                        if column_name not in cls._columns_dict:
+                            await cls.drop_column(connection, Column.create(column_name, MISSING))
+
         query = cls._query_create(if_not_exists)
         await connection.execute(query)
 
@@ -164,10 +218,12 @@ class Creatable(Object):
         *,
         if_not_exists: bool = True,
         create_schema: bool = True,
+        automatic_migrations: bool = False,
     ) -> None:
         """|coro|
 
         Creates all subclasses of this database object.
+        If an error occurs, the database will be rolled back.
 
         Parameters
         ----------
@@ -179,22 +235,29 @@ class Creatable(Object):
         create_schema: :class:`bool`
             Sets whether the database schema should also be created.
             Defaults to ``True``.
+        automatic_migrations: :class:`bool`
+            Sets whether migrations should be automatically performed.
+            Defaults to ``False``.
         """
-        for subcls in cls.__subclasses__():
-            if create_schema:
-                for schema in cls._find_schemas():
-                    await schema.create_schema(connection, if_not_exists=if_not_exists)
+        async with connection.transaction():
 
-            if subcls in NOT_CREATABLE:
-                await subcls.create_all(
-                    connection,
-                    if_not_exists=if_not_exists,
-                )
-            else:
-                await subcls.create(
-                    connection,
-                    if_not_exists=if_not_exists,
-                )
+            for subcls in cls.__subclasses__():
+                if create_schema:
+                    for schema in cls._find_schemas():
+                        await schema.create_schema(connection, if_not_exists=if_not_exists)
+
+                if subcls in NOT_CREATABLE:
+                    await subcls.create_all(
+                        connection,
+                        if_not_exists=if_not_exists,
+                        automatic_migrations=automatic_migrations,
+                    )
+                else:
+                    await subcls.create(
+                        connection,
+                        if_not_exists=if_not_exists,
+                        automatic_migrations=automatic_migrations,
+                    )
 
     @overload
     @classmethod

@@ -49,8 +49,19 @@ OrderBy = tuple[BaseColumn, Literal["ASC", "DESC"]]
 
 class Selectable(Object):
     if TYPE_CHECKING:
-        _columns: ClassVar[list[Column]]
         _columns_dict: ClassVar[dict[str, Column]]
+
+    @classmethod
+    @property
+    def _columns(cls) -> Iterable[Column]:
+        return cls._columns_dict.values()
+
+    @classmethod
+    def _query_exists(
+        cls,
+        type: str,
+    ) -> str:
+        return f"SELECT EXISTS ( SELECT FROM information_schema.{type} WHERE table_schema = $1 AND table_name = $2);"
 
     @classmethod
     def _get_columns(
@@ -71,7 +82,6 @@ class Selectable(Object):
         raise NotImplementedError
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        cls._columns = []
         cls._columns_dict = {}
 
         # Get global namespaces

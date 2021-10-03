@@ -74,7 +74,7 @@ class Join(Selectable):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         cls._set_columns()
-        cls._name = cls._build_select()
+        cls._overridden_name = cls._build_select()
 
     @classmethod
     def set_column(cls, source: BaseColumn) -> None:
@@ -83,7 +83,6 @@ class Join(Selectable):
         column.join = cls
         column.source = source._selectable
 
-        cls._columns.append(column)
         cls._columns_dict[column.name] = column
         setattr(cls, column.name, column)
 

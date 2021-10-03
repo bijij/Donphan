@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 from ._consts import Operators
 from ._sqltype import SQLType
-from .utils import MISSING
+from .utils import MISSING, query_builder
 
 if TYPE_CHECKING:
     from ._join import Join
@@ -230,10 +230,70 @@ class Column(BaseColumn, Generic[_T]):
     def _selectable(self) -> type[Selectable]:
         return self.table
 
+    @query_builder
+    def _query(self) -> list[str]:
+        builder = []
+
+        builder.append(self.name)
+
+        builder.append(self.sql_type.sql_type)
+
+        if not self.nullable:
+            builder.append("NOT NULL")
+
+        if self.unique:
+            builder.append("UNIQUE")
+
+        if self.default is not MISSING:
+            builder.append("DEFAULT (")
+            builder.append(str(self.default))
+            builder.append(")")
+
+        if self.references is not None:
+            builder.append("REFERENCES")
+            builder.append(self.references.table._name)
+            builder.append("(")
+            builder.append(self.references.name)
+            builder.append(")")
+
+            if self.cascade:
+                builder.append("ON DELETE CASCADE ON UPDATE CASCADE")
+
+        return builder
+
+    def _copy(self: Column[_T]) -> Column[_T]:
+        copy = self.__class__(
+            primary_key=self.primary_key,
+            index=self.index,
+            nullable=self.nullable,
+            unique=self.unique,
+            cascade=self.cascade,
+            default=self.default,
+            references=self.references,
+        )
+        copy._sql_type = self._sql_type
+        copy.name = self.name
+        return copy
+
     @classmethod
     def _with_type(cls, type: type[SQLType[_T]], **options: Any) -> Column[_T]:
         column = cls(**options)
         column._sql_type = type
+        return column
+
+    @classmethod
+    def create(cls, name: str, type: Union[type[SQLType[_T]], type[Any]], **options: Any) -> Column[_T]:
+        """A shortcut for creating a column with a given type.
+
+        Parameters
+        ----------
+        name: :class:`str`
+            The name of the column.
+        type: :class:`SQLType`
+            The type of the column.
+        """
+        column = cls._with_type(type, **options)
+        column.name = name
         return column
 
 

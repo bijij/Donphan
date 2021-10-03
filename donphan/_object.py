@@ -38,8 +38,9 @@ __all__ = ("Object",)
 
 class Object(Protocol):
     _schema: ClassVar[str]
-    _name: ClassVar[str]
+    _local_name: ClassVar[str]
     _base_pool: ClassVar[Optional[Pool]] = None
+    _overridden_name: ClassVar[Optional[str]] = None
 
     @classmethod
     @property
@@ -50,6 +51,13 @@ class Object(Protocol):
             pool = getattr(cls, "_base_pool", None) or pool
 
         return pool
+
+    @classmethod
+    @property
+    def _name(cls) -> str:
+        if cls._overridden_name is not None:
+            return cls._overridden_name
+        return f"{cls._schema}.{cls._local_name}"
 
     def __init_subclass__(
         cls,
@@ -64,7 +72,7 @@ class Object(Protocol):
             _name = normalise_name(cls.__name__)
 
         cls._schema = schema
-        cls._name = f"{schema}.{_name}"
+        cls._local_name = _name
         super().__init_subclass__()
 
     @classmethod

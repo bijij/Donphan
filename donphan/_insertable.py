@@ -94,7 +94,6 @@ class Insertable(Selectable):
         column.name = name
         column.table = cls
 
-        cls._columns.append(column)
         cls._columns_dict[name] = column
         if column.primary_key:
             cls._primary_keys.append(column)

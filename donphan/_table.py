@@ -24,7 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from ._creatable import Creatable
@@ -33,6 +33,7 @@ from .utils import MISSING, not_creatable, optional_pool, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
+    from ._column import Column
 
 
 __all__ = ("Table",)
@@ -59,6 +60,12 @@ class Table(Insertable, Creatable):
     _type: ClassVar[str] = "TABLE"
 
     @classmethod
+    def _query_exists(
+        cls,
+    ) -> str:
+        return super()._query_exists("tables")
+
+    @classmethod
     @query_builder
     def _query_create(cls, if_not_exists: bool) -> list[str]:
         builder = ["CREATE TABLE"]
@@ -70,31 +77,7 @@ class Table(Insertable, Creatable):
         builder.append("(")
 
         for column in cls._columns:
-            builder.append(column.name)
-
-            builder.append(column.sql_type.sql_type)
-
-            if not column.nullable:
-                builder.append("NOT NULL")
-
-            if column.unique:
-                builder.append("UNIQUE")
-
-            if column.default is not MISSING:
-                builder.append("DEFAULT (")
-                builder.append(str(column.default))
-                builder.append(")")
-
-            if column.references is not None:
-                builder.append("REFERENCES")
-                builder.append(column.references.table._name)
-                builder.append("(")
-                builder.append(column.references.name)
-                builder.append(")")
-
-                if column.cascade:
-                    builder.append("ON DELETE CASCADE ON UPDATE CASCADE")
-
+            builder.append(column._query())
             builder.append(",")
 
         if cls._primary_keys:
@@ -113,13 +96,102 @@ class Table(Insertable, Creatable):
         return builder
 
     @classmethod
+    @query_builder
+    def _query_drop_column(cls, column: Column) -> list[str]:
+        return ["ALTER TABLE", cls._name, "DROP COLUMN", column.name]
+
+    @classmethod
+    @query_builder
+    def _query_add_column(cls, column: Column) -> list[str]:
+        return ["ALTER TABLE", cls._name, "ADD COLUMN", column._query()]
+
+    @classmethod
+    @optional_pool
+    async def drop_column(
+        cls,
+        connection: Connection,
+        /,
+        column: Column,
+    ) -> None:
+        """Drops a column from the table.
+
+        Parameters
+        ----------
+            connection: :class:`~asyncpg.Connection`
+                The connection to use.
+            column: :class:`~.Column`
+                The column to drop.
+        """
+        if getattr(column, "table", MISSING) is not cls:
+            raise ValueError("Column does not belong to this table.")
+        await connection.execute(cls._query_drop_column(column))
+        del column.table
+
+    @classmethod
+    @optional_pool
+    async def add_column(
+        cls,
+        connection: Connection,
+        /,
+        column: Column,
+    ) -> None:
+        """Adds a new column to the table.
+
+        Parameters
+        ----------
+            connection: :class:`~asyncpg.Connection`
+                The connection to use.
+            column: :class:`~.Column`
+                The column to add. This column must not be associated with
+                another table.
+        """
+        if hasattr(column, "table"):
+            raise ValueError(f"Column {column.name} already belongs to {column.table}")
+        if column.name in cls._columns_dict:
+            raise ValueError(f"Column {column.name} already exists.")
+        cls._columns_dict[column.name] = column
+        await connection.execute(cls._query_add_column(column))
+        column.table = cls
+
+    @classmethod
+    @optional_pool
+    async def migrate(
+        cls,
+        connection: Connection,
+        /,
+        columns: Iterable[Column],
+    ) -> None:
+        """|coro|
+
+        Migrates the table to the given columns.
+        If an error occurs, the transaction will be rolled back.
+
+        Parameters
+        ----------
+            connection: :class:`~asyncpg.Connection`
+                The connection to use.
+            columns: Iterable[:class:`~.Column`]
+                The new list of columns for the table.
+        """
+        columns_dict = {column.name: column for column in columns}
+
+        async with connection.transaction():
+            for column in cls._columns:
+                if column.name not in columns_dict:
+                    await cls.drop_column(connection, column)
+
+            for column in columns_dict:
+                if column not in cls._columns_dict:
+                    await cls.add_column(connection, columns_dict[column])
+
+    @classmethod
     @optional_pool
     async def migrate_to(
         cls,
         connection: Connection,
         /,
         table: type[Table],
-        migration: Callable[[Record], dict[str, Any]] = dict,
+        migration: Callable[[Record], dict[str, Any]] = MISSING,
         *,
         create_new_table: bool = False,
         drop_table: bool = False,
@@ -127,6 +199,7 @@ class Table(Insertable, Creatable):
         """|coro|
 
         Helper function for migrating data in a table to another.
+        If an error occurs, the transaction will be rolled back.
 
         Parameters
         ----------
@@ -144,12 +217,22 @@ class Table(Insertable, Creatable):
             Sets whether this table should be dropped after migrating.
             Defaults to ``False``.
         """
+        if cls._name == table._name:
+            if migration is not MISSING:
+                raise ValueError("Custom migration functions are not supported for table alterations.")
+            await cls.migrate(connection, (column._copy() for column in table._columns))
+            return
 
-        if create_new_table:
-            await table.create(connection)
+        async with connection.transaction():
 
-        records = await cls.fetch(connection)
-        await table.insert_many(connection, None, *(migration(record) for record in records))
+            if migration is MISSING:
+                migration = dict
 
-        if drop_table:
-            await cls.drop(connection)
+                if create_new_table:
+                    await table.create(connection)
+
+                records = await cls.fetch(connection)
+                await table.insert_many(connection, None, *(migration(record) for record in records))
+
+                if drop_table:
+                    await cls.drop(connection)

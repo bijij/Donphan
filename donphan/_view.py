@@ -82,8 +82,13 @@ class View(Selectable, Creatable):
         if column.select is MISSING:
             column.select = column.name
 
-        cls._columns.append(column)
         cls._columns_dict[name] = column
+
+    @classmethod
+    def _query_exists(
+        cls,
+    ) -> str:
+        return super()._query_exists("views")
 
     @classmethod
     @query_builder

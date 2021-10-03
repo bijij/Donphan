@@ -208,10 +208,11 @@ async def create_pool(
     return pool
 
 
-async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
+async def create_db(connection: Connection, if_not_exists: bool = True, automatic_migrations: bool = False) -> None:
     """|coro|
 
     A helper function to create all objects in the database.
+    If an error occurs, the database will be rolled back.
 
     Parameters
     ----------
@@ -220,6 +221,9 @@ async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
     if_not_exists: :class:`bool`
         Sets whether creation should continue if the object already exists.
         Defaults to ``True``.
+    automatic_migrations: :class:`bool`
+        Sets whether automatic migrations should be run.
+        Defaults to ``False``.
     """
     # this is a hack because >circular imports<
     from ._creatable import Creatable
@@ -227,12 +231,16 @@ async def create_db(connection: Connection, if_not_exists: bool = True) -> None:
     from ._table import Table
     from ._view import View
 
-    for schema in Creatable._find_schemas():
-        if schema._schema != DEFAULT_SCHEMA:
-            await schema.create(connection, if_not_exists=if_not_exists)
+    async with connection.transaction():
 
-    for type in (CustomType, Table, View):
-        await type.create_all(connection, if_not_exists=if_not_exists, create_schema=False)
+        for schema in Creatable._find_schemas():
+            if schema._schema != DEFAULT_SCHEMA:
+                await schema.create(connection, if_not_exists=if_not_exists)
+
+        for type in (CustomType, Table, View):
+            await type.create_all(
+                connection, if_not_exists=if_not_exists, create_schema=False, automatic_migrations=False
+            )
 
 
 @overload

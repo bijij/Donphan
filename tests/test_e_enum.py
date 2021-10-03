@@ -39,7 +39,7 @@ class ViewTest(TestCase):
     async def test_c_enum_fetch(self, conn):
         record = await _TestTable.fetch_row(conn)
         assert record is not None
-        assert record['a'] == VALUE
+        assert record["a"] == VALUE
 
     @async_test
     @with_connection
