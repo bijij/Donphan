@@ -8,6 +8,7 @@ from unittest import TestCase
 
 class _TestAutomaticMigrationsTable(Table):  # type: ignore
     a: Column[SQLType.Text] = Column(primary_key=True)
+    c: Column[SQLType.Text]
 
 
 class AutomaticMigrationsTest(TestCase):
@@ -17,7 +18,7 @@ class AutomaticMigrationsTest(TestCase):
 
     @async_test
     async def test_b_table_insert(self):
-        await _TestAutomaticMigrationsTable.insert(None, a="a")
+        await _TestAutomaticMigrationsTable.insert(None, a="a", c="c")
 
     @async_test
     async def test_c_test_automatic_migration(self):
@@ -34,6 +35,7 @@ class AutomaticMigrationsTest(TestCase):
         record = await _TestAutomaticMigrationsTable.fetch_row(None, a="a")
         assert record is not None
         assert record["b"] == "b"
+        assert "c" not in record
 
     @async_test
     async def test_e_table_delete(self):

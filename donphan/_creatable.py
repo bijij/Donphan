@@ -177,7 +177,9 @@ class Creatable(Object):
                 cls._columns_dict = {column.name: column for column in cls._columns if column.name in old_columns}
                 for column_name in old_columns:
                     if column_name not in cls._columns_dict:
-                        cls._columns_dict[column_name] = Column.create(column_name, MISSING)
+                        column = Column.create(column_name, MISSING)
+                        column.table = cls
+                        cls._columns_dict[column_name] = column
 
                 await cls.migrate(connection, new_columns)
                 return
