@@ -163,25 +163,24 @@ class Creatable(Object):
             # this is a hack because >circular imports<
             from ._table import Table
 
-            if issubclass(cls, Table):
-                if await cls.exists(connection):
-                    old_columns: set[str] = {
-                        record["column_name"]
-                        for record in await connection.fetch(
-                            "SELECT * FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2;",
-                            cls._schema,
-                            cls._local_name,
-                        )
-                    }
+            if issubclass(cls, Table) and await cls.exists(connection):
+                new_columns = [column._copy() for column in cls._columns]
+                old_columns: set[str] = {
+                    record["column_name"]
+                    for record in await connection.fetch(
+                        "SELECT * FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2;",
+                        cls._schema,
+                        cls._local_name,
+                    )
+                }
 
-                    for column_name in [c for c in cls._columns]:
-                        if column_name.name not in old_columns:
-                            del cls._columns_dict[column_name.name]
-                            await cls.add_column(connection, column_name._copy())
+                cls._columns_dict = {column.name: column for column in cls._columns if column.name in old_columns}
+                for column_name in old_columns:
+                    if column_name not in cls._columns_dict:
+                        cls._columns_dict[column_name] = Column.create(column_name, MISSING)
 
-                    for column_name in old_columns:
-                        if column_name not in cls._columns_dict:
-                            await cls.drop_column(connection, Column.create(column_name, MISSING))
+                await cls.migrate(connection, new_columns)
+                return
 
         query = cls._query_create(if_not_exists)
         await connection.execute(query)
