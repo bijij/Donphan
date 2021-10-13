@@ -26,10 +26,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Optional, TextIO, Union, overload
 
-from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from ._column import Column
+from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from ._object import Object
-from .utils import MISSING, optional_pool, query_builder, write_to_file
+from .utils import MISSING, optional_pool, optional_transaction, query_builder, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -220,11 +220,11 @@ class Creatable(Object):
         if_not_exists: bool = True,
         create_schema: bool = True,
         automatic_migrations: bool = False,
+        with_transaction: bool = True,
     ) -> None:
         """|coro|
 
         Creates all subclasses of this database object.
-        If an error occurs, the database will be rolled back.
 
         Parameters
         ----------
@@ -239,8 +239,11 @@ class Creatable(Object):
         automatic_migrations: :class:`bool`
             Sets whether migrations should be automatically performed.
             Defaults to ``False``.
+        with_transaction: :class:`bool`
+            Sets whether the database should be wrapped in a transaction.
+            Defaults to ``True``.
         """
-        async with connection.transaction():
+        async with optional_transaction(connection, with_transaction):
 
             for subcls in cls.__subclasses__():
                 if create_schema:

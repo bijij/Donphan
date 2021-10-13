@@ -42,7 +42,7 @@ from typing import (
 import asyncpg
 
 from ._consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
-from .utils import DOCS_BUILDING, MISSING, write_to_file
+from .utils import DOCS_BUILDING, MISSING, write_to_file, optional_transaction
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Pool
@@ -208,11 +208,15 @@ async def create_pool(
     return pool
 
 
-async def create_db(connection: Connection, if_not_exists: bool = True, automatic_migrations: bool = False) -> None:
+async def create_db(
+    connection: Connection,
+    if_not_exists: bool = True,
+    automatic_migrations: bool = False,
+    with_transaction: bool = True,
+) -> None:
     """|coro|
 
     A helper function to create all objects in the database.
-    If an error occurs, the database will be rolled back.
 
     Parameters
     ----------
@@ -224,6 +228,9 @@ async def create_db(connection: Connection, if_not_exists: bool = True, automati
     automatic_migrations: :class:`bool`
         Sets whether automatic migrations should be run.
         Defaults to ``False``.
+    with_transaction: :class:`bool`
+        Sets whether the database should be wrapped in a transaction.
+        Defaults to ``True``.
     """
     # this is a hack because >circular imports<
     from ._creatable import Creatable
@@ -231,7 +238,7 @@ async def create_db(connection: Connection, if_not_exists: bool = True, automati
     from ._table import Table
     from ._view import View
 
-    async with connection.transaction():
+    async with optional_transaction(connection, with_transaction):
 
         for schema in Creatable._find_schemas():
             if schema._schema != DEFAULT_SCHEMA:

@@ -41,12 +41,16 @@ from typing import (
     TextIO,
     TypeVar,
     Union,
+    overload,
 )
 
 from ._consts import NOT_CREATABLE
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from asyncpg import Connection
+    from asyncpg.transaction import Transaction
     from typing_extensions import Concatenate, ParamSpec
 
     from ._creatable import Creatable
@@ -61,6 +65,8 @@ __all__ = ("not_creatable",)
 T = TypeVar("T")
 CT = TypeVar("CT", bound="Creatable")
 OT = TypeVar("OT", bound="Object")
+
+BE = TypeVar("BE", bound=BaseException)
 
 Coro = Coroutine[Any, Any, T]
 
@@ -143,6 +149,41 @@ def optional_pool(
             return await func(cls, connection, *args, **kwargs)
 
     return wrapped
+
+
+class VoidContextManager:
+    def __enter__(self) -> None:
+        pass
+
+    def __exit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType) -> None:
+        pass
+
+    async def __aenter__(self) -> None:
+        pass
+
+    def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType) -> None:
+        pass
+
+
+@overload
+def optional_transaction(connection: Connection, use_transaction: Literal[True]) -> Transaction:
+    ...
+
+
+@overload
+def optional_transaction(connection: Connection, use_transaction: Literal[False]) -> VoidContextManager:
+    ...
+
+
+@overload
+def optional_transaction(connection: Connection, use_transaction: bool) -> Union[VoidContextManager, Transaction]:
+    ...
+
+
+def optional_transaction(connection: Connection, use_transaction: bool) -> Union[VoidContextManager, Transaction]:
+    if use_transaction:
+        return connection.transaction()
+    return VoidContextManager()
 
 
 PY_310 = sys.version_info >= (3, 10)

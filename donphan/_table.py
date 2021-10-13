@@ -29,10 +29,11 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from ._creatable import Creatable
 from ._insertable import Insertable
-from .utils import MISSING, not_creatable, optional_pool, query_builder
+from .utils import MISSING, not_creatable, optional_pool, optional_transaction, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record  # type: ignore
+
     from ._column import Column
 
 
@@ -160,22 +161,25 @@ class Table(Insertable, Creatable):
         connection: Connection,
         /,
         columns: Iterable[Column],
+        with_transaction: bool = True,
     ) -> None:
         """|coro|
 
         Migrates the table to the given columns.
-        If an error occurs, the transaction will be rolled back.
 
         Parameters
         ----------
-            connection: :class:`~asyncpg.Connection`
-                The connection to use.
-            columns: Iterable[:class:`~.Column`]
-                The new list of columns for the table.
+        connection: :class:`~asyncpg.Connection`
+            The connection to use.
+        columns: Iterable[:class:`~.Column`]
+            The new list of columns for the table.
+        with_transaction: :class:`bool`
+            Sets whether the database should be wrapped in a transaction.
+            Defaults to ``True``.
         """
         columns_dict = {column.name: column for column in columns}
 
-        async with connection.transaction():
+        async with optional_transaction(connection, with_transaction):
             for column in cls._columns:
                 if column.name not in columns_dict:
                     await cls.drop_column(connection, column)
@@ -195,11 +199,11 @@ class Table(Insertable, Creatable):
         *,
         create_new_table: bool = False,
         drop_table: bool = False,
+        with_transaction: bool = True,
     ) -> None:
         """|coro|
 
         Helper function for migrating data in a table to another.
-        If an error occurs, the transaction will be rolled back.
 
         Parameters
         ----------
@@ -216,6 +220,9 @@ class Table(Insertable, Creatable):
         drop_table: :class:`bool`
             Sets whether this table should be dropped after migrating.
             Defaults to ``False``.
+        with_transaction: :class:`bool`
+            Sets whether the database should be wrapped in a transaction.
+            Defaults to ``True``.
         """
         if cls._name == table._name:
             if migration is not MISSING:
@@ -223,7 +230,7 @@ class Table(Insertable, Creatable):
             await cls.migrate(connection, (column._copy() for column in table._columns))
             return
 
-        async with connection.transaction():
+        async with optional_transaction(connection, with_transaction):
 
             if migration is MISSING:
                 migration = dict
