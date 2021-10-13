@@ -26,7 +26,7 @@ class ViewTest(TestCase):
     @async_test
     @with_connection
     async def test_a_enum_create(self, conn):
-        await _TestTable.a.sql_type.create(conn)  # type: ignore
+        # await _TestTable.a.sql_type.create(conn)  # type: ignore
         await _TestTable.create(conn)
 
     @async_test
