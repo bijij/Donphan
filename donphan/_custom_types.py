@@ -76,6 +76,15 @@ class CustomType(SQLType[T], Creatable):
         raise NotImplementedError()
 
     @classmethod
+    async def register(
+        cls,
+        connection: Connection,
+    ) -> None:
+        for pool in POOLS:
+            for holder in pool._holders:
+                await cls._set_codec(holder._con)
+
+    @classmethod
     async def create(
         cls,
         connection: Connection,
@@ -89,20 +98,23 @@ class CustomType(SQLType[T], Creatable):
         except asyncpg.exceptions.DuplicateObjectError:
             if not if_not_exists:
                 raise
+        await cls.register(connection)
         CUSTOM_TYPES[cls._name] = cls
 
-        for pool in POOLS:
-            for holder in pool._holders:
-                await cls._set_codec(holder._con)
-
     @classmethod
-    async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
+    async def unregister(
+        cls,
+        connection: Connection,
+    ) -> None:
         for pool in POOLS:
             for holder in pool._holders:
                 await holder._con.reset_type_codec(cls._name[len(cls._schema) + 1 :], schema=cls._schema)
 
+    @classmethod
+    async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
+        await cls.unregister(connection)
         await super().drop(connection, *args, **kwargs)
-        del CUSTOM_TYPES[cls._name]
+        CUSTOM_TYPES.pop(cls._name, None)
 
 
 @not_creatable

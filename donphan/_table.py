@@ -27,7 +27,9 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from ._consts import CUSTOM_TYPES
 from ._creatable import Creatable
+from ._custom_types import CustomType
 from ._insertable import Insertable
 from .utils import MISSING, not_creatable, optional_pool, optional_transaction, query_builder
 
@@ -105,6 +107,47 @@ class Table(Insertable, Creatable):
     @query_builder
     def _query_add_column(cls, column: Column) -> list[str]:
         return ["ALTER TABLE", cls._name, "ADD COLUMN", column._query()]
+
+    @classmethod
+    @optional_pool
+    async def create(
+        cls,
+        connection: Connection,
+        *,
+        if_not_exists: bool = True,
+        create_schema: bool = True,
+        automatic_migrations: bool = False,
+    ) -> None:
+        """|coro|
+
+        Creates this database object.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
+            The database connection to use for transactions.
+        if_not_exists: :class:`bool`
+            Sets whether creation should continue if the object already exists.
+            Defaults to ``True``.
+        create_schema: :class:`bool`
+            Sets whether the database schema should also be created.
+            Defaults to ``True``.
+        automatic_migrations: :class:`bool`
+            Sets whether migrations should be automatically run.
+            Defaults to ``False``.
+        """
+        # create custom types if needed
+        for column in cls._columns:
+            if issubclass(column.sql_type, CustomType):
+                if column.sql_type._name not in CUSTOM_TYPES:
+                    await column.sql_type.create(connection, if_not_exists=if_not_exists)
+
+        return await super().create(
+            connection,
+            if_not_exists=if_not_exists,
+            create_schema=create_schema,
+            automatic_migrations=automatic_migrations,
+        )
 
     @classmethod
     @optional_pool

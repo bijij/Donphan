@@ -244,9 +244,15 @@ async def create_db(
             if schema._schema != DEFAULT_SCHEMA:
                 await schema.create(connection, if_not_exists=if_not_exists)
 
-        for type in (CustomType, Table, View):
+    await CustomType.create_all(
+        connection, if_not_exists=if_not_exists, create_schema=False, automatic_migrations=automatic_migrations
+    )
+
+    async with optional_transaction(connection, with_transaction):
+
+        for type in (Table, View):
             await type.create_all(
-                connection, if_not_exists=if_not_exists, create_schema=False, automatic_migrations=False
+                connection, if_not_exists=if_not_exists, create_schema=False, automatic_migrations=automatic_migrations
             )
 
 
