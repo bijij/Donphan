@@ -82,7 +82,8 @@ class CustomType(SQLType[T], Creatable):
     ) -> None:
         for pool in POOLS:
             for holder in pool._holders:
-                await cls._set_codec(holder._con)
+                if holder._con is not None:
+                    await cls._set_codec(holder._con)
 
     @classmethod
     async def create(
@@ -108,7 +109,8 @@ class CustomType(SQLType[T], Creatable):
     ) -> None:
         for pool in POOLS:
             for holder in pool._holders:
-                await holder._con.reset_type_codec(cls._name[len(cls._schema) + 1 :], schema=cls._schema)
+                if holder._con is not None:
+                    await holder._con.reset_type_codec(cls._name[len(cls._schema) + 1 :], schema=cls._schema)
 
     @classmethod
     async def drop(cls, connection: Connection, /, *args: Any, **kwargs: Any) -> None:
