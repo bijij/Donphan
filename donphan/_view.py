@@ -71,6 +71,7 @@ class View(Selectable, Creatable):
     ) -> None:
         if not hasattr(cls, name):
             column = ViewColumn()
+            setattr(cls, name, column)
         else:
             column = getattr(cls, name)
             if not isinstance(column, ViewColumn):
