@@ -241,9 +241,6 @@ class Column(BaseColumn, Generic[_T]):
         if not self.nullable:
             builder.append("NOT NULL")
 
-        if self.unique:
-            builder.append("UNIQUE")
-
         if self.default is not MISSING:
             builder.append("DEFAULT (")
             builder.append(str(self.default))

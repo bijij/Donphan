@@ -79,8 +79,23 @@ class Table(Insertable, Creatable):
         builder.append(cls._name)
         builder.append("(")
 
+        unique_columns = []
+
         for column in cls._columns:
             builder.append(column._query())
+            builder.append(",")
+
+            if column.unique:
+                unique_columns.append(column)
+
+        if unique_columns:
+            builder.append("UNIQUE (")
+            for column in unique_columns:
+                builder.append(column.name)
+                builder.append(",")
+
+            builder.pop(-1)
+            builder.append(")")
             builder.append(",")
 
         if cls._primary_keys:
