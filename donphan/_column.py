@@ -279,14 +279,14 @@ class Column(BaseColumn, Generic[_T]):
         return column
 
     @classmethod
-    def create(cls, name: str, type: Union[type[SQLType[_T]], type[Any]], **options: Any) -> Column[_T]:
+    def create(cls, name: str, type: type[SQLType[_T]], **options: Any) -> Column[_T]:
         """A shortcut for creating a column with a given type.
 
         Parameters
         ----------
         name: :class:`str`
             The name of the column.
-        type: :class:`SQLType`
+        type: type[:class:`SQLType`]
             The type of the column.
         """
         column = cls._with_type(type, **options)

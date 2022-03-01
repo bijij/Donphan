@@ -142,7 +142,7 @@ def optional_pool(
         # this is a hack because >circular imports<
         from ._connection import MaybeAcquire
 
-        if cls._pool is None:
+        if cls._pool is None:  # type: ignore
             raise RuntimeError("Database connection or object pool not specified.")
 
         async with MaybeAcquire(None, pool=cls._pool) as connection:  # type: ignore

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Donphan"
-version = "4.9.0"
+version = "4.9.1"
 description = "Asynchronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
@@ -16,6 +16,7 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Utilities",
