@@ -24,6 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
+from asyncio import Task
 import io
 import os
 import string
@@ -161,7 +162,7 @@ class VoidContextManager:
     async def __aenter__(self) -> None:
         pass
 
-    def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType) -> None:
+    async def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType):
         pass
 
 

@@ -255,6 +255,7 @@ class Creatable(Object):
                         connection,
                         if_not_exists=if_not_exists,
                         automatic_migrations=automatic_migrations,
+                        with_transaction=False,
                     )
                 else:
                     await subcls.create(
