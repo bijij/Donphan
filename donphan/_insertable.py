@@ -32,7 +32,7 @@ from ._selectable import Selectable
 from .utils import optional_pool, query_builder, resolve_annotation
 
 if TYPE_CHECKING:
-    from asyncpg import Connection, Record  # type: ignore
+    from asyncpg import Connection, Record
 
 
 __all__ = ("Insertable",)
@@ -70,19 +70,19 @@ class Insertable(Selectable):
 
         try:
             if not issubclass(type, SQLType):
-                type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
+                type = SQLType._from_type(list[type] if is_array else type)
             elif is_array:
-                type = SQLType._from_type(list[type.py_type])  # type: ignore
+                type = SQLType._from_type(list[type.py_type])
 
         except TypeError:
             if getattr(type, "__origin__", None) is not SQLType:
                 raise TypeError("Column typing generics must be a valid SQLType.")
             type = type.__args__[0]  # type: ignore
 
-            type = SQLType._from_type(list[type] if is_array else type)  # type: ignore
+            type = SQLType._from_type(list[type] if is_array else type)
 
         if not hasattr(cls, name):
-            column = Column._with_type(type)  # type: ignore
+            column = Column._with_type(type)
             setattr(cls, name, column)
         else:
             column = getattr(cls, name)
@@ -231,39 +231,8 @@ class Insertable(Selectable):
 
     # region: public methods
 
-    @overload
-    @classmethod
-    @optional_pool
-    async def insert(
-        cls,
-        connection: Connection,
-        /,
-        *,
-        ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-        **values: Any,
-    ) -> Record:
-        ...
-
-    @overload
-    @classmethod
-    @optional_pool
-    async def insert(
-        cls,
-        connection: Connection,
-        *,
-        ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
-        returning: None = ...,
-        **values: Any,
-    ) -> None:
-        ...
-
-    @classmethod
-    @optional_pool
-    async def insert(
-        cls,
+    async def _insert(
+        cls,  # type: ignore
         connection: Connection,
         /,
         *,
@@ -300,37 +269,70 @@ class Insertable(Selectable):
             return await connection.fetchrow(query, *values.values())
         await connection.execute(query, *values.values())
 
-    @overload
     @classmethod
-    @optional_pool
-    async def insert_many(
-        cls,
-        connection: Connection,
-        /,
-        columns: Union[Iterable[Union[Column, str]], str],
-        *values: Iterable[Any],
-        ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> None:
-        ...
-
     @overload
-    @classmethod
-    @optional_pool
-    async def insert_many(
+    async def insert(
         cls,
-        connection: Connection,
+        connection: Optional[Connection],
         /,
-        columns: None,
-        *values: dict[str, Any],
-        ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> None:
+        *,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> Record:
         ...
 
     @classmethod
+    @overload
+    async def insert(
+        cls,
+        connection: Optional[Connection],
+        /,
+        *,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def insert(
+        cls,
+        /,
+        *,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> Record:
+        ...
+
+    @classmethod
+    @overload
+    async def insert(
+        cls,
+        /,
+        *,
+        ignore_on_conflict: bool = ...,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def insert(cls, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    insert = classmethod(optional_pool(_insert))  # type: ignore
+    del _insert
+
+    @classmethod
     @optional_pool
-    async def insert_many(
+    async def _insert_many(
         cls,
         connection: Connection,
         /,
@@ -361,6 +363,63 @@ class Insertable(Selectable):
 
         query = cls._build_query_insert(columns, ignore_on_conflict, update_on_conflict or [], [])
         await connection.executemany(query, values)
+
+    @classmethod
+    @overload
+    async def insert_many(
+        cls,
+        connection: Optional[Connection],
+        /,
+        columns: Union[Iterable[Union[Column, str]], str],
+        *values: Iterable[Any],
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def insert_many(
+        cls,
+        connection: Optional[Connection],
+        /,
+        columns: None,
+        *values: dict[str, Any],
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def insert_many(
+        cls,
+        /,
+        columns: Union[Iterable[Union[Column, str]], str],
+        *values: Iterable[Any],
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def insert_many(
+        cls,
+        /,
+        columns: None,
+        *values: dict[str, Any],
+        ignore_on_conflict: bool = False,
+        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def insert_many(cls, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    insert_many = classmethod(optional_pool(_insert_many))  # type: ignore
+    del _insert_many
 
     @classmethod
     @optional_pool

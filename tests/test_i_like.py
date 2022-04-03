@@ -1,5 +1,3 @@
-import random
-
 from tests.utils import async_test
 from donphan import Column, Table, SQLType
 from unittest import TestCase
@@ -24,20 +22,20 @@ class ViewTest(TestCase):
 
     @async_test
     async def test_b_table_insert(self):
-        await _TestLikeTable.insert(None, a="foo")
-        await _TestLikeTable.insert(None, a="bar")
-        await _TestLikeTable.insert(None, a="foobar")
+        await _TestLikeTable.insert(a="foo")
+        await _TestLikeTable.insert(a="bar")
+        await _TestLikeTable.insert(a="foobar")
 
     @async_test
     async def test_c_table_fetch(self):
-        records = await _TestLikeTable.fetch(None, a__like=r"foo%")
+        records = await _TestLikeTable.fetch(a__like=r"foo%")
         assert len(records) == 2  # type: ignore
 
     @async_test
     async def test_d_table_fetch_insensitive(self):
-        records = await _TestLikeTable.fetch(None, a__ilike=r"FoO%")
+        records = await _TestLikeTable.fetch(a__ilike=r"FoO%")
         assert len(records) == 2  # type: ignore
 
     @async_test
     async def test_e_table_delete(self):
-        await _TestLikeTable.drop(None)
+        await _TestLikeTable.drop()

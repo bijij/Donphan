@@ -24,7 +24,6 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from asyncio import Task
 import io
 import os
 import string
@@ -44,6 +43,7 @@ from typing import (
     Union,
     overload,
 )
+from typing_extensions import Protocol
 
 from ._consts import NOT_CREATABLE
 
@@ -58,12 +58,14 @@ if TYPE_CHECKING:
     from ._object import Object
 
     P = ParamSpec("P")
-
+else:
+    P = TypeVar("P")
 
 __all__ = ("not_creatable",)
 
 
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 CT = TypeVar("CT", bound="Creatable")
 OT = TypeVar("OT", bound="Object")
 
@@ -127,9 +129,28 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
     return fp  # type: ignore
 
 
-def optional_pool(
-    func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]
-) -> Callable[Concatenate[type[OT], Optional[Connection], P], Coro[T]]:
+class _MaybePool(Protocol[P, T_co]):
+    @classmethod
+    @overload
+    async def __call__(
+        cls,
+        __conn: Optional[Connection],
+        *__args: P.args,
+        **__kwargs: P.kwargs,
+    ) -> T_co:
+        ...
+
+    @classmethod
+    @overload
+    async def __call__(
+        cls,
+        *__args: P.args,
+        **__kwargs: P.kwargs,
+    ) -> T_co:
+        ...
+
+
+def optional_pool(func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]) -> _MaybePool[P, T]:
     @wraps(func)
     async def wrapped(
         cls: type[OT],
@@ -149,7 +170,7 @@ def optional_pool(
         async with MaybeAcquire(None, pool=cls._pool) as connection:  # type: ignore
             return await func(cls, connection, *args, **kwargs)
 
-    return wrapped
+    return wrapped  # type: ignore
 
 
 class VoidContextManager:
@@ -162,7 +183,7 @@ class VoidContextManager:
     async def __aenter__(self) -> None:
         pass
 
-    async def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType):
+    async def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType) -> None:
         pass
 
 

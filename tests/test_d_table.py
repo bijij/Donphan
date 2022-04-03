@@ -1,7 +1,5 @@
 import random
 
-from asyncpg.exceptions import NullValueInExternalRoutineNotAllowedError
-
 from tests.utils import async_test
 from donphan import Column, Table, SQLType
 from unittest import TestCase
@@ -36,7 +34,7 @@ class ViewTest(TestCase):
     @async_test
     async def test_b_table_insert(self):
         for x in range(NUM_ITEMS):
-            await _TestTable.insert(None, a=x)
+            await _TestTable.insert(a=x)
 
     @async_test
     async def test_c_table_fetch(self):
@@ -45,18 +43,18 @@ class ViewTest(TestCase):
 
     @async_test
     async def test_d_table_insert_returning(self):
-        record = await _TestTable.insert(None, a=10, returning="*")
+        record = await _TestTable.insert(a=10, returning="*")
         assert record["a"] == 10
 
-        record = await _TestTable.insert(None, a=11, returning=["a"])
+        record = await _TestTable.insert(a=11, returning=["a"])
         assert record["a"] == 11
 
-        record = await _TestTable.insert(None, a=12, returning=[_TestTable.a])
+        record = await _TestTable.insert(a=12, returning=[_TestTable.a])
         assert record["a"] == 12
 
     @async_test
     async def test_e_table_fetch_in(self):
-        records = await _TestTable.fetch(None, a__in=(10, 11, 12, 13))
+        records = await _TestTable.fetch(a__in=(10, 11, 12, 13))
         assert len(list(records)) == 3
 
     @async_test

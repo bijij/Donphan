@@ -34,7 +34,7 @@ from ._insertable import Insertable
 from .utils import MISSING, not_creatable, optional_pool, optional_transaction, query_builder
 
 if TYPE_CHECKING:
-    from asyncpg import Connection, Record  # type: ignore
+    from asyncpg import Connection, Record
 
     from ._column import Column
 

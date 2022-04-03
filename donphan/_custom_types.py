@@ -142,7 +142,7 @@ class EnumType(CustomType[ET], sql_type=""):
         builder.append(cls._name)
         builder.append("AS ENUM (")
 
-        for key in cls.py_type:  # type: ignore
+        for key in cls.py_type:
             builder.append(f"'{key.name}'")
             builder.append(",")
 

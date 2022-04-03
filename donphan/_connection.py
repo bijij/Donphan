@@ -27,6 +27,7 @@ from __future__ import annotations
 import datetime
 import json
 from collections.abc import Callable
+from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -42,7 +43,7 @@ from typing import (
 import asyncpg
 
 from ._consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
-from .utils import DOCS_BUILDING, MISSING, write_to_file, optional_transaction
+from .utils import DOCS_BUILDING, write_to_file, optional_transaction
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Pool
@@ -61,6 +62,7 @@ __all__ = (
 
 
 T = TypeVar("T")
+BE = TypeVar("BE", bound=BaseException)
 OT = TypeVar("OT", bound="Object")
 
 
@@ -115,18 +117,18 @@ def _decode_timestamp(value: tuple[int]) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(round(value[0] + Y2K_EPOCH) / 1_000_000, datetime.timezone.utc)
 
 
-TYPE_CODECS: dict[str, TypeCodec] = {
+TYPE_CODECS: dict[str, TypeCodec[Any]] = {
     "json": TypeCodec[dict]("text", json.dumps, json.loads),
     "jsonb": TypeCodec[dict]("text", json.dumps, json.loads),
 }
 
-OPTIONAL_CODECS: dict[str, TypeCodec] = {  # type: ignore
+OPTIONAL_CODECS: dict[str, TypeCodec[Any]] = {
     "timestamp": TypeCodec[datetime.datetime]("tuple", _encode_datetime, _decode_timestamp),
 }
 
 if DOCS_BUILDING and not TYPE_CHECKING:
 
-    class TYPE_CODECS(dict[str, TypeCodec]):
+    class TYPE_CODECS(dict[str, TypeCodec[Any]]):
         """
         A dictionary of pre-defined custom type-codecs.
         """
@@ -138,7 +140,7 @@ if DOCS_BUILDING and not TYPE_CHECKING:
 
         jsonb = json
 
-    class OPTIONAL_CODECS(dict[str, TypeCodec]):
+    class OPTIONAL_CODECS(dict[str, TypeCodec[Any]]):
         """
         A dictionary of optional custom type-codecs.
         """
@@ -151,10 +153,10 @@ if DOCS_BUILDING and not TYPE_CHECKING:
 
 async def create_pool(
     dsn: str,
-    codecs: dict[str, TypeCodec] = {},
+    codecs: dict[str, TypeCodec[Any]] = {},
     *,
     set_as_default: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Pool:
     r"""|coro|
 
@@ -367,6 +369,6 @@ class MaybeAcquire:
             return c
         return self.connection
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, exc_type: type[BE], exc_val: BE, exc_tb: TracebackType) -> None:
         if self._cleanup:
             await self.pool.release(self._connection)  # type: ignore

@@ -26,7 +26,7 @@ __title__ = "donphan"
 __author__ = "Bijij"
 __license__ = "MIT"
 __copyright__ = "Copyright 2020-Present Bijij"
-__version__ = "4.9.2"
+__version__ = "4.10.0"
 
 from typing import TYPE_CHECKING
 
@@ -40,6 +40,8 @@ from ._view import *
 from . import utils as utils
 
 if TYPE_CHECKING:
-    from . import _types as SQLType
+    from . import _types as _SQLType  # type: ignore
+
+    SQLType = _SQLType
 else:
     from ._sqltype import *

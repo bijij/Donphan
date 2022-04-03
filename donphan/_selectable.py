@@ -28,7 +28,7 @@ import inspect
 import sys
 import types
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union
 
 from ._column import BaseColumn, Column, OnClause
 from ._consts import OPERATORS, NULL_OPERATORS
@@ -36,7 +36,7 @@ from ._object import Object
 from .utils import generate_alias, optional_pool, query_builder
 
 if TYPE_CHECKING:
-    from asyncpg import Connection, Record  # type: ignore
+    from asyncpg import Connection, Record
 
     from ._join import Join, JoinType
 

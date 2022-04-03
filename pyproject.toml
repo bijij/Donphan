@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Donphan"
-version = "4.9.2"
+version = "4.10.0"
 description = "Asynchronous Database ORM for Postgres"
 authors = ["bijij <josh@josh-is.gay>"]
 license = "MIT"
@@ -61,3 +61,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pyright]
 include = ["donphan/**"]
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportUnusedImport = "error"
+pythonVersion = "3.9"
+typeCheckingMode = "basic"
