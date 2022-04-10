@@ -58,5 +58,9 @@ class ViewTest(TestCase):
         assert len(list(records)) == 3
 
     @async_test
-    async def test_f_table_delete(self):
+    async def test_f_table_insert_many(self):
+        await _TestTable.insert_many(None, [_TestTable.a], (-1,), (-2,))
+
+    @async_test
+    async def test_g_table_delete(self):
         await _TestTable.drop(None)

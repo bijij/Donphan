@@ -330,10 +330,8 @@ class Insertable(Selectable):
     insert = classmethod(optional_pool(_insert))  # type: ignore
     del _insert
 
-    @classmethod
-    @optional_pool
     async def _insert_many(
-        cls,
+        cls,  # type: ignore
         connection: Connection,
         /,
         columns: Optional[Union[Iterable[Union[Column, str]], str]],
