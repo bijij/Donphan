@@ -38,12 +38,12 @@ from typing import (
     ForwardRef,
     Literal,
     Optional,
+    Protocol,
     TextIO,
     TypeVar,
     Union,
     overload,
 )
-from typing_extensions import Protocol
 
 from ._consts import NOT_CREATABLE
 
