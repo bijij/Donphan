@@ -206,6 +206,7 @@ class Column(BaseColumn, Generic[_T]):
     """
 
     if TYPE_CHECKING:
+
         @property
         def name(self) -> str:
             ...
@@ -241,7 +242,6 @@ class Column(BaseColumn, Generic[_T]):
         @_sql_type.deleter
         def _sql_type(self) -> None:
             ...
-
 
     primary_key: bool = False
     index: bool = False
@@ -340,6 +340,7 @@ class JoinColumn(BaseColumn):
     """
 
     if TYPE_CHECKING:
+
         @property
         def name(self) -> str:
             ...
@@ -403,6 +404,7 @@ class ViewColumn(BaseColumn):
     """
 
     if TYPE_CHECKING:
+
         @property
         def name(self) -> str:
             ...

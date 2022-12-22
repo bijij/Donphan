@@ -72,7 +72,6 @@ if TYPE_CHECKING:
         def try_value(cls: type[ET], value: Any) -> ET:
             ...
 
-
 else:
 
     def _create_value_cls(name):
