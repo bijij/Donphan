@@ -23,7 +23,7 @@ class TestLinters(TestCase):
 
         try:
             subprocess.run(
-                (sys.executable, "-m", "black", "--check"),
+                (sys.executable, "-m", "black", "--check", "."),
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
