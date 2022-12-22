@@ -70,7 +70,7 @@ OT = TypeVar("OT", bound="Object")
 Y2K_EPOCH: Final[int] = 946684800000000
 
 
-class TypeCodec(tuple[T]):
+class TypeCodec(tuple[Literal["text", "binary", "tuple"], Callable[[T], Any], Callable[..., T]]):
     """
     A NamedTuple defining a custom type codec.
 
@@ -100,7 +100,7 @@ class TypeCodec(tuple[T]):
         encoder: Callable[[T], Any],
         decoder: Callable[..., T],
     ) -> TypeCodec[T]:
-        new_cls = super().__new__(cls, (format, encoder, decoder))  # type: ignore
+        new_cls = super().__new__(cls, (format, encoder, decoder))
         new_cls.format = format
         new_cls.encoder = encoder
         new_cls.decoder = decoder

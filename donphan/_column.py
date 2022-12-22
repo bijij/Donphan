@@ -206,9 +206,29 @@ class Column(BaseColumn, Generic[_T]):
     """
 
     if TYPE_CHECKING:
-        name: str = MISSING
-        table: type[Selectable] = MISSING
-        _sql_type: type[SQLType[_T]] = MISSING
+        @property
+        def name(self) -> str:
+            ...
+
+        @name.setter
+        def name(self, value: str) -> None:
+            ...
+
+        @property
+        def table(self) -> type[Selectable]:
+            ...
+
+        @table.setter
+        def table(self, value: type[Selectable]) -> None:
+            ...
+
+        @property
+        def _sql_type(self) -> type[SQLType[_T]]:
+            ...
+
+        @_sql_type.setter
+        def _sql_type(self, value: type[SQLType[_T]]) -> None:
+            ...
 
     primary_key: bool = False
     index: bool = False
@@ -338,8 +358,21 @@ class ViewColumn(BaseColumn):
     """
 
     if TYPE_CHECKING:
-        name: str
-        view: type[View]
+        @property
+        def name(self) -> str:
+            ...
+
+        @name.setter
+        def name(self, value: str) -> None:
+            ...
+
+        @property
+        def view(self) -> type[View]:
+            ...
+
+        @view.setter
+        def view(self, value: type[View]) -> None:
+            ...
 
     @property
     def _selectable(self) -> type[Selectable]:

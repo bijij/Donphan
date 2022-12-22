@@ -149,11 +149,11 @@ class Selectable(Object):
                     if value is None:
                         if operator not in NULL_OPERATORS:
                             raise NameError(f"Unknown null operator {operator}.")
-                        operator = NULL_OPERATORS[operator]  # type: ignore
+                        operator = NULL_OPERATORS[operator]
                     else:
                         if operator not in OPERATORS:
                             raise NameError(f"Unknown operator {operator}.")
-                        operator = OPERATORS[operator]  # type: ignore
+                        operator = OPERATORS[operator]
 
             if name not in cls._columns_dict:
                 raise NameError(f"Unknown column {name} in selectable {cls._name}.")
