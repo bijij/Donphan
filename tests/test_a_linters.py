@@ -36,7 +36,7 @@ class TestLinters(TestCase):
     def test_pyright(self):
         try:
             subprocess.run(
-                ("pyright.cmd" if WINDOWS else ".\\pyright"),
+                ("pyright.cmd" if WINDOWS else "pyright"),
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

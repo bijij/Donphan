@@ -76,7 +76,7 @@ class OnClause(tuple["BaseColumn", "BaseColumn", Operators]):
         b: BaseColumn,
         operator: Operators = "eq",
     ) -> OnClause:
-        new_cls = super().__new__(cls, (a, b, operator))  # type: ignore
+        new_cls = super().__new__(cls, (a, b, operator))
         new_cls.a = a
         new_cls.b = b
         new_cls.operator = operator
@@ -214,12 +214,20 @@ class Column(BaseColumn, Generic[_T]):
         def name(self, value: str) -> None:
             ...
 
+        @name.deleter
+        def name(self) -> None:
+            ...
+
         @property
         def table(self) -> type[Selectable]:
             ...
 
         @table.setter
         def table(self, value: type[Selectable]) -> None:
+            ...
+
+        @table.deleter
+        def table(self) -> None:
             ...
 
         @property
@@ -229,6 +237,11 @@ class Column(BaseColumn, Generic[_T]):
         @_sql_type.setter
         def _sql_type(self, value: type[SQLType[_T]]) -> None:
             ...
+
+        @_sql_type.deleter
+        def _sql_type(self) -> None:
+            ...
+
 
     primary_key: bool = False
     index: bool = False
@@ -327,9 +340,41 @@ class JoinColumn(BaseColumn):
     """
 
     if TYPE_CHECKING:
-        name: str
-        join: type[Join]
-        source: type[Selectable]
+        @property
+        def name(self) -> str:
+            ...
+
+        @name.setter
+        def name(self, value: str) -> None:
+            ...
+
+        @name.deleter
+        def name(self) -> None:
+            ...
+
+        @property
+        def join(self) -> type[Join]:
+            ...
+
+        @join.setter
+        def join(self, value: type[Join]) -> None:
+            ...
+
+        @join.deleter
+        def join(self) -> None:
+            ...
+
+        @property
+        def source(self) -> type[Selectable]:
+            ...
+
+        @source.setter
+        def source(self, value: type[Selectable]) -> None:
+            ...
+
+        @source.deleter
+        def source(self) -> None:
+            ...
 
     @property
     def _selectable(self) -> type[Selectable]:
@@ -366,12 +411,20 @@ class ViewColumn(BaseColumn):
         def name(self, value: str) -> None:
             ...
 
+        @name.deleter
+        def name(self) -> None:
+            ...
+
         @property
         def view(self) -> type[View]:
             ...
 
         @view.setter
         def view(self, value: type[View]) -> None:
+            ...
+
+        @view.deleter
+        def view(self) -> None:
             ...
 
     @property

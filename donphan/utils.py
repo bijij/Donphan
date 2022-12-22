@@ -103,7 +103,7 @@ def generate_alias() -> str:
 
 
 def query_builder(func: Callable[P, list[Any]]) -> Callable[P, str]:
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> str:
         return " ".join(str(e) for e in func(*args, **kwargs))
 
     return wrapper
