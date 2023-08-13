@@ -46,7 +46,7 @@ class ViewTest(TestCase):
         assert record is not None
         assert record["a"] == 1
 
-        value = await _TestTable.fetch_value(_TestTable.a, a=2)
+        value = await _TestTable.fetch_value(None, _TestTable.a, a=2)
         assert value == 2
 
     @async_test
