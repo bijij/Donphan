@@ -543,7 +543,7 @@ class Insertable(Selectable):
         """
         primary_keys = cls._get_primary_keys(record)
         where = cls._build_where_clause(primary_keys)
-        result = await cls.update_where(connection, where, *primary_keys.values(), returning=returning, **values)
+        result = await cls.update_where(connection, where, *primary_keys.values(), returning=returning or cls._primary_keys, **values)
 
         if not result:
             raise ValueError("Record does not exist in database.")
