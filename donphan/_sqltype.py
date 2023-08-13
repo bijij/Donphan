@@ -141,6 +141,11 @@ if not TYPE_CHECKING:
             {"sql_type": sql_type + "[]", "default": is_default},
         )
         types.new_class(
+            name,
+            (SQLType[cls],),
+            {"sql_type": sql_type, "default": True},
+        )
+        types.new_class(
             name + "[]",
             (SQLType[list[cls]],),
             {"sql_type": sql_type + "[]", "default": True},
