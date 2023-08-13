@@ -99,6 +99,25 @@ class Insertable(Selectable):
         return {column.name: record[column.name] for column in cls._primary_keys}
 
     @classmethod
+    def _query_returning(
+        cls,
+        builder: list[str],
+        returning: Union[Iterable[Union[Column, str]], str],
+    ) -> None:
+        builder.append("RETURNING")
+
+        if isinstance(returning, str):
+            builder.append(returning)
+        else:
+            for column in returning:
+                if isinstance(column, Column):
+                    column = column.name
+                builder.append(column)
+                builder.append(",")
+
+            builder.pop(-1)
+
+    @classmethod
     @query_builder
     def _build_query_insert(
         cls,
@@ -159,18 +178,7 @@ class Insertable(Selectable):
                 builder.pop(-1)
 
         if returning:
-            builder.append("RETURNING")
-
-            if isinstance(returning, str):
-                builder.append(returning)
-            else:
-                for column in returning:
-                    if isinstance(column, Column):
-                        column = column.name
-                    builder.append(column)
-                    builder.append(",")
-
-                builder.pop(-1)
+            cls._query_returning(builder, returning)
 
         return builder
 
@@ -181,6 +189,7 @@ class Insertable(Selectable):
         where: str,
         offset: int,
         columns: Union[Iterable[Union[Column, str]], str],
+        returning: Union[Iterable[Union[Column, str]], str],
     ) -> list[str]:
         builder = [f"UPDATE", cls._name, "SET"]
 
@@ -196,8 +205,12 @@ class Insertable(Selectable):
 
         builder.pop(-1)
 
-        builder.append("WHERE")
-        builder.append(where)
+        if where:
+            builder.append("WHERE")
+            builder.append(where)
+
+        if returning:
+            cls._query_returning(builder, returning)
 
         return builder
 
@@ -206,11 +219,16 @@ class Insertable(Selectable):
     def _build_query_delete(
         cls,
         where: str,
+        returning: Union[Iterable[Union[Column, str]], str],
     ) -> list[str]:
         builder = ["DELETE FROM", cls._name]
         if where:
             builder.append("WHERE")
             builder.append(where)
+
+        if returning:
+            cls._query_returning(builder, returning)
+
         return builder
 
     # endregion
@@ -310,7 +328,7 @@ class Insertable(Selectable):
         ...
 
     @classmethod
-    async def insert(cls, *args: Any, **kwargs: Any) -> None:
+    async def insert(cls):  # type: ignore
         ...
 
     insert = classmethod(optional_pool(_insert))  # type: ignore
@@ -399,22 +417,21 @@ class Insertable(Selectable):
         ...
 
     @classmethod
-    async def insert_many(cls, *args: Any, **kwargs: Any) -> None:
+    async def insert_many(cls):  # type: ignore
         ...
 
     insert_many = classmethod(optional_pool(_insert_many))  # type: ignore
     del _insert_many
 
-    @classmethod
-    @optional_pool
-    async def update_where(
-        cls,
+    async def _update_where(
+        cls,  # type: ignore
         connection: Connection,
         /,
         where: str,
         *values: Any,
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
         **_values: Any,
-    ) -> None:
+    ) -> Optional[list[Record]]:
         r"""|coro|
 
         Updates records in the database which match a given WHERE clause.
@@ -429,20 +446,83 @@ class Insertable(Selectable):
             Values to be substituted into the WHERE clause.
         \*\*values: Any
             The column to value mapping to assign to updated records.
+
+        Returns
+        -------
+        Optional[List[:class:`asyncpg.Record`]]
+            A list of records containing information from the updated records.
         """
         columns = cls._get_columns(_values)
-        query = cls._build_query_update(where, len(values) + 1, columns)
+        query = cls._build_query_update(where, len(values) + 1, columns, returning or [])
+        if returning is not None:
+            return await connection.fetch(query, *values, *_values.values())
         await connection.execute(query, *values, *_values.values())
 
     @classmethod
-    @optional_pool
-    async def update_record(
+    @overload
+    async def update_where(
         cls,
+        connection: Optional[Connection],
+        /,
+        where: str,
+        *values: Any,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **_values: Any,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def update_where(
+        cls,
+        connection: Optional[Connection],
+        /,
+        where: str,
+        *values: Any,
+        returning: None = ...,
+        **_values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def update_where(
+        cls,
+        /,
+        where: str,
+        *values: Any,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **_values: Any,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def update_where(
+        cls,
+        /,
+        where: str,
+        *values: Any,
+        returning: None = ...,
+        **_values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def update_where(cls):  # type: ignore
+        ...
+
+    update_where = classmethod(optional_pool(_update_where))  # type: ignore
+    del _update_where
+
+    async def _update_record(
+        cls,  # type: ignore
         connection: Connection,
         /,
         record: Record,
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
         **values: Any,
-    ) -> None:
+    ) -> Optional[Record]:
         r"""|coro|
 
         Updates a record in the database.
@@ -455,20 +535,83 @@ class Insertable(Selectable):
             The record to update.
         \*\*values: Any
             The column to value mapping to assign to updated record.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record containing information from the updated record.
         """
         primary_keys = cls._get_primary_keys(record)
         where = cls._build_where_clause(primary_keys)
-        return await cls.update_where(connection, where, *primary_keys.values(), **values)
+        result = await cls.update_where(connection, where, *primary_keys.values(), returning=returning, **values)
+
+        if not result:
+            raise ValueError("Record does not exist in database.")
+
+        if returning is not None:
+            return result[0]
 
     @classmethod
-    @optional_pool
-    async def delete_where(
+    @overload
+    async def update_record(
         cls,
+        connection: Optional[Connection],
+        /,
+        record: Record,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> Record:
+        ...
+
+    @classmethod
+    @overload
+    async def update_record(
+        cls,
+        connection: Optional[Connection],
+        /,
+        record: Record,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def update_record(
+        cls,
+        /,
+        record: Record,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> Record:
+        ...
+
+    @classmethod
+    @overload
+    async def update_record(
+        cls,
+        /,
+        record: Record,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def update_record(cls):  # type: ignore
+        ...
+
+    update_record = classmethod(optional_pool(_update_record))  # type: ignore
+    del _update_record
+
+    async def _delete_where(
+        cls,  # type: ignore
         connection: Connection,
         /,
         where: str,
         *values: Any,
-    ) -> None:
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> Optional[list[Record]]:
         """|coro|
 
         Deletes records in the database which match the given WHERE clause.
@@ -481,18 +624,79 @@ class Insertable(Selectable):
             An SQL WHERE clause.
         *values: Any
             Values to be substituted into the WHERE clause.
+        returning: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An optional list of or string representing columns to return from the deleted records.
+
+        Returns
+        -------
+        Optional[List[:class:`asyncpg.Record`]]
+            A list of records containing information from the deleted records.
         """
-        query = cls._build_query_delete(where)
+        query = cls._build_query_delete(where, returning or [])
+        if returning is not None:
+            return await connection.fetch(query, *values)
         await connection.execute(query, *values)
 
     @classmethod
-    @optional_pool
-    async def delete(
+    @overload
+    async def delete_where(
         cls,
+        connection: Optional[Connection],
+        /,
+        where: str,
+        *values: Any,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_where(
+        cls,
+        connection: Optional[Connection],
+        /,
+        where: str,
+        *values: Any,
+        returning: None = ...,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_where(
+        cls,
+        /,
+        where: str,
+        *values: Any,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_where(
+        cls,
+        /,
+        where: str,
+        *values: Any,
+        returning: None = ...,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def delete_where(cls):  # type: ignore
+        ...
+
+    delete_where = classmethod(optional_pool(_delete_where))  # type: ignore
+    del _delete_where
+
+    async def _delete(
+        cls,  # type: ignore
         connection: Connection,
         /,
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
         **values: Any,
-    ) -> None:
+    ) -> Optional[list[Record]]:
         r"""|coro|
 
         Deletes records in the database which contain the given values.
@@ -503,18 +707,76 @@ class Insertable(Selectable):
             The database connection to use for transactions.
         \*\*values: Any
             The column to value mapping to filter records with.
+        returning: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An optional list of or string representing columns to return from the deleted records.
+
+        Returns
+        -------
+        Optional[List[:class:`asyncpg.Record`]]
+            A list of records containing information from the deleted records.
         """
         where = cls._build_where_clause(values)
-        return await cls.delete_where(connection, where, *filter(lambda v: v is not None, values.values()))
+        return await cls.delete_where(
+            connection, where, *filter(lambda v: v is not None, values.values()), returning=returning
+        )
 
     @classmethod
-    @optional_pool
-    async def delete_record(
+    @overload
+    async def delete(
         cls,
+        connection: Optional[Connection],
+        /,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def delete(
+        cls,
+        connection: Optional[Connection],
+        /,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def delete(
+        cls,
+        /,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        **values: Any,
+    ) -> list[Record]:
+        ...
+
+    @classmethod
+    @overload
+    async def delete(
+        cls,
+        /,
+        returning: None = ...,
+        **values: Any,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def delete(cls):  # type: ignore
+        ...
+
+    delete = classmethod(optional_pool(_delete))  # type: ignore
+    del _delete
+
+    async def _delete_record(
+        cls,  # type: ignore
         connection: Connection,
         /,
         record: Record,
-    ) -> None:
+        *,
+        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+    ) -> Optional[Record]:
         """|coro|
 
         Deletes a given record from the database.
@@ -525,9 +787,77 @@ class Insertable(Selectable):
             The database connection to use for transactions.
         record: :class:`asyncpg.Record`
             The record to delete.
+        returning: Optional[Union[Iterable[Union[:class:`~Column`, :class:`str`]], :class:`str`]]
+            An optional list of or string representing columns to return from the deleted record.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record containing information from the deleted record.
         """
         primary_keys = cls._get_primary_keys(record)
         where = cls._build_where_clause(primary_keys)
-        return await cls.delete_where(connection, where, *primary_keys.values())
+        result = await cls.delete_where(
+            connection, where, *primary_keys.values(), returning=returning or cls._primary_keys
+        )
+
+        if not result:
+            raise ValueError("Record does not exist in database.")
+
+        if returning is not None:
+            return result[0]
+
+    @classmethod
+    @overload
+    async def delete_record(
+        cls,
+        connection: Optional[Connection],
+        /,
+        record: Record,
+        *,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+    ) -> Record:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_record(
+        cls,
+        connection: Optional[Connection],
+        /,
+        record: Record,
+        *,
+        returning: None = ...,
+    ) -> None:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_record(
+        cls,
+        /,
+        record: Record,
+        *,
+        returning: Union[Iterable[Union[Column, str]], str] = ...,
+    ) -> Record:
+        ...
+
+    @classmethod
+    @overload
+    async def delete_record(
+        cls,
+        /,
+        record: Record,
+        *,
+        returning: None = ...,
+    ) -> None:
+        ...
+
+    @classmethod
+    async def delete_record(cls):  # type: ignore
+        ...
+
+    delete_record = classmethod(optional_pool(_delete_record))  # type: ignore
+    del _delete_record
 
     # endregion

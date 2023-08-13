@@ -28,7 +28,7 @@ import inspect
 import sys
 import types
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, TypeVar, Union, overload
 
 from ._column import BaseColumn, Column, OnClause
 from ._consts import OPERATORS, NULL_OPERATORS
@@ -42,6 +42,9 @@ if TYPE_CHECKING:
 
 
 __all__ = ("Selectable",)
+
+
+_T = TypeVar("_T")
 
 
 OrderBy = tuple[BaseColumn, Literal["ASC", "DESC"]]
@@ -66,7 +69,7 @@ class Selectable(Object):
     @classmethod
     def _get_columns(
         cls,
-        values: dict[str, Any],
+        values: Iterable[str],
     ) -> Iterable[Column]:
         return [cls._columns_dict[column] for column in values]
 
@@ -356,6 +359,190 @@ class Selectable(Object):
         return await cls.fetch_row_where(
             connection, where, *filter(lambda v: v is not None, values.values()), order_by=order_by
         )
+
+    async def _fetch_value_where(
+        cls,  # type: ignore
+        connection: Connection,
+        /,
+        column: Union[Column[_T], str],
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[Union[_T, Any]]:
+        r"""|coro|
+
+        Fetches a record in the database which match a given WHERE clause.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
+            The database connection to use for transactions.
+        where: :class:`str`
+            An SQL WHERE clause.
+        \*values: Any
+            Values to be substituted into the WHERE clause.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record which matches the WHERE clause if found.
+        """
+        query = cls._build_query_fetch(where, None, order_by)
+
+        if isinstance(column, str):
+            column = cls._columns_dict[column]
+
+        return await connection.fetchval(query, *values, column=list(cls._columns).index(column))
+
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        connection: Optional[Connection],
+        /,
+        column: Column[_T],
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[_T]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        connection: Optional[Connection],
+        /,
+        column: str,
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[Any]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        /,
+        column: Column[_T],
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[_T]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        /,
+        column: str,
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[Any]:
+        ...
+
+    @classmethod
+    async def fetch_value_where(cls):  # type: ignore
+        ...
+
+    fetch_value_where = classmethod(optional_pool(_fetch_value_where))  # type: ignore
+    del _fetch_value_where
+
+    async def _fetch_value(
+        cls,  # type: ignore
+        connection: Connection,
+        /,
+        column: Union[Column[_T], str],
+        *,
+        order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
+    ) -> Optional[Union[_T, Any]]:
+        r"""|coro|
+
+        Fetches a records in the database which contains the given values.
+
+        Parameters
+        ----------
+        connection: :class:`asyncpg.Connection <asyncpg.connection.Connection>`
+            The database connection to use for transactions.
+        order_by: Optional[Union[Tuple[:class:`BaseColumn`, Literal["ASC", "DESC"]], str]
+            Sets the ORDER BY condition on the database query. Takes a tuple
+            concisting of the column and direction, or a string defining the condition.
+        \*\*values: Any
+            The column to value mapping to filter records with.
+
+        Returns
+        -------
+        Optional[:class:`asyncpg.Record`]
+            A record which contains the given values if found.
+        """
+        where = cls._build_where_clause(values)
+        return await cls.fetch_value_where(
+            connection, column, where, *filter(lambda v: v is not None, values.values()), order_by=order_by
+        )
+
+    @classmethod
+    @overload
+    async def fetch_value(
+        cls,
+        connection: Optional[Connection],
+        /,
+        column: Column[_T],
+        *,
+        order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
+    ) -> Optional[_T]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value(
+        cls,
+        connection: Optional[Connection],
+        /,
+        column: str,
+        *,
+        order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
+    ) -> Optional[Any]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value(
+        cls,
+        /,
+        column: Column[_T],
+        *,
+        order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
+    ) -> Optional[_T]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value(
+        cls,
+        /,
+        column: str,
+        *,
+        order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
+    ) -> Optional[Any]:
+        ...
+
+    @classmethod
+    async def fetch_value(cls):  # type: ignore
+        ...
+
+    fetch_value = classmethod(optional_pool(_fetch_value))  # type: ignore
+    del _fetch_value
 
     # endregion
 

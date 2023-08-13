@@ -42,6 +42,13 @@ class ViewTest(TestCase):
         records = await _TestTable.fetch(None)
         assert len(list(records)) == NUM_ITEMS
 
+        record = await _TestTable.fetch_row(a=1)
+        assert record is not None
+        assert record["a"] == 1
+
+        value = await _TestTable.fetch_value(_TestTable.a, a=2)
+        assert value == 2
+
     @async_test
     async def test_d_table_insert_returning(self):
         record = await _TestTable.insert(a=10, returning="*")
@@ -63,5 +70,5 @@ class ViewTest(TestCase):
         await _TestTable.insert_many(None, [_TestTable.a], (-1,), (-2,))
 
     @async_test
-    async def test_g_table_delete(self):
+    async def test_g_table_drop(self):
         await _TestTable.drop(None)
