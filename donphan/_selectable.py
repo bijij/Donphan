@@ -382,7 +382,7 @@ class Selectable(Object):
             ns["_selectables"] = (cls, other)
             ns["_on"] = on
 
-        return types.new_class(name, (Join,), {}, exec_body)  # type: ignore
+        return types.new_class(name, (Join,), {}, exec_body)
 
     @classmethod
     def inner_join(

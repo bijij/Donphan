@@ -60,26 +60,12 @@ class Insertable(Selectable):
 
         if getattr(type, "__origin__", None) is not Column:
             raise TypeError("Column typings must be of type Column.")
-
         type = type.__args__[0]
-        is_array = False
-
-        if getattr(type, "__origin__", None) is list:
-            is_array = True
-            type = type.__args__[0]
 
         try:
-            if not issubclass(type, SQLType):
-                type = SQLType._from_type(list[type] if is_array else type)
-            elif is_array:
-                type = SQLType._from_type(list[type.py_type])
-
+            type = SQLType._from_type(type)
         except TypeError:
-            if getattr(type, "__origin__", None) is not SQLType:
-                raise TypeError("Column typing generics must be a valid SQLType.")
-            type = type.__args__[0]  # type: ignore
-
-            type = SQLType._from_type(list[type] if is_array else type)
+            raise TypeError("Column typing generics must be a valid SQLType.")
 
         if not hasattr(cls, name):
             column = Column._with_type(type)

@@ -10,13 +10,14 @@ NUM_ITEMS = random.randint(3, 10)
 
 class _TestTable(Table):
     a: Column[SQLType.Integer] = Column(primary_key=True)
+    b: Column[list[SQLType.Double]]
 
 
 class ViewTest(TestCase):
     def test_query_create(self):
         assert (
             _TestTable._query_create(True)
-            == "CREATE TABLE IF NOT EXISTS public.__test_table ( a INTEGER , PRIMARY KEY ( a ) )"
+            == "CREATE TABLE IF NOT EXISTS public.__test_table ( a INTEGER , b DOUBLE PRECISION[] , PRIMARY KEY ( a ) )"
         )
 
     def test_query_fetch_in(self):
