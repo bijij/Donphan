@@ -2,7 +2,7 @@ import random
 from unittest import TestCase
 
 from donphan import CachedTable, Column, SQLType
-from donphan.utils import not_creatable, LRUDict
+from donphan.utils import LRUDict, not_creatable
 from tests.utils import async_test, with_connection
 
 NUM_ITEMS = random.randint(3, 10)
@@ -58,7 +58,7 @@ class CachedTableTest(TestCase):
     @async_test
     @with_connection
     async def test_g_fetch_row_cache_hit(self, conn):
-        _TestCachedTable._cache[(0,)]["b"] = [3]
+        _TestCachedTable._cache[(0,)]["b"] = [3]  # type: ignore
         record = await _TestCachedTable.fetch_row(conn, a=0)
         assert record is not None
         assert record["b"] == [3]
@@ -75,7 +75,7 @@ class CachedTableTest(TestCase):
     @async_test
     @with_connection
     async def test_i_fetch_value_cache_hit(self, conn):
-        _TestCachedTable._cache[(0,)]["b"] = [5]
+        _TestCachedTable._cache[(0,)]["b"] = [5]  # type: ignore
         record = await _TestCachedTable.fetch_value(conn, "b", a=0)
         assert record == [5]
 
@@ -92,10 +92,21 @@ class CachedTableTest(TestCase):
 
     @async_test
     @with_connection
-    async def test_k_table_drop(self, conn):
+    async def test_k_fetch_row_cache_miss_no_value(self, conn):
+        assert _TestCachedTable.get_cached(a=-1) is None
+        record = await _TestCachedTable.fetch_row(conn, a=-1)
+        assert record is None
+        assert _TestCachedTable._cache[(-1,)] is None
+
+        await _TestCachedTable.insert(conn, a=-1)
+        assert _TestCachedTable.get_cached(a=-1) is not None
+
+    @async_test
+    @with_connection
+    async def test_l_table_drop(self, conn):
         await _TestCachedTable.drop(conn)
 
-    def test_l_table_cache_dict_type(self):
+    def test_m_table_cache_dict_type(self):
         assert type(_TestCachedTable._cache) is dict
         assert type(_TestCachedTableSizes._cache) is LRUDict
         assert _TestCachedTableSizes._cache.max_size == 1

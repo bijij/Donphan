@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any, NoReturn
 
 from ._column import Column
 from ._table import Table
-from .utils import DOCS_BUILDING, LRUDict, not_creatable, with_lock
+from .utils import DOCS_BUILDING, MISSING, LRUDict, not_creatable, with_lock
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record
@@ -45,9 +45,7 @@ class CachedTable(Table):
 
     .. note::
         The cache is only used for the following methods:
-            - :meth:`.fetch_row_where`
-            - :meth:`.fetch_where`
-            - :meth:`.fetch_value_where`
+            - :meth:`.fetch_row`
             - :meth:`.fetch_value`
 
     .. warning::
@@ -56,7 +54,7 @@ class CachedTable(Table):
     """
 
     _lock: asyncio.Lock
-    _cache: dict[tuple[Any, ...], dict[str, Any]]
+    _cache: dict[tuple[Any, ...], dict[str, Any] | None]
 
     def __init_subclass__(cls, max_cache_size: int | None = None, **kwargs: Any) -> None:
         cls._lock = asyncio.Lock()
@@ -75,8 +73,8 @@ class CachedTable(Table):
         return tuple(cls._get_primary_keys(record).values())
 
     @classmethod
-    def _store_cached(cls, *args: Any, record: dict[str, Any]) -> None:
-        cls._cache[args] = dict(record)
+    def _store_cached(cls, *args: Any, record: dict[str, Any] | None) -> None:
+        cls._cache[args] = dict(record) if record is not None else None
 
     @classmethod
     def _delete_cached(cls, *args: Any) -> None:
@@ -90,9 +88,6 @@ class CachedTable(Table):
             The returned record is not a copy, so modifying it will modify the cached record.
         """
         key = cls._get_primary_key_values(kwargs)
-
-        print("\n\n", kwargs, "\n", key, "\n\n")
-
         return cls._cache.get(key)
 
     @classmethod
@@ -112,31 +107,44 @@ class CachedTable(Table):
 
         @classmethod
         @with_lock
-        async def fetch_row_where(cls, *args: Any, **kwargs: Any) -> Record | None:
-            cached_result = cls.get_cached(**kwargs)
-            if cached_result is not None:
+        async def fetch_row(
+            cls,
+            connection: Connection,
+            *,
+            order_by: Any | None = None,
+            **values: Any,
+        ) -> Any | None:
+            key = cls._get_primary_key_values(values)
+            cached_result = cls._cache.get(key, MISSING)
+            if cached_result is not MISSING:
                 return cached_result
 
-            result = await super().fetch_row_where(*args, **kwargs)
-            if result:
-                cls._store_cached(*cls._get_primary_key_values(result), record=result)
+            result = await super().fetch_row(connection, order_by=order_by, **values)
+            cls._store_cached(*cls._get_primary_key_values(result), record=result)
             return result
 
         @classmethod
         @with_lock
-        async def fetch_value_where(
-            cls, connection: Connection, /, column: Column[Any] | str, *args: Any, **kwargs: Any
-        ) -> Any:
+        async def fetch_value(
+            cls,
+            connection: Connection,
+            /,
+            column: Column[Any] | str,
+            *,
+            order_by: Any | None = None,
+            **values: Any,
+        ) -> Any | None:
             if isinstance(column, str):
                 column = cls._columns_dict[column]
 
-            cached_result = cls.get_cached(**kwargs)
-            if cached_result is not None:
+            key = cls._get_primary_key_values(values)
+            cached_result = cls._cache.get(key, MISSING)
+            if cached_result is not MISSING:
                 return cached_result[column.name]
 
-            result = await super().fetch_row_where(connection, *args, **kwargs)
+            result = await super().fetch_row(connection, order_by=order_by, **values)
+            cls._store_cached(*cls._get_primary_key_values(result), record=result)
             if result:
-                cls._store_cached(*cls._get_primary_key_values(result), record=result)
                 return result[column.name]
 
         @classmethod
