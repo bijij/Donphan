@@ -293,11 +293,11 @@ class Table(Insertable, Creatable):
             if migration is MISSING:
                 migration = dict
 
-                if create_new_table:
-                    await table.create(connection)
+            if create_new_table:
+                await table.create(connection)
 
-                records = await cls.fetch(connection)
-                await table.insert_many(connection, None, *(migration(record) for record in records))
+            records = await cls.fetch(connection)
+            await table.insert_many(connection, None, *(migration(record) for record in records))
 
-                if drop_table:
-                    await cls.drop(connection)
+            if drop_table:
+                await cls.drop(connection)
