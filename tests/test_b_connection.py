@@ -11,7 +11,7 @@ from .utils import async_test, set_pool, with_pool
 class ConnectionTest(TestCase):
     @async_test
     async def test_a_create_pool(self):
-        pool = await create_pool(POSTGRES_DSN, set_as_default=True)
+        pool = await create_pool(POSTGRES_DSN)
         set_pool(pool)
 
         assert isinstance(pool, asyncpg.Pool)
