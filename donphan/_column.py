@@ -169,9 +169,9 @@ class Column(BaseColumn, Generic[_T]):
         index: :class:`bool`
             Whether to create an index for the given column, defaults to ``False``.
         nullable: :class:`bool`
-            Whether the column is nullable.
+            Whether the column is nullable, defaults to ``False``.
         unique: :class:`bool`
-            Whether the column has a unique constraint.
+            Whether the column has a unique constraint, defaults to ``False``.
         default: Any
             The default value of the column.
         references: Optional[:class:`Column`]
@@ -245,7 +245,7 @@ class Column(BaseColumn, Generic[_T]):
 
     primary_key: bool = False
     index: bool = False
-    nullable: bool = True
+    nullable: bool = False
     unique: bool = False
     cascade: bool = False
     default: Optional[Union[str, _T]] = MISSING
