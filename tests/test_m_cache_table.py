@@ -2,6 +2,7 @@ import random
 from unittest import TestCase
 
 from donphan import CachedTable, Column, SQLType
+from donphan.utils import not_creatable, LRUDict
 from tests.utils import async_test, with_connection
 
 NUM_ITEMS = random.randint(3, 10)
@@ -9,9 +10,14 @@ NUM_ITEMS = random.randint(3, 10)
 B_VALUES = [random.random() for _ in range(random.randint(1, 5))]
 
 
-class _TestCachedTable(CachedTable, max_size=NUM_ITEMS):
+class _TestCachedTable(CachedTable):
     a: Column[SQLType.Integer] = Column(primary_key=True)
     b: Column[list[SQLType.Double]] = Column(nullable=True)
+
+
+@not_creatable
+class _TestCachedTableSizes(CachedTable, max_cache_size=1):
+    ...
 
 
 class CachedTableTest(TestCase):
@@ -88,3 +94,8 @@ class CachedTableTest(TestCase):
     @with_connection
     async def test_k_table_drop(self, conn):
         await _TestCachedTable.drop(conn)
+
+    def test_l_table_cache_dict_type(self):
+        assert type(_TestCachedTable._cache) is dict
+        assert type(_TestCachedTableSizes._cache) is LRUDict
+        assert _TestCachedTableSizes._cache.max_size == 1
