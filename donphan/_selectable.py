@@ -356,8 +356,35 @@ class Selectable(Object):
             connection, where, *filter(lambda v: v is not None, values.values()), order_by=order_by
         )
 
-    async def _fetch_value_where(
-        cls,  # type: ignore
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        connection: Connection,
+        /,
+        column: Column[_T],
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[_T]:
+        ...
+
+    @classmethod
+    @overload
+    async def fetch_value_where(
+        cls,
+        connection: Connection,
+        /,
+        column: str,
+        where: str,
+        *values: Any,
+        order_by: Optional[Union[OrderBy, str]] = None,
+    ) -> Optional[Any]:
+        ...
+
+    @classmethod
+    async def fetch_value_where(
+        cls,
         connection: Connection,
         /,
         column: Union[Column[_T], str],
@@ -395,39 +422,33 @@ class Selectable(Object):
 
     @classmethod
     @overload
-    async def fetch_value_where(
+    async def fetch_value(
         cls,
         connection: Connection,
         /,
         column: Column[_T],
-        where: str,
-        *values: Any,
+        *,
         order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
     ) -> Optional[_T]:
         ...
 
     @classmethod
     @overload
-    async def fetch_value_where(
+    async def fetch_value(
         cls,
         connection: Connection,
         /,
         column: str,
-        where: str,
-        *values: Any,
+        *,
         order_by: Optional[Union[OrderBy, str]] = None,
+        **values: Any,
     ) -> Optional[Any]:
         ...
 
     @classmethod
-    async def fetch_value_where(cls):  # type: ignore
-        ...
-
-    fetch_value_where = classmethod(optional_pool(_fetch_value_where))  # type: ignore
-    del _fetch_value_where
-
-    async def _fetch_value(
-        cls,  # type: ignore
+    async def fetch_value(
+        cls,
         connection: Connection,
         /,
         column: Union[Column[_T], str],
@@ -458,39 +479,6 @@ class Selectable(Object):
         return await cls.fetch_value_where(
             connection, column, where, *filter(lambda v: v is not None, values.values()), order_by=order_by
         )
-
-    @classmethod
-    @overload
-    async def fetch_value(
-        cls,
-        connection: Connection,
-        /,
-        column: Column[_T],
-        *,
-        order_by: Optional[Union[OrderBy, str]] = None,
-        **values: Any,
-    ) -> Optional[_T]:
-        ...
-
-    @classmethod
-    @overload
-    async def fetch_value(
-        cls,
-        connection: Connection,
-        /,
-        column: str,
-        *,
-        order_by: Optional[Union[OrderBy, str]] = None,
-        **values: Any,
-    ) -> Optional[Any]:
-        ...
-
-    @classmethod
-    async def fetch_value(cls):  # type: ignore
-        ...
-
-    fetch_value = classmethod(optional_pool(_fetch_value))  # type: ignore
-    del _fetch_value
 
     # endregion
 
