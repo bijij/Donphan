@@ -17,7 +17,7 @@ class TableTest(TestCase):
     def test_query_create(self):
         assert (
             _TestTable._query_create(True)
-            == "CREATE TABLE IF NOT EXISTS public.__test_table ( a INTEGER , b DOUBLE PRECISION[] , PRIMARY KEY ( a ) )"
+            == "CREATE TABLE IF NOT EXISTS public.__test_table ( a INTEGER NOT NULL , b DOUBLE PRECISION[] , PRIMARY KEY ( a ) )"
         )
 
     def test_query_fetch_in(self):
