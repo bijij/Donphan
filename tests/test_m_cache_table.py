@@ -10,7 +10,7 @@ NUM_ITEMS = random.randint(3, 10)
 B_VALUES = [random.random() for _ in range(random.randint(1, 5))]
 
 
-class _TestCachedTable(CachedTable):
+class _TestCachedTable(CachedTable, cache_no_record = True):
     a: Column[SQLType.Integer] = Column(primary_key=True)
     b: Column[list[SQLType.Double]] = Column(nullable=True)
 

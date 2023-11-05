@@ -55,13 +55,15 @@ class CachedTable(Table):
 
     _lock: asyncio.Lock
     _cache: dict[tuple[Any, ...], dict[str, Any] | None]
+    _cache_no_record: bool
 
-    def __init_subclass__(cls, max_cache_size: int | None = None, **kwargs: Any) -> None:
+    def __init_subclass__(cls, max_cache_size: int | None = None, cache_no_record: bool = False, **kwargs: Any) -> None:
         cls._lock = asyncio.Lock()
         if max_cache_size is None:
             cls._cache = {}
         else:
             cls._cache = LRUDict(max_cache_size)
+        cls._cache_no_record = cache_no_record
 
         super().__init_subclass__(**kwargs)
 
@@ -125,7 +127,7 @@ class CachedTable(Table):
                 cls._store_cached(*cls._get_primary_key_values(result), record=result)
                 return result
 
-            if MISSING not in key:
+            if cls._cache_no_record and MISSING not in key:
                 cls._store_cached(*key, record=None)
 
         @classmethod
@@ -155,7 +157,7 @@ class CachedTable(Table):
                 cls._store_cached(*cls._get_primary_key_values(result), record=result)
                 return result[column.name]
 
-            if MISSING not in key:
+            if cls._cache_no_record and MISSING not in key:
                 cls._store_cached(*key, record=None)
 
         @classmethod
