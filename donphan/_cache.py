@@ -90,6 +90,9 @@ class CachedTable(Table):
             The returned record is not a copy, so modifying it will modify the cached record.
         """
         key = cls._get_primary_key_values(kwargs)
+
+        print("\n\n", kwargs, "\n", key, "\n\n")
+
         return cls._cache.get(key)
 
     @classmethod
