@@ -4,7 +4,7 @@ from unittest import TestCase
 from donphan import SQLType, CustomType, Enum, EnumType
 
 
-class ConnectionTest(TestCase):
+class SQLTypeTest(TestCase):
     def test_a_sql_type(self):
         a = SQLType._from_type(str)  # type: ignore
         assert a.sql_type == "TEXT"

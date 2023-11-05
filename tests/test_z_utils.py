@@ -4,7 +4,7 @@ from donphan._consts import NOT_CREATABLE
 from donphan.utils import normalise_name, query_builder, not_creatable, MISSING
 
 
-class ConnectionTest(TestCase):
+class UtilsTest(TestCase):
     def test_a_normalise_name(self):
         assert normalise_name("test") == "test"
         assert normalise_name("Test") == "test"

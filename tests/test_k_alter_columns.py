@@ -20,7 +20,7 @@ class AlterColumnsTest(TestCase):
         column = Column.create("b", SQLType.Text)  # type: ignore
         assert (
             _TestAlterColumnsTable._query_add_column(column)
-            == r"ALTER TABLE public.__test_alter_columns_table ADD COLUMN b TEXT"
+            == r"ALTER TABLE public.__test_alter_columns_table ADD COLUMN b TEXT NOT NULL"
         )
 
     @async_test

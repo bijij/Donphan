@@ -14,7 +14,7 @@ def find_root():
 WINDOWS = sys.platform == "win32"
 
 
-class TestLinters(TestCase):
+class LinterTest(TestCase):
     def test_black(self):
         try:
             import black  # type: ignore

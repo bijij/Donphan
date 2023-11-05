@@ -13,7 +13,7 @@ class _TestNullableTable(Table):
     b: Column[SQLType.Integer] = Column(nullable=True)
 
 
-class ViewTest(TestCase):
+class NullableTest(TestCase):
     def test_query_fetch_null(self):
         where = _TestNullableTable._build_where_clause({"b": None})
 

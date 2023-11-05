@@ -16,11 +16,11 @@ class _TestTable2(Table):
     a: Column[SQLType.Integer] = Column(primary_key=True, references=_TestTable.a)
 
 
-class ViewTest(TestCase):
+class ForeignKeyTest(TestCase):
     def test_query_create(self):
         assert (
             _TestTable2._query_create(True)
-            == "CREATE TABLE IF NOT EXISTS public.__test_table2 ( a INTEGER REFERENCES public.__test_table ( a ) , PRIMARY KEY ( a ) )"
+            == "CREATE TABLE IF NOT EXISTS public.__test_table2 ( a INTEGER NOT NULL REFERENCES public.__test_table ( a ) , PRIMARY KEY ( a ) )"
         )
 
     @async_test

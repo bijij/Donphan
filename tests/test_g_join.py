@@ -24,7 +24,7 @@ class _TestJoinTable3(Table):
     d: Column[SQLType.Integer]
 
 
-class ViewTest(TestCase):
+class JoinTest(TestCase):
     @async_test
     @with_connection
     async def test_a_table_create(self, conn):

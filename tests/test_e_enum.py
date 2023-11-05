@@ -18,7 +18,7 @@ class _TestTable(Table):
     a: Column[_TestEnum] = Column(primary_key=True)
 
 
-class ViewTest(TestCase):
+class EnumTest(TestCase):
     def test_query_create(self):
         query = _TestTable.a.sql_type._query_create(True)  # type: ignore
         assert query == "CREATE TYPE public.__test_enum AS ENUM ( 'a' , 'b' , 'c' )"

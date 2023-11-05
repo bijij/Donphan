@@ -7,7 +7,7 @@ class _TestLikeTable(Table):
     a: Column[SQLType.Text] = Column(primary_key=True)
 
 
-class ViewTest(TestCase):
+class LikeTest(TestCase):
     def test_query_fetch_null(self):
         where = _TestLikeTable._build_where_clause({"a__like": r"%foo"})
 
