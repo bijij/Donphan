@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Iterable
-from copy import deepcopy
 from typing import TYPE_CHECKING, Any, NoReturn
 
 from ._column import Column
@@ -88,14 +87,10 @@ class CachedTable(Table):
         """Get a cached record from the table.
 
         .. note::
-            The returned record is a copy of the cached record, so modifying it will not modify the cached record.
-
+            The returned record is not a copy, so modifying it will modify the cached record.
         """
         key = cls._get_primary_key_values(kwargs)
-        record = cls._cache.get(key)
-
-        if record is not None:
-            return deepcopy(record)
+        return cls._cache.get(key)
 
     @classmethod
     def clear_cache(cls) -> None:
