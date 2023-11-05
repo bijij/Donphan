@@ -51,5 +51,40 @@ class CachedTableTest(TestCase):
 
     @async_test
     @with_connection
-    async def test_g_table_drop(self, conn):
+    async def test_g_fetch_row_cache_hit(self, conn):
+        cached_record = _TestCachedTable.get_cached(0)
+        record = await _TestCachedTable.fetch_row(conn, a=0)
+        assert record is cached_record
+
+    @async_test
+    @with_connection
+    async def test_h_fetch_row_cache_miss(self, conn):
+        _TestCachedTable._delete_cached(0)
+        assert _TestCachedTable.get_cached(0) is None
+        record = await _TestCachedTable.fetch_row(conn, a=0)
+        cached_record = _TestCachedTable.get_cached(0)
+        assert record is cached_record
+
+    @async_test
+    @with_connection
+    async def test_i_fetch_value_cache_hit(self, conn):
+        cached_record = _TestCachedTable.get_cached(0)
+        assert cached_record is not None
+        record = await _TestCachedTable.fetch_value(conn, 'b', a=0)
+        assert record is cached_record['b']
+
+    @async_test
+    @with_connection
+    async def test_j_fetch_value_cache_miss(self, conn):
+        _TestCachedTable._delete_cached(0)
+        assert _TestCachedTable.get_cached(0) is None
+        record = await _TestCachedTable.fetch_value(conn, 'b', a=0)
+        assert record == B_VALUES
+        cached_record = _TestCachedTable.get_cached(0)
+        assert cached_record is not None
+        assert cached_record['b'] is record
+
+    @async_test
+    @with_connection
+    async def test_k_table_drop(self, conn):
         await _TestCachedTable.drop(conn)
