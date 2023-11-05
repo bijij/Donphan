@@ -115,9 +115,10 @@ class CachedTable(Table):
             **values: Any,
         ) -> Any | None:
             key = cls._get_primary_key_values(values)
-            cached_result = cls._cache.get(key, MISSING)
-            if cached_result is not MISSING:
-                return cached_result
+            if MISSING not in key:
+                cached_result = cls._cache.get(key, MISSING)
+                if cached_result is not MISSING:
+                    return cached_result
 
             result = await super().fetch_row(connection, order_by=order_by, **values)
             if result is not None:
@@ -142,11 +143,12 @@ class CachedTable(Table):
                 column = cls._columns_dict[column]
 
             key = cls._get_primary_key_values(values)
-            cached_result = cls._cache.get(key, MISSING)
-            if cached_result is not MISSING:
-                if cached_result is None:
-                    return None
-                return cached_result[column.name]
+            if MISSING not in key:
+                cached_result = cls._cache.get(key, MISSING)
+                if cached_result is not MISSING:
+                    if cached_result is None:
+                        return None
+                    return cached_result[column.name]
 
             result = await super().fetch_row(connection, order_by=order_by, **values)
             if result is not None:
