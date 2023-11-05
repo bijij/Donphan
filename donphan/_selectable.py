@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, TypeVar, Uni
 from ._column import BaseColumn, Column, OnClause
 from ._consts import OPERATORS, NULL_OPERATORS
 from ._object import Object
-from .utils import generate_alias, optional_pool, query_builder
+from .utils import generate_alias, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record
@@ -219,7 +219,6 @@ class Selectable(Object):
     # region: public methods
 
     @classmethod
-    @optional_pool
     async def fetch_where(
         cls,
         connection: Connection,
@@ -256,7 +255,6 @@ class Selectable(Object):
         return await connection.fetch(query, *values)
 
     @classmethod
-    @optional_pool
     async def fetch(
         cls,
         connection: Connection,
@@ -293,7 +291,6 @@ class Selectable(Object):
         )
 
     @classmethod
-    @optional_pool
     async def fetch_row_where(
         cls,
         connection: Connection,
@@ -327,7 +324,6 @@ class Selectable(Object):
         return await connection.fetchrow(query, *values)
 
     @classmethod
-    @optional_pool
     async def fetch_row(
         cls,
         connection: Connection,
@@ -401,7 +397,7 @@ class Selectable(Object):
     @overload
     async def fetch_value_where(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         column: Column[_T],
         where: str,
@@ -414,31 +410,7 @@ class Selectable(Object):
     @overload
     async def fetch_value_where(
         cls,
-        connection: Optional[Connection],
-        /,
-        column: str,
-        where: str,
-        *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[Any]:
-        ...
-
-    @classmethod
-    @overload
-    async def fetch_value_where(
-        cls,
-        /,
-        column: Column[_T],
-        where: str,
-        *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[_T]:
-        ...
-
-    @classmethod
-    @overload
-    async def fetch_value_where(
-        cls,
+        connection: Connection,
         /,
         column: str,
         where: str,
@@ -491,7 +463,7 @@ class Selectable(Object):
     @overload
     async def fetch_value(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         column: Column[_T],
         *,
@@ -504,31 +476,7 @@ class Selectable(Object):
     @overload
     async def fetch_value(
         cls,
-        connection: Optional[Connection],
-        /,
-        column: str,
-        *,
-        order_by: Optional[Union[OrderBy, str]] = None,
-        **values: Any,
-    ) -> Optional[Any]:
-        ...
-
-    @classmethod
-    @overload
-    async def fetch_value(
-        cls,
-        /,
-        column: Column[_T],
-        *,
-        order_by: Optional[Union[OrderBy, str]] = None,
-        **values: Any,
-    ) -> Optional[_T]:
-        ...
-
-    @classmethod
-    @overload
-    async def fetch_value(
-        cls,
+        connection: Connection,
         /,
         column: str,
         *,
@@ -563,7 +511,6 @@ class Selectable(Object):
         name = generate_alias()
 
         def exec_body(ns: dict[str, Any]) -> None:
-            ns["_pool"] = cls._pool
             ns["_alias"] = name
             ns["_type"] = type
             ns["_selectables"] = (cls, other)

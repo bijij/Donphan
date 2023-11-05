@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from donphan import MaybeAcquire
 
 from functools import wraps
 
@@ -55,7 +54,7 @@ def with_connection(func: Callable[Concatenate[U, Connection, P], Coro[T]]) -> C
     @wraps(func)
     @with_pool
     async def wrapper(self: U, pool: Pool, *args: P.args, **kwargs: P.kwargs) -> T:
-        async with MaybeAcquire(pool=pool) as connection:
+        async with pool.acquire() as connection:
             return await func(self, connection, *args, **kwargs)
 
     return wrapper

@@ -31,7 +31,7 @@ from ._consts import CUSTOM_TYPES
 from ._creatable import Creatable
 from ._custom_types import CustomType
 from ._insertable import Insertable
-from .utils import MISSING, not_creatable, optional_pool, optional_transaction, query_builder
+from .utils import MISSING, not_creatable, optional_transaction, query_builder
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record
@@ -124,7 +124,6 @@ class Table(Insertable, Creatable):
         return ["ALTER TABLE", cls._name, "ADD COLUMN", column._query()]
 
     @classmethod
-    @optional_pool
     async def create(
         cls,
         connection: Connection,
@@ -165,7 +164,6 @@ class Table(Insertable, Creatable):
         )
 
     @classmethod
-    @optional_pool
     async def drop_column(
         cls,
         connection: Connection,
@@ -187,7 +185,6 @@ class Table(Insertable, Creatable):
         del column.table
 
     @classmethod
-    @optional_pool
     async def add_column(
         cls,
         connection: Connection,
@@ -213,7 +210,6 @@ class Table(Insertable, Creatable):
         column.table = cls
 
     @classmethod
-    @optional_pool
     async def migrate(
         cls,
         connection: Connection,
@@ -247,7 +243,6 @@ class Table(Insertable, Creatable):
                     await cls.add_column(connection, columns_dict[column])
 
     @classmethod
-    @optional_pool
     async def migrate_to(
         cls,
         connection: Connection,

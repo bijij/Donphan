@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast,
 
 from ._column import Column, SQLType
 from ._selectable import Selectable
-from .utils import optional_pool, query_builder, resolve_annotation
+from .utils import query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record
@@ -277,7 +277,7 @@ class Insertable(Selectable):
     @overload
     async def insert(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         *,
         ignore_on_conflict: bool = ...,
@@ -291,33 +291,7 @@ class Insertable(Selectable):
     @overload
     async def insert(
         cls,
-        connection: Optional[Connection],
-        /,
-        *,
-        ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
-        returning: None = ...,
-        **values: Any,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def insert(
-        cls,
-        /,
-        *,
-        ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-        **values: Any,
-    ) -> Record:
-        ...
-
-    @classmethod
-    @overload
-    async def insert(
-        cls,
+        connection: Connection,
         /,
         *,
         ignore_on_conflict: bool = ...,
@@ -370,7 +344,7 @@ class Insertable(Selectable):
     @overload
     async def insert_many(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         columns: Union[Iterable[Union[Column, str]], str],
         *values: Iterable[Any],
@@ -383,31 +357,7 @@ class Insertable(Selectable):
     @overload
     async def insert_many(
         cls,
-        connection: Optional[Connection],
-        /,
-        columns: None,
-        *values: dict[str, Any],
-        ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def insert_many(
-        cls,
-        /,
-        columns: Union[Iterable[Union[Column, str]], str],
-        *values: Iterable[Any],
-        ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def insert_many(
-        cls,
+        connection: Connection,
         /,
         columns: None,
         *values: dict[str, Any],
@@ -462,7 +412,7 @@ class Insertable(Selectable):
     @overload
     async def update_where(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         where: str,
         *values: Any,
@@ -475,31 +425,7 @@ class Insertable(Selectable):
     @overload
     async def update_where(
         cls,
-        connection: Optional[Connection],
-        /,
-        where: str,
-        *values: Any,
-        returning: None = ...,
-        **_values: Any,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def update_where(
-        cls,
-        /,
-        where: str,
-        *values: Any,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-        **_values: Any,
-    ) -> list[Record]:
-        ...
-
-    @classmethod
-    @overload
-    async def update_where(
-        cls,
+        connection: Connection,
         /,
         where: str,
         *values: Any,
@@ -557,7 +483,7 @@ class Insertable(Selectable):
     @overload
     async def update_record(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         record: Record,
         returning: Union[Iterable[Union[Column, str]], str] = ...,
@@ -569,29 +495,7 @@ class Insertable(Selectable):
     @overload
     async def update_record(
         cls,
-        connection: Optional[Connection],
-        /,
-        record: Record,
-        returning: None = ...,
-        **values: Any,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def update_record(
-        cls,
-        /,
-        record: Record,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-        **values: Any,
-    ) -> Record:
-        ...
-
-    @classmethod
-    @overload
-    async def update_record(
-        cls,
+        connection: Connection,
         /,
         record: Record,
         returning: None = ...,
@@ -643,7 +547,7 @@ class Insertable(Selectable):
     @overload
     async def delete_where(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         where: str,
         *values: Any,
@@ -655,29 +559,7 @@ class Insertable(Selectable):
     @overload
     async def delete_where(
         cls,
-        connection: Optional[Connection],
-        /,
-        where: str,
-        *values: Any,
-        returning: None = ...,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def delete_where(
-        cls,
-        /,
-        where: str,
-        *values: Any,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-    ) -> list[Record]:
-        ...
-
-    @classmethod
-    @overload
-    async def delete_where(
-        cls,
+        connection: Connection,
         /,
         where: str,
         *values: Any,
@@ -726,7 +608,7 @@ class Insertable(Selectable):
     @overload
     async def delete(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         returning: Union[Iterable[Union[Column, str]], str] = ...,
         **values: Any,
@@ -737,27 +619,7 @@ class Insertable(Selectable):
     @overload
     async def delete(
         cls,
-        connection: Optional[Connection],
-        /,
-        returning: None = ...,
-        **values: Any,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def delete(
-        cls,
-        /,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-        **values: Any,
-    ) -> list[Record]:
-        ...
-
-    @classmethod
-    @overload
-    async def delete(
-        cls,
+        connection: Connection,
         /,
         returning: None = ...,
         **values: Any,
@@ -813,7 +675,7 @@ class Insertable(Selectable):
     @overload
     async def delete_record(
         cls,
-        connection: Optional[Connection],
+        connection: Connection,
         /,
         record: Record,
         *,
@@ -825,29 +687,7 @@ class Insertable(Selectable):
     @overload
     async def delete_record(
         cls,
-        connection: Optional[Connection],
-        /,
-        record: Record,
-        *,
-        returning: None = ...,
-    ) -> None:
-        ...
-
-    @classmethod
-    @overload
-    async def delete_record(
-        cls,
-        /,
-        record: Record,
-        *,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
-    ) -> Record:
-        ...
-
-    @classmethod
-    @overload
-    async def delete_record(
-        cls,
+        connection: Connection,
         /,
         record: Record,
         *,

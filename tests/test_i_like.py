@@ -1,4 +1,4 @@
-from tests.utils import async_test
+from tests.utils import async_test, with_connection
 from donphan import Column, Table, SQLType
 from unittest import TestCase
 
@@ -17,25 +17,30 @@ class ViewTest(TestCase):
         )
 
     @async_test
-    async def test_a_table_create(self):
-        await _TestLikeTable.create(None)
+    @with_connection
+    async def test_a_table_create(self, conn):
+        await _TestLikeTable.create(conn)
 
     @async_test
-    async def test_b_table_insert(self):
-        await _TestLikeTable.insert(a="foo")
-        await _TestLikeTable.insert(a="bar")
-        await _TestLikeTable.insert(a="foobar")
+    @with_connection
+    async def test_b_table_insert(self, conn):
+        await _TestLikeTable.insert(conn, a="foo")
+        await _TestLikeTable.insert(conn, a="bar")
+        await _TestLikeTable.insert(conn, a="foobar")
 
     @async_test
-    async def test_c_table_fetch(self):
-        records = await _TestLikeTable.fetch(a__like=r"foo%")
+    @with_connection
+    async def test_c_table_fetch(self, conn):
+        records = await _TestLikeTable.fetch(conn, a__like=r"foo%")
         assert len(records) == 2  # type: ignore
 
     @async_test
-    async def test_d_table_fetch_insensitive(self):
-        records = await _TestLikeTable.fetch(a__ilike=r"FoO%")
+    @with_connection
+    async def test_d_table_fetch_insensitive(self, conn):
+        records = await _TestLikeTable.fetch(conn, a__ilike=r"FoO%")
         assert len(records) == 2  # type: ignore
 
     @async_test
-    async def test_e_table_delete(self):
-        await _TestLikeTable.drop()
+    @with_connection
+    async def test_e_table_delete(self, conn):
+        await _TestLikeTable.drop(conn)

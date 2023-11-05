@@ -1,6 +1,6 @@
 import random
 
-from tests.utils import async_test
+from tests.utils import async_test, with_connection
 from donphan import Column, Table, SQLType
 from unittest import TestCase
 
@@ -30,20 +30,24 @@ class ViewTest(TestCase):
         )
 
     @async_test
-    async def test_a_table_create(self):
-        await _TestNullableTable.create(None)
+    @with_connection
+    async def test_a_table_create(self, conn):
+        await _TestNullableTable.create(conn)
 
     @async_test
-    async def test_b_table_insert(self):
+    @with_connection
+    async def test_b_table_insert(self, conn):
         for x in range(NUM_ITEMS):
-            await _TestNullableTable.insert(None, a=x, b=None if x % 2 == 0 else x)
+            await _TestNullableTable.insert(conn, a=x, b=None if x % 2 == 0 else x)
 
     @async_test
-    async def test_c_table_fetch(self):
+    @with_connection
+    async def test_c_table_fetch(self, conn):
         total = sum(x % 2 == 0 for x in range(NUM_ITEMS))
-        records = await _TestNullableTable.fetch(None, b=None)
+        records = await _TestNullableTable.fetch(conn, b=None)
         assert len(records) == total  # type: ignore
 
     @async_test
-    async def test_f_table_delete(self):
-        await _TestNullableTable.drop(None)
+    @with_connection
+    async def test_f_table_delete(self, conn):
+        await _TestNullableTable.drop(conn)

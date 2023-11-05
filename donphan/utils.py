@@ -30,7 +30,6 @@ import string
 import sys
 import types
 from collections.abc import Callable, Iterable
-from functools import wraps
 from typing import (
     Coroutine,
     TYPE_CHECKING,
@@ -38,7 +37,6 @@ from typing import (
     ForwardRef,
     Literal,
     Optional,
-    Protocol,
     TextIO,
     TypeVar,
     Union,
@@ -52,7 +50,7 @@ if TYPE_CHECKING:
 
     from asyncpg import Connection
     from asyncpg.transaction import Transaction
-    from typing_extensions import Concatenate, ParamSpec
+    from typing_extensions import ParamSpec
 
     from ._creatable import Creatable
     from ._object import Object
@@ -127,50 +125,6 @@ def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
 
     fp.write(data)
     return fp  # type: ignore
-
-
-class _MaybePool(Protocol[P, T_co]):
-    @classmethod
-    @overload
-    async def __call__(
-        cls,
-        __conn: Optional[Connection],
-        *__args: P.args,
-        **__kwargs: P.kwargs,
-    ) -> T_co:
-        ...
-
-    @classmethod
-    @overload
-    async def __call__(
-        cls,
-        *__args: P.args,
-        **__kwargs: P.kwargs,
-    ) -> T_co:
-        ...
-
-
-def optional_pool(func: Callable[Concatenate[type[OT], Connection, P], Coro[T]]) -> _MaybePool[P, T]:
-    @wraps(func)
-    async def wrapped(
-        cls: type[OT],
-        connection: Optional[Connection] = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
-    ) -> T:
-        if connection is not None:
-            return await func(cls, connection, *args, **kwargs)
-
-        # this is a hack because >circular imports<
-        from ._connection import MaybeAcquire
-
-        if cls._pool is None:  # type: ignore
-            raise RuntimeError("Database connection or object pool not specified.")
-
-        async with MaybeAcquire(None, pool=cls._pool) as connection:  # type: ignore
-            return await func(cls, connection, *args, **kwargs)
-
-    return wrapped  # type: ignore
 
 
 class VoidContextManager:

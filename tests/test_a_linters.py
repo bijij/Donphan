@@ -17,7 +17,7 @@ WINDOWS = sys.platform == "win32"
 class TestLinters(TestCase):
     def test_black(self):
         try:
-            import black  # NoQa
+            import black  # type: ignore
         except ImportError:
             raise SkipTest("black module not installed")
 

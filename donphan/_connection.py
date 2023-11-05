@@ -154,8 +154,6 @@ if DOCS_BUILDING and not TYPE_CHECKING:
 async def create_pool(
     dsn: str,
     codecs: dict[str, TypeCodec[Any]] = {},
-    *,
-    set_as_default: bool = False,
     **kwargs: Any,
 ) -> Pool:
     r"""|coro|
@@ -170,9 +168,6 @@ async def create_pool(
         A mapping of type to encoder and decoder for custom type codecs.
         A pre-defined set of codecs is provided in :class:`TYPE_CODECS` is used by default.
         As well as a set of :class:`OPTIONAL_CODECS` is provided.
-    set_as_default: :class:`bool`
-        Sets whether the pool should be used as the default connection pool for database operations.
-        Defaults to ``False``.
     \*\*kwargs: Any
         Extra keyword arguments to pass to :func:`asyncpg.create_pool <asyncpg.pool.create_pool>`
 
@@ -200,12 +195,6 @@ async def create_pool(
     if pool is None:
         raise RuntimeError("Could not create pool.")
     POOLS.append(pool)
-
-    if set_as_default:
-        # this is a hack because >circular imports<
-        from ._object import Object
-
-        Object.set_pool(pool)
 
     return pool
 

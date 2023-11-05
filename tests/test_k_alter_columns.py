@@ -1,7 +1,6 @@
-import random
 from donphan.utils import not_creatable
 
-from tests.utils import async_test
+from tests.utils import async_test, with_connection
 from donphan import Column, Table, SQLType
 from unittest import TestCase
 
@@ -18,36 +17,41 @@ class AlterColumnsTest(TestCase):
         )
 
     def test_query_add_column(self):
-        column = Column.create("b", SQLType.Text)
+        column = Column.create("b", SQLType.Text)  # type: ignore
         assert (
             _TestAlterColumnsTable._query_add_column(column)
             == r"ALTER TABLE public.__test_alter_columns_table ADD COLUMN b TEXT"
         )
 
     @async_test
-    async def test_a_table_create(self):
-        await _TestAlterColumnsTable.create(None)
+    @with_connection
+    async def test_a_table_create(self, conn):
+        await _TestAlterColumnsTable.create(conn)
 
     @async_test
-    async def test_c_table_add_column(self):
-        column = Column.create("b", SQLType.Text)
-        await _TestAlterColumnsTable.add_column(None, column)
-        column = Column.create("c", SQLType.Text)
-        await _TestAlterColumnsTable.add_column(None, column)
+    @with_connection
+    async def test_c_table_add_column(self, conn):
+        column = Column.create("b", SQLType.Text)  # type: ignore
+        await _TestAlterColumnsTable.add_column(conn, column)
+        column = Column.create("c", SQLType.Text)  # type: ignore
+        await _TestAlterColumnsTable.add_column(conn, column)
 
     @async_test
-    async def test_d_table_drop_column(self):
-        await _TestAlterColumnsTable.drop_column(None, _TestAlterColumnsTable._columns_dict["b"])
+    @with_connection
+    async def test_d_table_drop_column(self, conn):
+        await _TestAlterColumnsTable.drop_column(conn, _TestAlterColumnsTable._columns_dict["b"])
 
     @async_test
-    async def test_e_table_migrate(self):
+    @with_connection
+    async def test_e_table_migrate(self, conn):
         @not_creatable
         class Migrator(Table, _name="__test_alter_columns_table"):
             a: Column[SQLType.Text] = Column(primary_key=True)
             b: Column[SQLType.Text]
 
-        await _TestAlterColumnsTable.migrate_to(None, Migrator)
+        await _TestAlterColumnsTable.migrate_to(conn, Migrator)
 
     @async_test
-    async def test_f_table_delete(self):
-        await _TestAlterColumnsTable.drop(None)
+    @with_connection
+    async def test_f_table_delete(self, conn):
+        await _TestAlterColumnsTable.drop(conn)

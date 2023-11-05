@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, ClassVar, Optional, TextIO, Union, overload
 from ._column import Column
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
 from ._object import Object
-from .utils import MISSING, optional_pool, optional_transaction, query_builder, write_to_file
+from .utils import MISSING, optional_transaction, query_builder, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection
@@ -111,7 +111,6 @@ class Creatable(Object):
     # region: public methods
 
     @classmethod
-    @optional_pool
     async def exists(
         cls,
         connection: Connection,
@@ -129,7 +128,6 @@ class Creatable(Object):
         return result
 
     @classmethod
-    @optional_pool
     async def create(
         cls,
         connection: Connection,
@@ -188,7 +186,6 @@ class Creatable(Object):
         await connection.execute(query)
 
     @classmethod
-    @optional_pool
     async def create_schema(
         cls,
         connection: Connection,
@@ -211,7 +208,6 @@ class Creatable(Object):
         await connection.execute(query)
 
     @classmethod
-    @optional_pool
     async def create_all(
         cls,
         connection: Connection,
@@ -421,7 +417,6 @@ class Creatable(Object):
         return write_to_file(fp, output)
 
     @classmethod
-    @optional_pool
     async def drop(
         cls,
         connection: Connection,

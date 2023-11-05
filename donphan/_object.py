@@ -24,13 +24,10 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Optional, Protocol
+from typing import ClassVar, Optional, Protocol
 
 from ._consts import DEFAULT_SCHEMA
 from .utils import MISSING, normalise_name
-
-if TYPE_CHECKING:
-    from asyncpg import Pool
 
 
 __all__ = ("Object",)
@@ -39,18 +36,7 @@ __all__ = ("Object",)
 class Object(Protocol):
     _schema: ClassVar[str]
     _local_name: ClassVar[str]
-    _base_pool: ClassVar[Optional[Pool]] = None
     _overridden_name: ClassVar[Optional[str]] = None
-
-    @classmethod
-    @property
-    def _pool(cls) -> Optional[Pool]:
-        pool = None
-
-        for cls in reversed(cls.mro()):
-            pool = getattr(cls, "_base_pool", None) or pool
-
-        return pool
 
     @classmethod
     @property
@@ -74,16 +60,3 @@ class Object(Protocol):
         cls._schema = schema
         cls._local_name = _name
         super().__init_subclass__()
-
-    @classmethod
-    def set_pool(cls, pool: Pool) -> None:
-        """
-        A function which sets the default connection pool to use on this
-        database onject and subclasses of it.
-
-        Parameters
-        ----------
-        pool: :class:`asyncpg.Pool <asyncpg.pool.Pool>`
-            The connection pool to use.
-        """
-        cls._base_pool = pool

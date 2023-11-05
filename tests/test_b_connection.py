@@ -21,3 +21,6 @@ class ConnectionTest(TestCase):
     async def test_b_maybeacquire(self, pool):
         async with MaybeAcquire(None, pool=pool) as conn:
             assert isinstance(conn, asyncpg.Connection)
+
+            async with MaybeAcquire(conn, pool=pool) as conn2:
+                assert conn is conn2
