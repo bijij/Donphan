@@ -1,5 +1,4 @@
 import sys
-
 from pathlib import Path
 from unittest import TestLoader
 from unittest.runner import TextTestRunner

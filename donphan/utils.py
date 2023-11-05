@@ -24,24 +24,15 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import os
 import string
 import sys
 import types
-from collections.abc import Callable, Iterable
-from typing import (
-    Coroutine,
-    TYPE_CHECKING,
-    Any,
-    ForwardRef,
-    Literal,
-    Optional,
-    TextIO,
-    TypeVar,
-    Union,
-    overload,
-)
+from collections.abc import Callable, Coroutine, Iterable
+from functools import wraps
+from typing import TYPE_CHECKING, Any, ForwardRef, Literal, Protocol, TextIO, TypeVar, Union, overload
 
 from ._consts import NOT_CREATABLE
 
@@ -50,7 +41,7 @@ if TYPE_CHECKING:
 
     from asyncpg import Connection
     from asyncpg.transaction import Transaction
-    from typing_extensions import ParamSpec
+    from typing_extensions import Concatenate, ParamSpec
 
     from ._creatable import Creatable
     from ._object import Object
@@ -63,9 +54,17 @@ __all__ = ("not_creatable",)
 
 
 T = TypeVar("T")
+V = TypeVar("V")
 T_co = TypeVar("T_co", covariant=True)
 CT = TypeVar("CT", bound="Creatable")
 OT = TypeVar("OT", bound="Object")
+
+
+class WithLock(Protocol):
+    _lock: asyncio.Lock
+
+
+L = TypeVar("L", bound=WithLock)
 
 BE = TypeVar("BE", bound=BaseException)
 
@@ -114,7 +113,7 @@ def not_creatable(cls: type[CT]) -> type[CT]:
     return cls
 
 
-def write_to_file(fp: Union[str, TextIO], data: str) -> TextIO:
+def write_to_file(fp: str | TextIO, data: str) -> TextIO:
     if isinstance(fp, io.TextIOBase):
         if not fp.writeable():  # type: ignore
             raise ValueError(f"File buffer {fp!r} must be writable")
@@ -152,11 +151,11 @@ def optional_transaction(connection: Connection, use_transaction: Literal[False]
 
 
 @overload
-def optional_transaction(connection: Connection, use_transaction: bool) -> Union[VoidContextManager, Transaction]:
+def optional_transaction(connection: Connection, use_transaction: bool) -> VoidContextManager | Transaction:
     ...
 
 
-def optional_transaction(connection: Connection, use_transaction: bool) -> Union[VoidContextManager, Transaction]:
+def optional_transaction(connection: Connection, use_transaction: bool) -> VoidContextManager | Transaction:
     if use_transaction:
         return connection.transaction()
     return VoidContextManager()
@@ -206,8 +205,8 @@ def evaluate_annotation(
         is_literal = False
         args = tp.__args__
         if not hasattr(tp, "__origin__"):
-            if PY_310 and tp.__class__ is types.Union:  # type: ignore
-                converted = Union[args]  # type: ignore
+            if PY_310 and tp.__class__ is types.UnionType:
+                converted = [args]
                 return evaluate_annotation(converted, globals, locals, cache)
 
             return tp
@@ -244,8 +243,8 @@ def evaluate_annotation(
 def resolve_annotation(
     annotation: Any,
     globalns: dict[str, Any],
-    localns: Optional[dict[str, Any]],
-    cache: Optional[dict[str, Any]],
+    localns: dict[str, Any] | None,
+    cache: dict[str, Any] | None,
 ) -> Any:
     if annotation is None:
         return type(None)
@@ -256,6 +255,37 @@ def resolve_annotation(
     if cache is None:
         cache = {}
     return evaluate_annotation(annotation, globalns, locals, cache)
+
+
+def with_lock(func: Callable[Concatenate[L, P], Coro[T]]) -> Callable[Concatenate[L, P], Coro[T]]:
+    @wraps(func)
+    async def wrapper(cls: L, *args: P.args, **kwargs: P.kwargs) -> T:
+        async with cls._lock:
+            return await func(cls, *args, **kwargs)
+
+    return wrapper
+
+
+class LRUDict(dict[T, V]):
+    def __init__(self, max_size: int = 1024, *args, **kwargs):
+        if max_size <= 0:
+            raise ValueError("Maximum cache size must be greater than 0.")
+        self.max_size = max_size
+        super().__init__(*args, **kwargs)
+        self.__cleanup()
+
+    def __cleanup(self):
+        while len(self) > self.max_size:
+            del self[next(iter(self))]
+
+    def __getitem__(self, key: Any) -> Any:
+        value = super().__getitem__(key)
+        self.__cleanup()
+        return value
+
+    def __setitem__(self, key: Any, value: Any):
+        super().__setitem__(key, value)
+        self.__cleanup()
 
 
 try:

@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 asyncpg = ">=0.22.0"
 sphinx = { version = ">=3.5.3", optional = true }
 sphinxcontrib_trio = { version = ">=1.1.2", optional = true }
@@ -40,7 +40,7 @@ docs = ["sphinx", "sphinxcontrib_trio", "sphinxcontrib-websupport"]
 
 [tool.black]
 line-length = 119
-target-version = ["py37", "py38"]
+target-version = ["py310"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -49,6 +49,12 @@ exclude = '''
   | \.venv
 )/
 '''
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+combine_star = true
+line_length = 119
 
 [tool.pytest]
 addopts = "--capture=no --assert=plain --strict-markers --tb native"
@@ -64,5 +70,5 @@ build-backend = "poetry.core.masonry.api"
 include = ["donphan/**"]
 reportUnnecessaryTypeIgnoreComment = "warning"
 reportUnusedImport = "error"
-pythonVersion = "3.9"
+pythonVersion = "3.10"
 typeCheckingMode = "basic"

@@ -1,6 +1,7 @@
-from tests.utils import async_test, with_connection
-from donphan import Column, Table, SQLType
 from unittest import TestCase
+
+from donphan import Column, SQLType, Table
+from tests.utils import async_test, with_connection
 
 
 class _TestLikeTable(Table):

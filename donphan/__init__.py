@@ -30,6 +30,8 @@ __version__ = "5.0.0a"
 
 from typing import TYPE_CHECKING
 
+from . import utils as utils
+from ._cache import *
 from ._column import *
 from ._connection import *
 from ._custom_types import *
@@ -37,7 +39,6 @@ from ._enums import *
 from ._join import *
 from ._table import *
 from ._view import *
-from . import utils as utils
 
 if TYPE_CHECKING:
     from . import _types as _SQLType  # type: ignore

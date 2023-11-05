@@ -1,7 +1,7 @@
-from donphan.utils import not_creatable
 from unittest import TestCase
 
-from donphan import SQLType, CustomType, Enum, EnumType
+from donphan import CustomType, Enum, EnumType, SQLType
+from donphan.utils import not_creatable
 
 
 class SQLTypeTest(TestCase):

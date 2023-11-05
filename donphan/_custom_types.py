@@ -24,7 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 import asyncpg
 
@@ -152,7 +152,7 @@ class EnumType(CustomType[ET], sql_type=""):
         return builder
 
     @classmethod
-    def _encoder(cls, value: Union[ET, Any]) -> str:
+    def _encoder(cls, value: ET | Any) -> str:
         return cls.py_type.try_value(value).name
 
     @classmethod

@@ -24,11 +24,10 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional, Protocol
+from typing import ClassVar, Protocol
 
 from ._consts import DEFAULT_SCHEMA
 from .utils import MISSING, normalise_name
-
 
 __all__ = ("Object",)
 
@@ -36,7 +35,7 @@ __all__ = ("Object",)
 class Object(Protocol):
     _schema: ClassVar[str]
     _local_name: ClassVar[str]
-    _overridden_name: ClassVar[Optional[str]] = None
+    _overridden_name: ClassVar[str | None] = None
 
     @classmethod
     @property

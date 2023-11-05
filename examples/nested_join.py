@@ -1,7 +1,8 @@
 from collections.abc import Iterable
 
 import asyncpg
-from donphan import Table, Column, OnClause
+
+from donphan import Column, OnClause, Table
 
 
 class Users(Table):

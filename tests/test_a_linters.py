@@ -2,9 +2,8 @@
 
 import subprocess
 import sys
-
 from pathlib import Path
-from unittest import TestCase, SkipTest
+from unittest import SkipTest, TestCase
 
 
 def find_root():

@@ -28,10 +28,10 @@ import inspect
 import sys
 import types
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, overload
 
 from ._column import BaseColumn, Column, OnClause
-from ._consts import OPERATORS, NULL_OPERATORS
+from ._consts import NULL_OPERATORS, OPERATORS
 from ._object import Object
 from .utils import generate_alias, query_builder
 
@@ -189,8 +189,8 @@ class Selectable(Object):
     def _build_query_fetch(
         cls,
         where: str,
-        limit: Optional[int],
-        order_by: Optional[Union[OrderBy, str]],
+        limit: int | None,
+        order_by: OrderBy | str | None,
     ) -> list[str]:
         builder = ["SELECT * FROM", cls._name]
         if where:
@@ -225,8 +225,8 @@ class Selectable(Object):
         /,
         where: str,
         *values: Any,
-        limit: Optional[int] = None,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        limit: int | None = None,
+        order_by: OrderBy | str | None = None,
     ) -> Iterable[Record]:
         r"""|coro|
 
@@ -260,8 +260,8 @@ class Selectable(Object):
         connection: Connection,
         /,
         *,
-        limit: Optional[int] = None,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        limit: int | None = None,
+        order_by: OrderBy | str | None = None,
         **values: Any,
     ) -> Iterable[Record]:
         r"""|coro|
@@ -297,8 +297,8 @@ class Selectable(Object):
         /,
         where: str,
         *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[Record]:
+        order_by: OrderBy | str | None = None,
+    ) -> Record | None:
         r"""|coro|
 
         Fetches a record in the database which match a given WHERE clause.
@@ -329,9 +329,9 @@ class Selectable(Object):
         connection: Connection,
         /,
         *,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        order_by: OrderBy | str | None = None,
         **values: Any,
-    ) -> Optional[Record]:
+    ) -> Record | None:
         r"""|coro|
 
         Fetches a records in the database which contains the given values.
@@ -365,8 +365,8 @@ class Selectable(Object):
         column: Column[_T],
         where: str,
         *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[_T]:
+        order_by: OrderBy | str | None = None,
+    ) -> _T | None:
         ...
 
     @classmethod
@@ -378,8 +378,8 @@ class Selectable(Object):
         column: str,
         where: str,
         *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[Any]:
+        order_by: OrderBy | str | None = None,
+    ) -> Any | None:
         ...
 
     @classmethod
@@ -387,14 +387,17 @@ class Selectable(Object):
         cls,
         connection: Connection,
         /,
-        column: Union[Column[_T], str],
+        column: Column[_T] | str,
         where: str,
         *values: Any,
-        order_by: Optional[Union[OrderBy, str]] = None,
-    ) -> Optional[Union[_T, Any]]:
+        order_by: OrderBy | str | None = None,
+    ) -> _T | Any | None:
         r"""|coro|
 
         Fetches a record in the database which match a given WHERE clause.
+
+        .. note::
+            There is no way to distinguish between a ``NULL`` value and a non-existent value.
 
         Parameters
         ----------
@@ -428,9 +431,9 @@ class Selectable(Object):
         /,
         column: Column[_T],
         *,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        order_by: OrderBy | str | None = None,
         **values: Any,
-    ) -> Optional[_T]:
+    ) -> _T | None:
         ...
 
     @classmethod
@@ -441,9 +444,9 @@ class Selectable(Object):
         /,
         column: str,
         *,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        order_by: OrderBy | str | None = None,
         **values: Any,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         ...
 
     @classmethod
@@ -451,11 +454,11 @@ class Selectable(Object):
         cls,
         connection: Connection,
         /,
-        column: Union[Column[_T], str],
+        column: Column[_T] | str,
         *,
-        order_by: Optional[Union[OrderBy, str]] = None,
+        order_by: OrderBy | str | None = None,
         **values: Any,
-    ) -> Optional[Union[_T, Any]]:
+    ) -> _T | Any | None:
         r"""|coro|
 
         Fetches a records in the database which contains the given values.
@@ -485,9 +488,9 @@ class Selectable(Object):
     @classmethod
     def _join(
         cls,
-        other: Union[type[Selectable], BaseColumn],
+        other: type[Selectable] | BaseColumn,
         type: JoinType,
-        on: Optional[Union[OnClause, Iterable[BaseColumn]]] = None,
+        on: OnClause | Iterable[BaseColumn] | None = None,
     ) -> type[Join]:
         # this is a hack because >circular imports<
         from ._join import Join
@@ -510,7 +513,7 @@ class Selectable(Object):
     def inner_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[BaseColumn]],
+        on: OnClause | Iterable[BaseColumn],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising an ``INNER JOIN``.
 
@@ -532,7 +535,7 @@ class Selectable(Object):
     def left_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[BaseColumn]],
+        on: OnClause | Iterable[BaseColumn],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``LEFT JOIN``.
 
@@ -554,7 +557,7 @@ class Selectable(Object):
     def right_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[BaseColumn]],
+        on: OnClause | Iterable[BaseColumn],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``RIGHT JOIN``.
 
@@ -576,7 +579,7 @@ class Selectable(Object):
     def full_outer_join(
         cls,
         other: type[Selectable],
-        on: Union[OnClause, Iterable[BaseColumn]],
+        on: OnClause | Iterable[BaseColumn],
     ) -> type[Join]:
         """A chainable method to join with another database object utilising a ``FULL OUTER JOIN``.
 

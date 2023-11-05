@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-
-from functools import wraps
-
 from collections.abc import Callable
-from typing import Any, Awaitable, Coroutine, TYPE_CHECKING, TypeVar
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Awaitable, Coroutine, TypeVar
 
 if TYPE_CHECKING:
-    from typing_extensions import Concatenate, ParamSpec
-
     from asyncpg import Connection, Pool
+    from typing_extensions import Concatenate, ParamSpec
 
     P = ParamSpec("P")
 

@@ -12,9 +12,9 @@
 # serve to show the default.
 
 import builtins
-import sys
 import os
 import re
+import sys
 
 builtins.__sphinx_building__ = True  # type: ignore
 

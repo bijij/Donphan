@@ -1,9 +1,8 @@
 import random
-
-from tests.utils import async_test, with_connection
-from donphan import Column, Table, SQLType, View, ViewColumn
 from unittest import TestCase
 
+from donphan import Column, SQLType, Table, View, ViewColumn
+from tests.utils import async_test, with_connection
 
 NUM_ITEMS = random.randint(3, 10)
 

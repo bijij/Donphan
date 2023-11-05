@@ -1,8 +1,8 @@
 import random
-
-from tests.utils import async_test, with_connection
-from donphan import Column, Table, Enum
 from unittest import TestCase
+
+from donphan import Column, Enum, Table
+from tests.utils import async_test, with_connection
 
 
 class _TestEnum(Enum):

@@ -24,7 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Optional, TextIO, Union, overload
+from typing import TYPE_CHECKING, ClassVar, TextIO, overload
 
 from ._column import Column
 from ._consts import DEFAULT_SCHEMA, NOT_CREATABLE
@@ -267,13 +267,13 @@ class Creatable(Object):
 
     @overload
     @classmethod
-    def export(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: Union[str, TextIO] = ...) -> TextIO:
+    def export(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: str | TextIO = ...) -> TextIO:
         ...
 
     @classmethod
     def export(
-        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: Optional[Union[str, TextIO]] = None
-    ) -> Union[TextIO, str]:
+        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: str | TextIO | None = None
+    ) -> str | TextIO:
         """
         A function which exports this database object.
 
@@ -295,7 +295,7 @@ class Creatable(Object):
 
         Returns
         -------
-        Union[:class:`io.TextIOBase`, :class:`str`]
+        [:class:`io.TextIOBase`, :class:`str`]
             The file-like object which was provided or a string containing the
             exported database object.
         """
@@ -319,13 +319,11 @@ class Creatable(Object):
 
     @overload
     @classmethod
-    def export_schema(cls, *, if_not_exists: bool = ..., fp: Union[str, TextIO] = ...) -> TextIO:
+    def export_schema(cls, *, if_not_exists: bool = ..., fp: str | TextIO = ...) -> TextIO:
         ...
 
     @classmethod
-    def export_schema(
-        cls, *, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] = None
-    ) -> Union[TextIO, str]:
+    def export_schema(cls, *, if_not_exists: bool = False, fp: str | TextIO | None = None) -> str | TextIO:
         """|coro|
 
         A function which exports this database object's schema.
@@ -363,15 +361,13 @@ class Creatable(Object):
 
     @overload
     @classmethod
-    def export_all(
-        cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: Union[str, TextIO] = ...
-    ) -> TextIO:
+    def export_all(cls, *, if_not_exists: bool = ..., export_schema: bool = True, fp: str | TextIO = ...) -> TextIO:
         ...
 
     @classmethod
     def export_all(
-        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: Optional[Union[str, TextIO]] = None
-    ) -> Union[TextIO, str]:
+        cls, *, if_not_exists: bool = False, export_schema: bool = True, fp: str | TextIO | None = None
+    ) -> str | TextIO:
         """
         A function which exports all database objects that subclass this object.
 

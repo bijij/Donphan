@@ -1,8 +1,8 @@
-from donphan.utils import not_creatable
-
-from tests.utils import async_test, with_connection
-from donphan import Column, Table, SQLType
 from unittest import TestCase
+
+from donphan import Column, SQLType, Table
+from donphan.utils import not_creatable
+from tests.utils import async_test, with_connection
 
 
 class _TestAlterColumnsTable(Table):

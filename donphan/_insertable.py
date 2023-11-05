@@ -25,11 +25,11 @@ SOFTWARE.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, TypeVar, Union, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, overload
 
 from ._column import Column, SQLType
 from ._selectable import Selectable
-from .utils import query_builder, resolve_annotation
+from .utils import MISSING, query_builder, resolve_annotation
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Record
@@ -94,15 +94,15 @@ class Insertable(Selectable):
     @classmethod
     def _get_primary_keys(
         cls,
-        record: Dict[str, Any],
+        record: dict[str, Any],
     ) -> dict[str, Any]:
-        return {column.name: record[column.name] for column in cls._primary_keys}
+        return {column.name: record.get(column.name, MISSING) for column in cls._primary_keys}
 
     @classmethod
     def _query_returning(
         cls,
         builder: list[str],
-        returning: Union[Iterable[Union[Column, str]], str],
+        returning: Iterable[Column | str] | str,
     ) -> None:
         builder.append("RETURNING")
 
@@ -121,10 +121,10 @@ class Insertable(Selectable):
     @query_builder
     def _build_query_insert(
         cls,
-        columns: Union[Iterable[Union[Column, str]], str],
+        columns: Iterable[Column | str] | str,
         ignore_on_conflict: bool,
-        update_on_conflict: Union[Iterable[Union[Column, str]], str],
-        returning: Union[Iterable[Union[Column, str]], str],
+        update_on_conflict: Iterable[Column | str] | str,
+        returning: Iterable[Column | str] | str,
     ) -> list[str]:
         builder = [f"INSERT INTO", cls._name, "("]
 
@@ -188,8 +188,8 @@ class Insertable(Selectable):
         cls,
         where: str,
         offset: int,
-        columns: Union[Iterable[Union[Column, str]], str],
-        returning: Union[Iterable[Union[Column, str]], str],
+        columns: Iterable[Column | str] | str,
+        returning: Iterable[Column | str] | str,
     ) -> list[str]:
         builder = [f"UPDATE", cls._name, "SET"]
 
@@ -219,7 +219,7 @@ class Insertable(Selectable):
     def _build_query_delete(
         cls,
         where: str,
-        returning: Union[Iterable[Union[Column, str]], str],
+        returning: Iterable[Column | str] | str,
     ) -> list[str]:
         builder = ["DELETE FROM", cls._name]
         if where:
@@ -243,8 +243,8 @@ class Insertable(Selectable):
         /,
         *,
         ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        update_on_conflict: Iterable[Column | str] | str | None = ...,
+        returning: Iterable[Column | str] | str = ...,
         **values: Any,
     ) -> Record:
         ...
@@ -257,7 +257,7 @@ class Insertable(Selectable):
         /,
         *,
         ignore_on_conflict: bool = ...,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = ...,
+        update_on_conflict: Iterable[Column | str] | str | None = ...,
         returning: None = ...,
         **values: Any,
     ) -> None:
@@ -270,10 +270,10 @@ class Insertable(Selectable):
         /,
         *,
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        update_on_conflict: Iterable[Column | str] | str | None = None,
+        returning: Iterable[Column | str] | str | None = None,
         **values: Any,
-    ) -> Optional[Record]:
+    ) -> Record | None:
         r"""|coro|
 
         Inserts a new record into the database.
@@ -308,10 +308,10 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        columns: Union[Iterable[Union[Column, str]], str],
+        columns: Iterable[Column | str] | str,
         *values: Iterable[Any],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        update_on_conflict: Iterable[Column | str] | str | None = None,
     ) -> None:
         ...
 
@@ -324,7 +324,7 @@ class Insertable(Selectable):
         columns: None,
         *values: dict[str, Any],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        update_on_conflict: Iterable[Column | str] | str | None = None,
     ) -> None:
         ...
 
@@ -333,10 +333,10 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        columns: Optional[Union[Iterable[Union[Column, str]], str]],
-        *values: Union[Iterable[Any], dict[str, Any]],
+        columns: Iterable[Column | str] | str | None,
+        *values: Iterable[Any] | dict[str, Any],
         ignore_on_conflict: bool = False,
-        update_on_conflict: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        update_on_conflict: Iterable[Column | str] | str | None = None,
     ) -> None:
         r"""|coro|
 
@@ -369,7 +369,7 @@ class Insertable(Selectable):
         /,
         where: str,
         *values: Any,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        returning: Iterable[Column | str] | str = ...,
         **_values: Any,
     ) -> list[Record]:
         ...
@@ -394,9 +394,9 @@ class Insertable(Selectable):
         /,
         where: str,
         *values: Any,
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        returning: Iterable[Column | str] | str | None = None,
         **_values: Any,
-    ) -> Optional[list[Record]]:
+    ) -> list[Record] | None:
         r"""|coro|
 
         Updates records in the database which match a given WHERE clause.
@@ -429,8 +429,8 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        record: dict[str, Any],
+        returning: Iterable[Column | str] | str = ...,
         **values: Any,
     ) -> Record:
         ...
@@ -441,7 +441,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
+        record: dict[str, Any],
         returning: None = ...,
         **values: Any,
     ) -> None:
@@ -452,10 +452,10 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        record: dict[str, Any],
+        returning: Iterable[Column | str] | str | None = None,
         **values: Any,
-    ) -> Optional[Record]:
+    ) -> Record | None:
         r"""|coro|
 
         Updates a record in the database.
@@ -494,7 +494,7 @@ class Insertable(Selectable):
         /,
         where: str,
         *values: Any,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        returning: Iterable[Column | str] | str = ...,
     ) -> list[Record]:
         ...
 
@@ -517,8 +517,8 @@ class Insertable(Selectable):
         /,
         where: str,
         *values: Any,
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> Optional[list[Record]]:
+        returning: Iterable[Column | str] | str | None = None,
+    ) -> list[Record] | None:
         """|coro|
 
         Deletes records in the database which match the given WHERE clause.
@@ -550,7 +550,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        returning: Iterable[Column | str] | str = ...,
         **values: Any,
     ) -> list[Record]:
         ...
@@ -571,9 +571,9 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
+        returning: Iterable[Column | str] | str | None = None,
         **values: Any,
-    ) -> Optional[list[Record]]:
+    ) -> list[Record] | None:
         r"""|coro|
 
         Deletes records in the database which contain the given values.
@@ -603,9 +603,9 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
+        record: dict[str, Any],
         *,
-        returning: Union[Iterable[Union[Column, str]], str] = ...,
+        returning: Iterable[Column | str] | str = ...,
     ) -> Record:
         ...
 
@@ -615,7 +615,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
+        record: dict[str, Any],
         *,
         returning: None = ...,
     ) -> None:
@@ -626,10 +626,10 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Dict[str, Any],
+        record: dict[str, Any],
         *,
-        returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
-    ) -> Optional[Record]:
+        returning: Iterable[Column | str] | str | None = None,
+    ) -> Record | None:
         """|coro|
 
         Deletes a given record from the database.

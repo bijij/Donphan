@@ -1,8 +1,8 @@
-from donphan import MaybeAcquire
 from unittest import TestCase
 
 import asyncpg
-from donphan import create_pool
+
+from donphan import MaybeAcquire, create_pool
 
 from .env import POSTGRES_DSN
 from .utils import async_test, set_pool, with_pool

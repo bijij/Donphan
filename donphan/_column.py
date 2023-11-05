@@ -24,7 +24,7 @@ SOFTWARE.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from ._consts import Operators
 from ._sqltype import SQLType
@@ -248,8 +248,8 @@ class Column(BaseColumn, Generic[_T]):
     nullable: bool = False
     unique: bool = False
     cascade: bool = False
-    default: Optional[Union[str, _T]] = MISSING
-    references: Optional[Column[_T]] = None
+    default: str | _T | None = MISSING
+    references: Column[_T] | None = None
 
     @property
     def py_type(self) -> type[_T]:

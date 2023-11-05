@@ -28,22 +28,12 @@ import datetime
 import json
 from collections.abc import Callable
 from types import TracebackType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Final,
-    Literal,
-    Optional,
-    TextIO,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Final, Literal, TextIO, TypeVar, overload
 
 import asyncpg
 
 from ._consts import CUSTOM_TYPES, DEFAULT_SCHEMA, POOLS
-from .utils import DOCS_BUILDING, write_to_file, optional_transaction
+from .utils import DOCS_BUILDING, optional_transaction, write_to_file
 
 if TYPE_CHECKING:
     from asyncpg import Connection, Pool
@@ -261,11 +251,11 @@ def export_db(*, if_not_exists: bool = ..., fp: None = ...) -> str:
 
 
 @overload
-def export_db(*, if_not_exists: bool = ..., fp: Union[str, TextIO] = ...) -> TextIO:
+def export_db(*, if_not_exists: bool = ..., fp: str | TextIO | None = ...) -> TextIO:
     ...
 
 
-def export_db(*, if_not_exists: bool = False, fp: Optional[Union[str, TextIO]] = None) -> Union[TextIO, str]:
+def export_db(*, if_not_exists: bool = False, fp: str | TextIO | None = None) -> str | TextIO:
     """
     A helper function which exports all objects in the database.
 
@@ -339,16 +329,16 @@ class MaybeAcquire:
     """
 
     @overload
-    def __init__(self, connection: Connection = ..., /, *, pool: Optional[Pool] = ...):
+    def __init__(self, connection: Connection = ..., /, *, pool: Pool | None = ...):
         ...
 
     @overload
     def __init__(self, connection: None = ..., /, *, pool: Pool = ...):
         ...
 
-    def __init__(self, connection: Optional[Connection] = None, /, *, pool: Optional[Pool] = None):
-        self.connection: Optional[Connection] = connection
-        self.pool: Optional[Pool] = pool
+    def __init__(self, connection: Connection | None = None, /, *, pool: Pool | None = None):
+        self.connection: Connection | None = connection
+        self.pool: Pool | None = pool
         self._cleanup: bool = False
 
     async def __aenter__(self) -> Connection:

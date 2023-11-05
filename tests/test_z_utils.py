@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from donphan._consts import NOT_CREATABLE
-from donphan.utils import normalise_name, query_builder, not_creatable, MISSING
+from donphan.utils import MISSING, normalise_name, not_creatable, query_builder
 
 
 class UtilsTest(TestCase):
