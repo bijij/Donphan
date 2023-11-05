@@ -76,7 +76,7 @@ class CachedTable(Table):
 
     @classmethod
     def _store_cached(cls, *args: Any, record: dict[str, Any]) -> None:
-        cls._cache[args] = record
+        cls._cache[args] = dict(record)
 
     @classmethod
     def _delete_cached(cls, *args: Any) -> None:
