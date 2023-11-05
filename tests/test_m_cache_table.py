@@ -9,7 +9,7 @@ NUM_ITEMS = random.randint(3, 10)
 B_VALUES = [random.random() for _ in range(random.randint(1, 5))]
 
 
-class _TestCachedTable(CachedTable):
+class _TestCachedTable(CachedTable, max_size=NUM_ITEMS):
     a: Column[SQLType.Integer] = Column(primary_key=True)
     b: Column[list[SQLType.Double]] = Column(nullable=True)
 
@@ -27,19 +27,19 @@ class CachedTableTest(TestCase):
             await _TestCachedTable.insert(conn, a=x)
 
     def test_c_cached_insert(self):
-        record = _TestCachedTable.get_cached(0)
+        record = _TestCachedTable.get_cached(a=0)
         assert record is not None
         assert record["a"] == 0 and record["b"] is None
 
     @async_test
     @with_connection
     async def test_d_table_update(self, conn):
-        record = _TestCachedTable.get_cached(0)
+        record = _TestCachedTable.get_cached(a=0)
         assert record is not None
         await _TestCachedTable.update_record(conn, record, b=B_VALUES)
 
     def test_e_cached_update(self):
-        record = _TestCachedTable.get_cached(0)
+        record = _TestCachedTable.get_cached(a=0)
         assert record is not None
         assert record["a"] == 0 and record["b"] == B_VALUES
 
@@ -52,37 +52,37 @@ class CachedTableTest(TestCase):
     @async_test
     @with_connection
     async def test_g_fetch_row_cache_hit(self, conn):
-        cached_record = _TestCachedTable.get_cached(0)
+        _TestCachedTable._cache[(0,)]["b"] = [3]
         record = await _TestCachedTable.fetch_row(conn, a=0)
-        assert record is cached_record
+        assert record is not None
+        assert record["b"] == [3]
 
     @async_test
     @with_connection
     async def test_h_fetch_row_cache_miss(self, conn):
         _TestCachedTable._delete_cached(0)
-        assert _TestCachedTable.get_cached(0) is None
+        assert _TestCachedTable.get_cached(a=0) is None
         record = await _TestCachedTable.fetch_row(conn, a=0)
-        cached_record = _TestCachedTable.get_cached(0)
+        cached_record = _TestCachedTable.get_cached(a=0)
         assert record is cached_record
 
     @async_test
     @with_connection
     async def test_i_fetch_value_cache_hit(self, conn):
-        cached_record = _TestCachedTable.get_cached(0)
-        assert cached_record is not None
-        record = await _TestCachedTable.fetch_value(conn, 'b', a=0)
-        assert record is cached_record['b']
+        _TestCachedTable._cache[(0,)]["b"] = [5]
+        record = await _TestCachedTable.fetch_value(conn, "b", a=0)
+        assert record == [5]
 
     @async_test
     @with_connection
     async def test_j_fetch_value_cache_miss(self, conn):
         _TestCachedTable._delete_cached(0)
-        assert _TestCachedTable.get_cached(0) is None
-        record = await _TestCachedTable.fetch_value(conn, 'b', a=0)
+        assert _TestCachedTable.get_cached(a=0) is None
+        record = await _TestCachedTable.fetch_value(conn, "b", a=0)
         assert record == B_VALUES
-        cached_record = _TestCachedTable.get_cached(0)
+        cached_record = _TestCachedTable.get_cached(a=0)
         assert cached_record is not None
-        assert cached_record['b'] is record
+        assert cached_record["b"] is record
 
     @async_test
     @with_connection

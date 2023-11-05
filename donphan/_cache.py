@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Iterable
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, NoReturn
 
 from ._column import Column
@@ -83,12 +84,22 @@ class CachedTable(Table):
         cls._cache.pop(args, None)
 
     @classmethod
-    def get_cached(cls, *args: Any) -> dict[str, Any] | None:
-        """Get a cached record from the table."""
-        return cls._cache.get(args)
+    def get_cached(cls, **kwargs: Any) -> dict[str, Any] | None:
+        """Get a cached record from the table.
+
+        .. note::
+            The returned record is a copy of the cached record, so modifying it will not modify the cached record.
+
+        """
+        key = cls._get_primary_key_values(kwargs)
+        record = cls._cache.get(key)
+
+        if record is not None:
+            return deepcopy(record)
 
     @classmethod
     def clear_cache(cls) -> None:
+        """Clear the cache."""
         cls._cache.clear()
 
     if not TYPE_CHECKING and not DOCS_BUILDING:
@@ -104,7 +115,7 @@ class CachedTable(Table):
         @classmethod
         @with_lock
         async def fetch_row_where(cls, *args: Any, **kwargs: Any) -> Record | None:
-            cached_result = cls.get_cached(*cls._get_primary_key_values(kwargs))
+            cached_result = cls.get_cached(**kwargs)
             if cached_result is not None:
                 return cached_result
 
@@ -121,7 +132,7 @@ class CachedTable(Table):
             if isinstance(column, str):
                 column = cls._columns_dict[column]
 
-            cached_result = cls.get_cached(*cls._get_primary_key_values(kwargs))
+            cached_result = cls.get_cached(**kwargs)
             if cached_result is not None:
                 return cached_result[column.name]
 
