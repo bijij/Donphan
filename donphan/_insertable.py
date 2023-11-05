@@ -25,7 +25,7 @@ SOFTWARE.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, TypeVar, Union, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, TypeVar, Union, cast, overload
 
 from ._column import Column, SQLType
 from ._selectable import Selectable
@@ -94,7 +94,7 @@ class Insertable(Selectable):
     @classmethod
     def _get_primary_keys(
         cls,
-        record: Record,
+        record: Dict[str, Any],
     ) -> dict[str, Any]:
         return {column.name: record[column.name] for column in cls._primary_keys}
 
@@ -429,7 +429,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         returning: Union[Iterable[Union[Column, str]], str] = ...,
         **values: Any,
     ) -> Record:
@@ -441,7 +441,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         returning: None = ...,
         **values: Any,
     ) -> None:
@@ -452,7 +452,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
         **values: Any,
     ) -> Optional[Record]:
@@ -603,7 +603,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         *,
         returning: Union[Iterable[Union[Column, str]], str] = ...,
     ) -> Record:
@@ -615,7 +615,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         *,
         returning: None = ...,
     ) -> None:
@@ -626,7 +626,7 @@ class Insertable(Selectable):
         cls,
         connection: Connection,
         /,
-        record: Record,
+        record: Dict[str, Any],
         *,
         returning: Optional[Union[Iterable[Union[Column, str]], str]] = None,
     ) -> Optional[Record]:
