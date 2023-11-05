@@ -69,8 +69,9 @@ class CachedTableTest(TestCase):
         _TestCachedTable._delete_cached(0)
         assert _TestCachedTable.get_cached(a=0) is None
         record = await _TestCachedTable.fetch_row(conn, a=0)
+        assert record is not None
         cached_record = _TestCachedTable.get_cached(a=0)
-        assert record == cached_record
+        assert dict(record) == cached_record
 
     @async_test
     @with_connection

@@ -120,8 +120,12 @@ class CachedTable(Table):
                 return cached_result
 
             result = await super().fetch_row(connection, order_by=order_by, **values)
-            cls._store_cached(*cls._get_primary_key_values(result), record=result)
-            return result
+            if result is not None:
+                cls._store_cached(*cls._get_primary_key_values(result), record=result)
+                return result
+
+            if MISSING not in key:
+                cls._store_cached(*key, record=None)
 
         @classmethod
         @with_lock
@@ -140,12 +144,17 @@ class CachedTable(Table):
             key = cls._get_primary_key_values(values)
             cached_result = cls._cache.get(key, MISSING)
             if cached_result is not MISSING:
+                if cached_result is None:
+                    return None
                 return cached_result[column.name]
 
             result = await super().fetch_row(connection, order_by=order_by, **values)
-            cls._store_cached(*cls._get_primary_key_values(result), record=result)
-            if result:
+            if result is not None:
+                cls._store_cached(*cls._get_primary_key_values(result), record=result)
                 return result[column.name]
+
+            if MISSING not in key:
+                cls._store_cached(*key, record=None)
 
         @classmethod
         @with_lock
