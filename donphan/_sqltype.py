@@ -72,16 +72,19 @@ class SQLType(Generic[T]):
 
     @classmethod
     def _from_type(cls, type: type[OT]) -> type[SQLType[OT]]:
-        if issubclass(type, Enum):
-            # this is a hack because >circular imports<
-            from ._custom_types import EnumType
+        # this is a hack because >circular imports<
+        from ._custom_types import EnumType
 
+        if issubclass(type, Enum):
             if type in cls.__enum_types:
                 return cls.__enum_types[type]
+            
+            type = types.new_class(type.__name__, (EnumType[type],))
 
-            enum_type = types.new_class(type.__name__, (EnumType[type],))
-            cls.__enum_types[type] = enum_type
-            return enum_type
+        if issubclass(type, EnumType):
+            cls.__enum_types[type] = type
+            return type
+
         return cls.__defaults[type]
 
 
